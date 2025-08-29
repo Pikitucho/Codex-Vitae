@@ -1,0 +1,295 @@
+/* --- "Arcane & Autumn" COLOR PALETTE --- */
+:root {
+    --color-primary: #4834d4; /* Deep, magical indigo */
+    --color-primary-dark: #341f97;
+    --color-accent: #f0932b; /* Warm, golden amber */
+    --color-background-light: #f5f6fa; /* Soft, creamy off-white */
+    --color-background-widget: #ffffff;
+    --color-text-dark: #2d3436; /* Dark, graphite text */
+    --color-text-medium: #636e72;
+    --color-border: #dfe6e9;
+    --color-success: #00b894; /* A rich teal for success */
+}
+
+/* --- GLOBAL STYLES --- */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--color-background-light);
+    color: var(--color-text-dark);
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    margin: 0;
+}
+
+#auth-screen {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 50px;
+}
+
+#app-screen {
+    width: 100%;
+    max-width: 400px;
+    background-color: var(--color-background-widget);
+    border-radius: 15px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+h2, h3, h4 {
+    text-align: center;
+    color: var(--color-text-dark);
+}
+h2 { color: var(--color-primary); }
+
+/* --- WIDGET STYLE --- */
+.widget {
+    background-color: #fdfdfd;
+    border: 1px solid #eef2f3;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* --- DASHBOARD & STATS --- */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 15px;
+}
+.stat-card {
+    background: var(--color-background-widget);
+    border: 1px solid #eef2f3;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.stat-label {
+    font-size: 0.85em;
+    color: var(--color-text-medium);
+}
+.stat-value {
+    font-size: 1.6em;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+/* --- BARS & INPUTS --- */
+.progress-bar-container {
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    height: 12px;
+    overflow: hidden;
+}
+.progress-bar {
+    background-color: var(--color-success);
+    height: 100%;
+    width: 0%;
+    border-radius: 5px;
+    transition: width 0.4s ease-out;
+}
+.flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.input-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+input, select, button {
+    padding: 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 1em;
+    background-color: #fff;
+    color: var(--color-text-dark);
+}
+input:focus, select:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(72, 52, 212, 0.2);
+}
+button {
+    background-color: var(--color-primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+}
+button:hover {
+    background-color: var(--color-primary-dark);
+}
+
+/* --- ALIGNMENT FIXES --- */
+
+#chore-section .input-group input {
+    flex-grow: 1; 
+}
+
+#goal-section .input-group select {
+    flex-grow: 1;
+}
+#goal-section .input-group input {
+    width: 80px;
+    flex-grow: 0;
+}
+
+/* ** Corrected rules for the Custom Activity section ** */
+#custom-activity-section #activity-name-input {
+    width: 100%; 
+}
+#custom-activity-section #activity-stat-select {
+    flex-grow: 1; 
+}
+#custom-activity-section #activity-xp-input {
+    width: 80px; /* Reduced width to match "Set a Goal" */
+    flex-grow: 0;
+}
+#custom-activity-section #add-activity-btn {
+    flex-grow: 0; 
+}
+
+/* --- CHORES & GOALS --- */
+#chore-list {
+    list-style: none;
+    padding: 0;
+}
+#chore-list li {
+    cursor: pointer;
+}
+#chore-list li.completed {
+    text-decoration: line-through;
+    color: var(--color-text-medium);
+}
+#active-goal-display {
+    background-color: #fff8e1;
+    border: 1px solid #ffecb3;
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 15px;
+    color: #c58900;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* --- MODALS --- */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.55);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+    text-align: center;
+}
+.modal-content h2 {
+    color: var(--color-primary);
+}
+.hidden {
+    display: none;
+}
+
+/* --- CODEX MENU (Main Menu Button) --- */
+#open-codex-btn {
+    background-color: var(--color-accent);
+    font-size: 1.1em;
+    padding: 12px;
+    box-shadow: 0 4px 10px rgba(240, 147, 43, 0.3);
+}
+#open-codex-btn:hover {
+    background-color: #d68910;
+}
+.codex-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 25px 0;
+}
+.codex-menu button {
+    width: 100%;
+    background-color: var(--color-background-light);
+    color: var(--color-text-dark);
+    border: 1px solid var(--color-border);
+}
+.codex-menu button:hover {
+    background-color: #e0e6eb;
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+/* --- SKILL TREE --- */
+#skills-modal .modal-content {
+    background-color: var(--color-text-dark);
+}
+#skills-modal h2 { color: #fff; }
+#skill-tree-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+#skill-tree-view {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+    border: 1px solid #4a5568;
+    padding: 20px;
+    border-radius: 8px;
+}
+.galaxy, .constellation, .star {
+    border: 2px solid #4a5568;
+    color: #f5f6fa;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.galaxy { width: 120px; height: 120px; background-color: #4a5568; }
+.constellation { width: 100px; height: 100px; background-color: #4a5568; }
+.star { width: 70px; height: 70px; }
+.star.unlocked {
+    background-color: var(--color-success);
+    border-color: #009a7b;
+}
+.star.locked {
+    background-color: #2d3436;
+    color: #636e72;
+}
+

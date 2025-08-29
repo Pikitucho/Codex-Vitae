@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codex Vitae</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div id="auth-screen">
+        <h1>Codex Vitae</h1>
+        <input type="email" id="email-input" placeholder="Email">
+        <input type="password" id="password-input" placeholder="Password">
+        <button id="login-btn">Login</button>
+        <button id="signup-btn">Sign Up</button>
+    </div>
+
+    <div id="app-screen" class="hidden">
+        <h2>Welcome to Your Codex</h2>
+
+        <div id="level-xp-display" class="widget">
+            <div class="flex-between">
+                <p>Level <span id="level-value">1</span></p>
+                <p id="xp-text">0 / 100 XP</p>
+            </div>
+            <div class="progress-bar-container">
+                <div id="xp-bar" class="progress-bar"></div>
+            </div>
+        </div>
+        
+        <div id="face-scan-section" class="widget">
+            <video id="webcam-feed"></video>
+            <button id="scan-face-btn">Scan Face</button>
+        </div>
+
+        <div id="dashboard" class="widget">
+            <h3>Core Stats</h3>
+            <div class="dashboard-grid">
+                <div class="stat-card">
+                    <p class="stat-label">Strength</p>
+                    <p id="str-value" class="stat-value">--</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Dexterity</p>
+                    <p id="dex-value" class="stat-value">--</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Constitution</p>
+                    <p id="con-value" class="stat-value">--</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Intelligence</p>
+                    <p id="int-value" class="stat-value">--</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Wisdom</p>
+                    <p id="wis-value" class="stat-value">--</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-label">Charisma</p>
+                    <p id="cha-value" class="stat-value">--</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="chore-section" class="widget">
+            <h4>Daily Chores</h4>
+            <ul id="chore-list"></ul>
+            <div class="input-group">
+                <input type="text" id="chore-input" placeholder="Add a new chore...">
+                <button id="add-chore-btn">+</button>
+            </div>
+        </div>
+
+        <div id="goal-section" class="widget">
+            <h4>Set a New Goal</h4>
+            <div class="input-group">
+                <select id="goal-stat-select">
+                    <option value="strength">Strength</option>
+                    <option value="dexterity">Dexterity</option>
+                    <option value="constitution">Constitution</option>
+                    <option value="intelligence">Intelligence</option>
+                    <option value="wisdom">Wisdom</option>
+                    <option value="charisma">Charisma</option>
+                </select>
+                <input type="number" id="goal-value-input" placeholder="Target">
+                <button id="set-goal-btn">Set</button>
+            </div>
+            <div id="active-goal-display" class="hidden">
+                <p id="goal-text"></p>
+            </div>
+        </div>
+
+        <div id="activity-log-section" class="widget">
+            <h4>Log an Activity</h4>
+            <div class="input-group">
+                <select id="activity-select">
+                    <option value="strength">Lifted Weights</option>
+                    <option value="constitution">Went for a Run</option>
+                    <option value="intelligence">Read a Book (1hr)</option>
+                    <option value="wisdom">Meditated (15min)</option>
+                </select>
+                <button id="log-activity-btn">Log</button>
+            </div>
+        </div>
+
+        <button id="open-codex-btn">Open Codex</button>
+    </div>
+
+    <div id="onboarding-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Create Your Character</h2>
+            <p>Answer a few questions to establish your baseline stats.</p>
+            <form id="onboarding-form">
+                <label>How often do you do intense exercise?</label>
+                <select id="exercise-freq">
+                    <option value="0">Rarely or Never</option>
+                    <option value="1">1-2 times a week</option>
+                    <option value="2">3-4 times a week</option>
+                </select>
+                <label>How often do you actively learn something new?</label>
+                <select id="study-habit">
+                    <option value="0">Rarely</option>
+                    <option value="1">Sometimes</option>
+                    <option value="2">Often</option>
+                </select>
+                <button type="submit">Finalize Character</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="skills-modal" class="modal hidden">
+        <div class="modal-content">
+            <div id="skill-tree-header">
+                <button id="skill-back-btn" class="hidden">&larr; Back</button>
+                <h2 id="skill-tree-title">Skill Galaxy</h2>
+                <button id="close-skills-btn">Close</button>
+            </div>
+            <div id="skill-tree-view"></div>
+        </div>
+    </div>
+
+    <div id="codex-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Codex Menu</h2>
+            <div class="codex-menu">
+                <button id="codex-skills-btn">Constellation Skills</button>
+                <button id="codex-goals-btn">Goals & Chores</button>
+                <button id="codex-logout-btn">Logout</button>
+            </div>
+            <button id="close-codex-btn">Close</button>
+        </div>
+    </div>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
