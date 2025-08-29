@@ -91,6 +91,52 @@ function handleLogin() {
         .catch(error => alert(error.message));
 }
 
+// Replace your old handleFaceScan function with this one
+async function handleFaceScan() {
+    const webcamFeed = document.getElementById('webcam-feed');
+    const capturedPhoto = document.getElementById('captured-photo');
+    const canvas = document.getElementById('photo-canvas');
+
+    // If the webcam is not running, turn it on.
+    if (!webcamFeed.srcObject) {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            webcamFeed.srcObject = stream;
+            // The button now says "Capture"
+            document.getElementById('scan-face-btn').textContent = 'Capture';
+            return; // Exit the function to let the user pose for the photo
+        } catch (error) {
+            console.error("Error accessing webcam:", error);
+            alert("Could not access webcam. Please check permissions.");
+            return;
+        }
+    }
+
+    // If the webcam is already running, capture the image.
+    const context = canvas.getContext('2d');
+    canvas.width = webcamFeed.videoWidth;
+    canvas.height = webcamFeed.videoHeight;
+    context.drawImage(webcamFeed, 0, 0, canvas.width, canvas.height);
+
+    // Convert the canvas drawing to an image
+    const dataUrl = canvas.toDataURL('image/png');
+    capturedPhoto.src = dataUrl;
+
+    // Show the photo and hide the video feed
+    capturedPhoto.classList.remove('hidden');
+    webcamFeed.classList.add('hidden');
+
+    // Stop the webcam stream
+    webcamFeed.srcObject.getTracks().forEach(track => track.stop());
+    webcamFeed.srcObject = null;
+
+    // Change the button text back
+    document.getElementById('scan-face-btn').textContent = 'Scan Face';
+    
+    // In the future, this is where we would analyze the image data.
+    alert("Face captured!");
+}
+
 function handleLogout() {
     auth.signOut();
 }
@@ -276,6 +322,15 @@ function openSkillsModal() {
 }
 
 function setupEventListeners() {
+    // --- AUTH SCREEN BUTTONS ---
+    // Note: These are set up separately, but included for completeness
+    // document.getElementById('login-btn').addEventListener('click', handleLogin);
+    // document.getElementById('signup-btn').addEventListener('click', handleSignUp);
+    // document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
+
+    // --- DASHBOARD WIDGETS ---
+    document.getElementById('scan-face-btn').addEventListener('click', handleFaceScan);
+
     document.getElementById('add-chore-btn').addEventListener('click', () => {
         const choreInput = document.getElementById('chore-input');
         if (choreManager.addChore(choreInput.value.trim())) {
@@ -297,6 +352,7 @@ function setupEventListeners() {
         activityManager.logActivity(selectedActivity);
     });
 
+    // --- CODEX & SKILLS MODAL BUTTONS ---
     const codexModal = document.getElementById('codex-modal');
     document.getElementById('open-codex-btn').addEventListener('click', () => {
         codexModal.classList.remove('hidden');
@@ -314,10 +370,10 @@ function setupEventListeners() {
     document.getElementById('codex-logout-btn').addEventListener('click', handleLogout);
 
     document.getElementById('close-skills-btn').addEventListener('click', () => {
-        skillsModal.classList.add('hidden');
+        document.getElementById('skills-modal').classList.add('hidden');
     });
 
-    skillBackBtn.addEventListener('click', () => {
+    document.getElementById('skill-back-btn').addEventListener('click', () => {
         currentSkillPath.pop();
         renderSkillTree();
     });

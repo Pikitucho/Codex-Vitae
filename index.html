@@ -29,10 +29,14 @@
             </div>
         </div>
         
-        <div id="face-scan-section" class="widget">
-            <video id="webcam-feed"></video>
-            <button id="scan-face-btn">Scan Face</button>
+    <div id="face-scan-section" class="widget">
+        <div class="avatar-display">
+            <video id="webcam-feed" class="avatar-circle"></video>
+            <img id="captured-photo" class="avatar-circle hidden" alt="Your captured photo">
         </div>
+        <canvas id="photo-canvas" class="hidden"></canvas>
+        <button id="scan-face-btn">Scan Face</button>
+    </div>
 
         <div id="dashboard" class="widget">
             <h3>Core Stats</h3>
