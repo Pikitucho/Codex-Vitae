@@ -54,6 +54,7 @@ let currentSkillPath = [];
 // --- Manager Logic ---
 const levelManager = {
     gainXp: function(amount) {
+        if (!characterData.xp) characterData.xp = 0;
         characterData.xp += amount;
         if (characterData.xp >= characterData.xpToNextLevel) {
             this.levelUp();
@@ -284,7 +285,7 @@ function openSkillsModal() {
 }
 
 async function handleFaceScan() {
-    // ... Your complete handleFaceScan function
+    // ... This is where your full handleFaceScan function goes
 }
 
 function setupEventListeners() {
@@ -295,7 +296,6 @@ function setupEventListeners() {
             updateDashboard();
         }
     });
-
     document.getElementById('set-goal-btn').addEventListener('click', () => {
         const stat = document.getElementById('goal-stat-select').value;
         const target = parseInt(document.getElementById('goal-value-input').value);
@@ -303,37 +303,29 @@ function setupEventListeners() {
             updateDashboard();
         }
     });
-
     document.getElementById('log-activity-btn').addEventListener('click', () => {
         const selectedActivity = document.getElementById('activity-select').value;
         activityManager.logActivity(selectedActivity);
     });
-
     const codexModal = document.getElementById('codex-modal');
     document.getElementById('open-codex-btn').addEventListener('click', () => {
         codexModal.classList.remove('hidden');
     });
-
     document.getElementById('close-codex-btn').addEventListener('click', () => {
         codexModal.classList.add('hidden');
     });
-
     document.getElementById('codex-skills-btn').addEventListener('click', () => {
         codexModal.classList.add('hidden');
         openSkillsModal();
     });
-
     document.getElementById('codex-logout-btn').addEventListener('click', handleLogout);
-
     document.getElementById('close-skills-btn').addEventListener('click', () => {
         skillsModal.classList.add('hidden');
     });
-
     skillBackBtn.addEventListener('click', () => {
         currentSkillPath.pop();
         renderSkillTree();
     });
-    
     document.getElementById('scan-face-btn').addEventListener('click', handleFaceScan);
 }
 
@@ -355,6 +347,7 @@ auth.onAuthStateChanged(async user => {
     }
 });
 
+// These listeners are for the auth screen, so they need to be active on page load
 document.getElementById('login-btn').addEventListener('click', handleLogin);
 document.getElementById('signup-btn').addEventListener('click', handleSignUp);
 document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
