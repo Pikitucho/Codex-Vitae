@@ -8,7 +8,7 @@ const firebaseConfig = {
     appId: "1:1078038224886:web:19a322f88fc529307371d7",
     measurementId: "G-DVGVB274T3"
 };
-const STABILITY_API_KEY = "sk-NenyJ8SRvBmAF2gPlBeJBgf7VPx5sPYwuMkbXFBqT6WwC79S"
+const STABILITY_API_KEY = sk-yjemGIKgIaJAeTy1sASe42RUNkSDGA5QsbNEErfzPT7KeKIt
 
 // --- Firebase Initialization ---
 firebase.initializeApp(firebaseConfig);
