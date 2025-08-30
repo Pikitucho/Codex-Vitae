@@ -92,19 +92,22 @@ function handleLogin() {
 }
 
 // Replace your old handleFaceScan function with this one
+// Replace your old handleFaceScan function with this one
 async function handleFaceScan() {
     const webcamFeed = document.getElementById('webcam-feed');
     const capturedPhoto = document.getElementById('captured-photo');
     const canvas = document.getElementById('photo-canvas');
+    const scanButton = document.getElementById('scan-face-btn');
 
     // If the webcam is not running, turn it on.
-    if (!webcamFeed.srcObject) {
+    if (!webcamFeed.srcObject || !webcamFeed.srcObject.active) {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
             webcamFeed.srcObject = stream;
-            // The button now says "Capture"
-            document.getElementById('scan-face-btn').textContent = 'Capture';
-            return; // Exit the function to let the user pose for the photo
+            webcamFeed.classList.remove('hidden');
+            capturedPhoto.classList.add('hidden');
+            scanButton.textContent = 'Capture';
+            return; 
         } catch (error) {
             console.error("Error accessing webcam:", error);
             alert("Could not access webcam. Please check permissions.");
@@ -112,29 +115,62 @@ async function handleFaceScan() {
         }
     }
 
-    // If the webcam is already running, capture the image.
+    // --- NEW AI GENERATION LOGIC ---
+
+    // 1. Capture the image to the canvas
     const context = canvas.getContext('2d');
     canvas.width = webcamFeed.videoWidth;
     canvas.height = webcamFeed.videoHeight;
     context.drawImage(webcamFeed, 0, 0, canvas.width, canvas.height);
 
-    // Convert the canvas drawing to an image
-    const dataUrl = canvas.toDataURL('image/png');
-    capturedPhoto.src = dataUrl;
-
-    // Show the photo and hide the video feed
-    capturedPhoto.classList.remove('hidden');
-    webcamFeed.classList.add('hidden');
-
-    // Stop the webcam stream
+    // 2. Stop the webcam and prepare the UI
     webcamFeed.srcObject.getTracks().forEach(track => track.stop());
     webcamFeed.srcObject = null;
+    webcamFeed.classList.add('hidden');
+    scanButton.textContent = "Generating Avatar...";
+    scanButton.disabled = true; // Disable button while AI is working
 
-    // Change the button text back
-    document.getElementById('scan-face-btn').textContent = 'Scan Face';
-    
-    // In the future, this is where we would analyze the image data.
-    alert("Face captured!");
+    // 3. Send the image to the AI for transformation
+    canvas.toBlob(async (blob) => {
+        const formData = new FormData();
+        formData.append('init_image', blob);
+        formData.append('init_image_mode', "IMAGE_STRENGTH");
+        formData.append('image_strength', 0.45);
+        formData.append('text_prompts[0][text]', 'A beautiful, Ghibli-inspired digital painting of the person, rpg fantasy character portrait, cinematic, stunning');
+        formData.append('cfg_scale', 7);
+        formData.append('samples', 1);
+        formData.append('steps', 30);
+
+        try {
+            const response = await fetch("https://api.stability.ai/v1/generation/stable-diffusion-v1-6/image-to-image", {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${STABILITY_API_KEY}`
+                },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error(`Non-200 response: ${await response.text()}`);
+            }
+
+            const data = await response.json();
+            const imageUrl = `data:image/png;base64,${data.artifacts[0].base64}`;
+            
+            // 4. Display the AI-generated avatar
+            capturedPhoto.src = imageUrl;
+            capturedPhoto.classList.remove('hidden');
+            scanButton.textContent = 'Rescan Face';
+            scanButton.disabled = false;
+
+        } catch (error) {
+            console.error(error);
+            alert("Failed to generate avatar. Please check your API key and credits.");
+            scanButton.textContent = 'Scan Face';
+            scanButton.disabled = false;
+        }
+    }, 'image/png');
 }
 
 function handleLogout() {
