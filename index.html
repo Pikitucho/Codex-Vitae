@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Codex Vitae</title>
-    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
@@ -32,10 +32,10 @@
         <div id="face-scan-section" class="widget">
             <div class="avatar-display">
                 <video id="webcam-feed" class="avatar-circle hidden" autoplay playsinline></video>
-                <img id="captured-photo" class="avatar-circle" alt="Your captured photo">
+                <img id="captured-photo" class="avatar-circle" alt="Your Avatar">
             </div>
             <canvas id="photo-canvas" class="hidden"></canvas>
-            <button id="scan-face-btn">Scan Face</button>
+            <button id="scan-face-btn">Create Avatar</button>
         </div>
 
         <div id="dashboard" class="widget">
@@ -157,9 +157,10 @@
         </div>
     </div>
     
-    <script src="js/config.js"></script> <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@stability-ai/stability-client"></script>
-    <script src="js/main.js"></script> </body>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <script src="js/main.js"></script>
+</body>
 </html>
