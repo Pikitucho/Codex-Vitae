@@ -9,4 +9,4 @@ const firebaseConfig = {
 };
 
 // Add your new Stability AI key here
-const STABILITY_API_KEY = "sk-NenyJ8SRvBmAF2gPlBeJBgf7VPx5sPYwuMkbXFBqT6WwC79S";
+const STABILITY_API_KEY = sk-NenyJ8SRvBmAF2gPlBeJBgf7VPx5sPYwuMkbXFBqT6WwC79S

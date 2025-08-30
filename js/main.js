@@ -1,4 +1,13 @@
 // --- Firebase Initialization ---
+const firebaseConfig = {
+    apiKey: "AIzaSyDqCT_iOBToHDR7sRQnH_mUmwN5V_RXj58",
+    authDomain: "codex-vitae-app.firebaseapp.com",
+    projectId: "codex-vitae-app",
+    storageBucket: "codex-vitae-app.firebasestorage.app",
+    messagingSenderId: "1078038224886",
+    appId: "1:1078038224886:web:19a322f88fc529307371d7",
+    measurementId: "G-DVGVB274T3"
+};
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
@@ -89,88 +98,6 @@ function handleLogin() {
     const password = document.getElementById('password-input').value;
     auth.signInWithEmailAndPassword(email, password)
         .catch(error => alert(error.message));
-}
-
-// Replace your entire handleFaceScan function with this one
-async function handleFaceScan() {
-    const webcamFeed = document.getElementById('webcam-feed');
-    const capturedPhoto = document.getElementById('captured-photo');
-    const canvas = document.getElementById('photo-canvas');
-    const scanButton = document.getElementById('scan-face-btn');
-
-    // If the webcam is not running, turn it on.
-    if (!webcamFeed.srcObject || !webcamFeed.srcObject.active) {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            webcamFeed.srcObject = stream;
-            webcamFeed.classList.remove('hidden');
-            capturedPhoto.classList.add('hidden');
-            scanButton.textContent = 'Capture';
-            return; 
-        } catch (error) {
-            console.error("Error accessing webcam:", error);
-            alert("Could not access webcam. Please check permissions.");
-            return;
-        }
-    }
-
-    // --- CORRECTED AI GENERATION LOGIC ---
-
-    // 1. Capture the image to the canvas
-    const context = canvas.getContext('2d');
-    canvas.width = webcamFeed.videoWidth;
-    canvas.height = webcamFeed.videoHeight;
-    context.drawImage(webcamFeed, 0, 0, canvas.width, canvas.height);
-
-    // 2. Stop the webcam and prepare the UI
-    webcamFeed.srcObject.getTracks().forEach(track => track.stop());
-    webcamFeed.srcObject = null;
-    scanButton.textContent = "Generating Avatar...";
-    scanButton.disabled = true;
-
-    // 3. Send the image to the AI for transformation
-    canvas.toBlob(async (blob) => {
-        const formData = new FormData();
-        formData.append('init_image', blob, 'init_image.png'); // ** THE FIX: Added a filename **
-        formData.append('init_image_mode', "IMAGE_STRENGTH");
-        formData.append('image_strength', 0.45);
-        formData.append('text_prompts[0][text]', 'A beautiful, Ghibli-inspired digital painting of the person, rpg fantasy character portrait, cinematic, stunning');
-        formData.append('cfg_scale', 7);
-        formData.append('samples', 1);
-        formData.append('steps', 30);
-        formData.append('style_preset', 'fantasy-art'); // Added a style preset for better results
-
-        try {
-            const response = await fetch("https://api.stability.ai/v1/generation/stable-diffusion-v1-6/image-to-image", {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Authorization': `Bearer ${STABILITY_API_KEY}`
-                },
-                body: formData,
-            });
-
-            if (!response.ok) {
-                throw new Error(`Non-200 response: ${await response.text()}`);
-            }
-
-            const data = await response.json();
-            const imageUrl = `data:image/png;base64,${data.artifacts[0].base64}`;
-            
-            // 4. Display the AI-generated avatar
-            capturedPhoto.src = imageUrl;
-            capturedPhoto.classList.remove('hidden');
-            webcamFeed.classList.add('hidden');
-            scanButton.textContent = 'Rescan Face';
-            scanButton.disabled = false;
-
-        } catch (error) {
-            console.error(error);
-            alert("Failed to generate avatar. Please check your API key and credits.");
-            scanButton.textContent = 'Scan Face';
-            scanButton.disabled = false;
-        }
-    }, 'image/png');
 }
 
 function handleLogout() {
@@ -290,7 +217,6 @@ function showToast(message) {
     alert(message);
 }
 
-// --- Skill Tree Navigation Functions ---
 function renderSkillTree() {
     skillTreeView.innerHTML = '';
     if (currentSkillPath.length === 0) {
@@ -357,16 +283,11 @@ function openSkillsModal() {
     skillsModal.classList.remove('hidden');
 }
 
+async function handleFaceScan() {
+    // ... Your complete handleFaceScan function
+}
+
 function setupEventListeners() {
-    // --- AUTH SCREEN BUTTONS ---
-    // Note: These are set up separately, but included for completeness
-    // document.getElementById('login-btn').addEventListener('click', handleLogin);
-    // document.getElementById('signup-btn').addEventListener('click', handleSignUp);
-    // document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
-
-    // --- DASHBOARD WIDGETS ---
-    document.getElementById('scan-face-btn').addEventListener('click', handleFaceScan);
-
     document.getElementById('add-chore-btn').addEventListener('click', () => {
         const choreInput = document.getElementById('chore-input');
         if (choreManager.addChore(choreInput.value.trim())) {
@@ -388,7 +309,6 @@ function setupEventListeners() {
         activityManager.logActivity(selectedActivity);
     });
 
-    // --- CODEX & SKILLS MODAL BUTTONS ---
     const codexModal = document.getElementById('codex-modal');
     document.getElementById('open-codex-btn').addEventListener('click', () => {
         codexModal.classList.remove('hidden');
@@ -406,13 +326,15 @@ function setupEventListeners() {
     document.getElementById('codex-logout-btn').addEventListener('click', handleLogout);
 
     document.getElementById('close-skills-btn').addEventListener('click', () => {
-        document.getElementById('skills-modal').classList.add('hidden');
+        skillsModal.classList.add('hidden');
     });
 
-    document.getElementById('skill-back-btn').addEventListener('click', () => {
+    skillBackBtn.addEventListener('click', () => {
         currentSkillPath.pop();
         renderSkillTree();
     });
+    
+    document.getElementById('scan-face-btn').addEventListener('click', handleFaceScan);
 }
 
 // --- APP INITIALIZATION & AUTH STATE LISTENER ---
