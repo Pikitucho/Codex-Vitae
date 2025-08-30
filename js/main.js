@@ -91,8 +91,7 @@ function handleLogin() {
         .catch(error => alert(error.message));
 }
 
-// Replace your old handleFaceScan function with this one
-// Replace your old handleFaceScan function with this one
+// Replace your entire handleFaceScan function with this one
 async function handleFaceScan() {
     const webcamFeed = document.getElementById('webcam-feed');
     const capturedPhoto = document.getElementById('captured-photo');
@@ -115,7 +114,7 @@ async function handleFaceScan() {
         }
     }
 
-    // --- NEW AI GENERATION LOGIC ---
+    // --- CORRECTED AI GENERATION LOGIC ---
 
     // 1. Capture the image to the canvas
     const context = canvas.getContext('2d');
@@ -126,20 +125,20 @@ async function handleFaceScan() {
     // 2. Stop the webcam and prepare the UI
     webcamFeed.srcObject.getTracks().forEach(track => track.stop());
     webcamFeed.srcObject = null;
-    webcamFeed.classList.add('hidden');
     scanButton.textContent = "Generating Avatar...";
-    scanButton.disabled = true; // Disable button while AI is working
+    scanButton.disabled = true;
 
     // 3. Send the image to the AI for transformation
     canvas.toBlob(async (blob) => {
         const formData = new FormData();
-        formData.append('init_image', blob);
+        formData.append('init_image', blob, 'init_image.png'); // ** THE FIX: Added a filename **
         formData.append('init_image_mode', "IMAGE_STRENGTH");
         formData.append('image_strength', 0.45);
         formData.append('text_prompts[0][text]', 'A beautiful, Ghibli-inspired digital painting of the person, rpg fantasy character portrait, cinematic, stunning');
         formData.append('cfg_scale', 7);
         formData.append('samples', 1);
         formData.append('steps', 30);
+        formData.append('style_preset', 'fantasy-art'); // Added a style preset for better results
 
         try {
             const response = await fetch("https://api.stability.ai/v1/generation/stable-diffusion-v1-6/image-to-image", {
@@ -161,6 +160,7 @@ async function handleFaceScan() {
             // 4. Display the AI-generated avatar
             capturedPhoto.src = imageUrl;
             capturedPhoto.classList.remove('hidden');
+            webcamFeed.classList.add('hidden');
             scanButton.textContent = 'Rescan Face';
             scanButton.disabled = false;
 
