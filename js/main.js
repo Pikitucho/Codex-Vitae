@@ -8,7 +8,6 @@ const firebaseConfig = {
     appId: "1:1078038224886:web:19a322f88fc529307371d7",
     measurementId: "G-DVGVB274T3"
 };
-// Updated with your Google Cloud and Gemini credentials
 const GEMINI_PROJECT_ID = "codex-vitae-470801"; 
 const GEMINI_API_KEY = "AIzaSyCtK7v2gG2g7S7Am5_L6uYId6ZzhRpoQbs";
 
@@ -186,14 +185,12 @@ function handleOnboarding(event) {
     updateDashboard();
 }
 
-// Entire function replaced to use the Gemini API
 async function handleFaceScan() {
     const webcamFeed = document.getElementById('webcam-feed');
     const capturedPhoto = document.getElementById('captured-photo');
     const canvas = document.getElementById('photo-canvas');
     const scanButton = document.getElementById('scan-face-btn');
 
-    // --- Part 1: Capture image from webcam (this part is the same) ---
     if (!webcamFeed.srcObject || !webcamFeed.srcObject.active) {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -215,12 +212,10 @@ async function handleFaceScan() {
     scanButton.textContent = "Generating...";
     scanButton.disabled = true;
 
-    // --- Part 2: Prepare and send the image to the Gemini API ---
-    // Gemini requires the image to be a base64-encoded string
     const imageBase64 = canvas.toDataURL('image/jpeg').split(',')[1];
     
-    // The Gemini API endpoint and request body are different
-    const GEMINI_API_ENDPOINT = `https://us-central1-aiplatform.googleapis.com/v1/projects/${GEMINI_PROJECT_ID}/locations/us-central1/publishers/google/models/imagegeneration@006:predict`;
+    // *** FIX: Added API Key to the URL ***
+    const GEMINI_API_ENDPOINT = `https://us-central1-aiplatform.googleapis.com/v1/projects/${GEMINI_PROJECT_ID}/locations/us-central1/publishers/google/models/imagegeneration@006:predict?key=${GEMINI_API_KEY}`;
 
     const requestBody = {
         "instances": [{
@@ -229,7 +224,7 @@ async function handleFaceScan() {
         }],
         "parameters": {
             "sampleCount": 1,
-            "editConfig": { "editMode": "STYLE_TRANSFER" } // Use style transfer mode
+            "editConfig": { "editMode": "STYLE_TRANSFER" }
         }
     };
 
@@ -237,8 +232,8 @@ async function handleFaceScan() {
         const response = await fetch(GEMINI_API_ENDPOINT, {
             method: 'POST',
             headers: {
+                // *** FIX: Removed incorrect Authorization header ***
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${GEMINI_API_KEY}`
             },
             body: JSON.stringify(requestBody)
         });
@@ -246,13 +241,10 @@ async function handleFaceScan() {
         if (!response.ok) throw new Error(`API Error: ${await response.text()}`);
         
         const data = await response.json();
-        
-        // The response structure from Gemini is different
         const generatedImageBase64 = data.predictions[0].bytesBase64Encoded;
         const imageUrl = `data:image/png;base64,${generatedImageBase64}`;
 
-        // --- Part 3: Display and save the image (this part is the same) ---
-        characterData.avatarUrl = imageUrl; // For immediate display
+        characterData.avatarUrl = imageUrl;
         capturedPhoto.src = imageUrl;
         capturedPhoto.classList.remove('hidden');
         webcamFeed.classList.add('hidden');
@@ -273,7 +265,6 @@ async function handleFaceScan() {
     }
 }
 
-
 function updateDashboard() {
     if (!characterData || !characterData.stats) return;
 
@@ -292,7 +283,7 @@ function updateDashboard() {
     choreList.innerHTML = '';
     (choreManager.chores.length === 0 ? ['No chores added yet.'] : choreManager.chores).forEach((chore, index) => {
         const li = document.createElement('li');
-        if (typeof chore === 'string') { // Handle legacy string-only chores
+        if (typeof chore === 'string') {
              li.textContent = chore; li.style.fontStyle = 'italic';
              li.classList.add('completed');
         } else {
@@ -326,7 +317,6 @@ function updateDashboard() {
     if (auth.currentUser) saveData();
 }
 
-// --- Skill Tree Functions ---
 function renderSkillTree() {
     skillTreeView.innerHTML = '';
     let currentLevel = skillTree;
@@ -348,7 +338,7 @@ function renderSkillTree() {
         const item = currentLevel[key];
         const element = document.createElement('div');
         element.textContent = key;
-        element.classList.add(item.type); // galaxy, constellation, or star
+        element.classList.add(item.type);
 
         if (item.type === 'star') {
             element.classList.add(item.unlocked ? 'unlocked' : 'locked');
@@ -403,10 +393,10 @@ function showToast(message) {
 
     document.body.appendChild(toast);
     
-    setTimeout(() => { toast.style.opacity = '1'; }, 10); // Fade in
+    setTimeout(() => { toast.style.opacity = '1'; }, 10);
     setTimeout(() => { 
         toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 300); // Fade out and remove
+        setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
 
@@ -436,7 +426,6 @@ function setupEventListeners() {
         codexModal.classList.add('hidden');
         openSkillsModal();
     });
-    // This button currently just closes the modal
     document.getElementById('codex-goals-btn').addEventListener('click', () => {
         codexModal.classList.add('hidden');
     });
@@ -464,7 +453,7 @@ auth.onAuthStateChanged(async user => {
         }
         setupEventListeners();
     } else {
-        characterData = {}; // Clear data on logout
+        characterData = {};
         authScreen.classList.remove('hidden');
         appScreen.classList.add('hidden');
     }
