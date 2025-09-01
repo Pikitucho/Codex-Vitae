@@ -8,8 +8,8 @@ const firebaseConfig = {
     appId: "1:1078038224886:web:19a322f88fc529307371d7",
     measurementId: "G-DVGVB274T3"
 };
-const GEMINI_PROJECT_ID = "codex-vitae-470801"; 
-const GEMINI_API_KEY = "AIzaSyCtK7v2gG2g7S7Am5_L6uYId6ZzhRpoQbs";
+// This is the URL for the Cloud Function we just deployed.
+const CLOUD_FUNCTION_URL = "https://generate-avatar-393704011058.us-central1.run.app";
 
 // --- Firebase Initialization ---
 firebase.initializeApp(firebaseConfig);
@@ -185,6 +185,7 @@ function handleOnboarding(event) {
     updateDashboard();
 }
 
+// *** This function is now updated to call your new Cloud Function ***
 async function handleFaceScan() {
     const webcamFeed = document.getElementById('webcam-feed');
     const capturedPhoto = document.getElementById('captured-photo');
@@ -214,36 +215,25 @@ async function handleFaceScan() {
 
     const imageBase64 = canvas.toDataURL('image/jpeg').split(',')[1];
     
-    // *** FIX: Added API Key to the URL ***
-    const GEMINI_API_ENDPOINT = `https://us-central1-aiplatform.googleapis.com/v1/projects/${GEMINI_PROJECT_ID}/locations/us-central1/publishers/google/models/imagegeneration@006:predict?key=${GEMINI_API_KEY}`;
-
-    const requestBody = {
-        "instances": [{
-            "prompt": "A beautiful, Ghibli-inspired digital painting of the person, rpg fantasy character portrait, cinematic, stunning",
-            "image": { "bytesBase64Encoded": imageBase64 }
-        }],
-        "parameters": {
-            "sampleCount": 1,
-            "editConfig": { "editMode": "STYLE_TRANSFER" }
-        }
-    };
-
     try {
-        const response = await fetch(GEMINI_API_ENDPOINT, {
+        const response = await fetch(CLOUD_FUNCTION_URL, {
             method: 'POST',
             headers: {
-                // *** FIX: Removed incorrect Authorization header ***
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify({ image: imageBase64 }) // Send the image to our function
         });
 
-        if (!response.ok) throw new Error(`API Error: ${await response.text()}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Cloud Function Error: ${errorText}`);
+        }
         
         const data = await response.json();
-        const generatedImageBase64 = data.predictions[0].bytesBase64Encoded;
+        const generatedImageBase64 = data.base64Image;
         const imageUrl = `data:image/png;base64,${generatedImageBase64}`;
 
+        // The rest of the logic is the same as before
         characterData.avatarUrl = imageUrl;
         capturedPhoto.src = imageUrl;
         capturedPhoto.classList.remove('hidden');
@@ -255,11 +245,10 @@ async function handleFaceScan() {
         await avatarRef.put(generatedBlob);
         characterData.avatarUrl = await avatarRef.getDownloadURL();
         
-    }  catch (error) {
+    } catch (error) {
         console.error(error);
-        // This new alert will show us the specific error message from Google's server
-        alert(`Failed to generate avatar. Server response: ${error.message}`);
-        } finally {
+        alert(`Failed to generate avatar. ${error.message}`);
+    } finally {
         scanButton.textContent = 'Rescan Face';
         scanButton.disabled = false;
         updateDashboard();
