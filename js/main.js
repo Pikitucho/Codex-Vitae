@@ -255,10 +255,11 @@ async function handleFaceScan() {
         await avatarRef.put(generatedBlob);
         characterData.avatarUrl = await avatarRef.getDownloadURL();
         
-    } catch (error) {
+    }  catch (error) {
         console.error(error);
-        alert("Failed to generate avatar. Please check your Gemini API key/credits.");
-    } finally {
+        // This new alert will show us the specific error message from Google's server
+        alert(`Failed to generate avatar. Server response: ${error.message}`);
+        } finally {
         scanButton.textContent = 'Rescan Face';
         scanButton.disabled = false;
         updateDashboard();
