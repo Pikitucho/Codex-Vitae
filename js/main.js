@@ -8,7 +8,8 @@ const firebaseConfig = {
     appId: "1:1078038224886:web:19a322f88fc529307371d7",
     measurementId: "G-DVGVB274T3"
 };
-const STABILITY_API_KEY = sk-yjemGIKgIaJAeTy1sASe42RUNkSDGA5QsbNEErfzPT7KeKIt
+// API Key for Stability AI has been inserted below.
+const STABILITY_API_KEY = "sk-yjemGIKgIaJAeTy1sASe42RUNkSDGA5QsbNEErfzPT7KeKIt";
 
 // --- Firebase Initialization ---
 firebase.initializeApp(firebaseConfig);
@@ -27,8 +28,8 @@ const skillBackBtn = document.getElementById('skill-back-btn');
 // --- Global Data Variables ---
 let characterData = {};
 let gameManager = {};
-let choreManager = { chores: [] };
-let goalManager = { activeGoal: null };
+
+// --- Skill Tree Data Structure ---
 let skillTree = {
     'Mind': {
         type: 'galaxy',
@@ -49,8 +50,11 @@ let currentSkillPath = [];
 // --- Manager Logic ---
 const levelManager = {
     gainXp: function(amount) {
+        if (!characterData) return;
         characterData.xp += amount;
-        if (characterData.xp >= characterData.xpToNextLevel) this.levelUp();
+        if (characterData.xp >= characterData.xpToNextLevel) {
+            this.levelUp();
+        }
         updateDashboard();
     },
     levelUp: function() {
@@ -74,6 +78,44 @@ const activityManager = {
             characterData.stats[activity.stat] += activity.points;
             levelManager.gainXp(activity.xp);
             checkAllSkillUnlocks();
+        }
+    }
+};
+
+const choreManager = {
+    chores: [],
+    addChore: function(text) {
+        if (text) {
+            this.chores.push({ text, completed: false });
+            return true;
+        }
+        return false;
+    },
+    completeChore: function(index) {
+        if (this.chores[index] && !this.chores[index].completed) {
+            this.chores[index].completed = true;
+            return true; // Indicates XP should be awarded
+        }
+        return false;
+    }
+};
+
+const goalManager = {
+    activeGoal: null,
+    setGoal: function(stat, target) {
+        if (!stat || isNaN(target) || target <= (characterData.stats[stat] || 0)) {
+            showToast("Invalid goal. Target must be higher than current stat.");
+            return false;
+        }
+        this.activeGoal = { stat, target };
+        showToast("New goal set!");
+        return true;
+    },
+    checkGoal: function() {
+        if (this.activeGoal && characterData.stats[this.activeGoal.stat] >= this.activeGoal.target) {
+            showToast(`Goal Achieved! Reached ${this.activeGoal.target} ${this.activeGoal.stat}! +100 XP`);
+            levelManager.gainXp(100);
+            this.activeGoal = null;
         }
     }
 };
@@ -114,7 +156,7 @@ async function loadData(userId) {
         gameManager = loadedData.gameManager;
         choreManager.chores = loadedData.chores || [];
         goalManager.activeGoal = loadedData.activeGoal || null;
-        skillTree = loadedData.skillTree || skillTree;
+        skillTree = loadedData.skillTree || skillTree; // Use loaded or default
         if (characterData.avatarUrl) {
             document.getElementById('captured-photo').src = characterData.avatarUrl;
         }
@@ -200,12 +242,11 @@ async function handleFaceScan() {
             capturedPhoto.classList.remove('hidden');
             webcamFeed.classList.add('hidden');
             
-            // Now upload the generated image blob to Firebase for persistence
             const generatedBlob = await (await fetch(imageUrl)).blob();
             const storageRef = storage.ref();
             const avatarRef = storageRef.child(`avatars/${auth.currentUser.uid}.png`);
             await avatarRef.put(generatedBlob);
-            characterData.avatarUrl = await avatarRef.getDownloadURL(); // Update with permanent URL
+            characterData.avatarUrl = await avatarRef.getDownloadURL();
             
         } catch (error) {
             console.error(error);
@@ -236,11 +277,15 @@ function updateDashboard() {
     choreList.innerHTML = '';
     (choreManager.chores.length === 0 ? ['No chores added yet.'] : choreManager.chores).forEach((chore, index) => {
         const li = document.createElement('li');
-        if (typeof chore === 'string') { li.textContent = chore; li.style.fontStyle = 'italic'; }
-        else {
+        if (typeof chore === 'string') { // Handle legacy string-only chores
+             li.textContent = chore; li.style.fontStyle = 'italic';
+             li.classList.add('completed');
+        } else {
             li.textContent = chore.text;
             if (chore.completed) li.classList.add('completed');
-            li.addEventListener('click', () => { if (choreManager.completeChore(index)) levelManager.gainXp(10); });
+            li.addEventListener('click', () => { 
+                if (choreManager.completeChore(index)) levelManager.gainXp(10); 
+            });
         }
         choreList.appendChild(li);
     });
@@ -249,7 +294,7 @@ function updateDashboard() {
     if (goalManager.activeGoal) {
         const { stat, target } = goalManager.activeGoal;
         const current = characterData.stats[stat];
-        document.getElementById('goal-text').textContent = `Goal: ${target} ${stat} (${current}/${target})`;
+        document.getElementById('goal-text').textContent = `Goal: ${target} ${stat.charAt(0).toUpperCase() + stat.slice(1)} (${current}/${target})`;
         activeGoalDisplay.classList.remove('hidden');
         goalManager.checkGoal();
     } else {
@@ -266,24 +311,109 @@ function updateDashboard() {
     if (auth.currentUser) saveData();
 }
 
-function renderSkillTree() { /* Your existing renderSkillTree function */ }
-function checkAllSkillUnlocks() { /* Your existing checkAllSkillUnlocks function */ }
-function openSkillsModal() { /* Your existing openSkillsModal function */ }
-function showToast(message) { alert(message); }
+// --- NEW/IMPLEMENTED FUNCTIONS ---
+function renderSkillTree() {
+    skillTreeView.innerHTML = '';
+    let currentLevel = skillTree;
+    let pathSegment = '';
+    for (const key of currentSkillPath) {
+        pathSegment = key;
+        currentLevel = currentLevel[key].constellations || currentLevel[key].stars;
+    }
+
+    if (currentSkillPath.length === 0) {
+        skillTreeTitle.textContent = "Skill Galaxies";
+        skillBackBtn.classList.add('hidden');
+    } else {
+        skillTreeTitle.textContent = pathSegment;
+        skillBackBtn.classList.remove('hidden');
+    }
+
+    for (const key in currentLevel) {
+        const item = currentLevel[key];
+        const element = document.createElement('div');
+        element.textContent = key;
+        element.classList.add(item.type); // galaxy, constellation, or star
+
+        if (item.type === 'star') {
+            element.classList.add(item.unlocked ? 'unlocked' : 'locked');
+        } else {
+            element.addEventListener('click', () => {
+                currentSkillPath.push(key);
+                renderSkillTree();
+            });
+        }
+        skillTreeView.appendChild(element);
+    }
+}
+
+function checkAllSkillUnlocks() {
+    if (!characterData.stats) return;
+    for (const galaxyName in skillTree) {
+        const galaxy = skillTree[galaxyName];
+        for (const constName in galaxy.constellations) {
+            const constellation = galaxy.constellations[constName];
+            for (const starName in constellation.stars) {
+                const star = constellation.stars[starName];
+                const req = star.requires;
+                if (characterData.stats[req.stat] >= req.value) {
+                    star.unlocked = true;
+                }
+            }
+        }
+    }
+}
+
+function openSkillsModal() {
+    currentSkillPath = [];
+    renderSkillTree();
+    skillsModal.classList.remove('hidden');
+}
+
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    toast.style.position = 'fixed';
+    toast.style.bottom = '20px';
+    toast.style.left = '50%';
+    toast.style.transform = 'translateX(-50%)';
+    toast.style.backgroundColor = 'var(--color-primary)';
+    toast.style.color = 'white';
+    toast.style.padding = '12px 20px';
+    toast.style.borderRadius = '8px';
+    toast.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
+    toast.style.zIndex = '1001';
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s ease';
+
+    document.body.appendChild(toast);
+    
+    setTimeout(() => { toast.style.opacity = '1'; }, 10); // Fade in
+    setTimeout(() => { 
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300); // Fade out and remove
+    }, 3000);
+}
 
 function setupEventListeners() {
     document.getElementById('add-chore-btn').addEventListener('click', () => {
         const choreInput = document.getElementById('chore-input');
-        if (choreManager.addChore(choreInput.value.trim())) { choreInput.value = ''; updateDashboard(); }
+        if (choreManager.addChore(choreInput.value.trim())) { 
+            choreInput.value = ''; 
+            updateDashboard(); 
+        }
     });
     document.getElementById('set-goal-btn').addEventListener('click', () => {
         const stat = document.getElementById('goal-stat-select').value;
         const target = parseInt(document.getElementById('goal-value-input').value);
-        if (goalManager.setGoal(stat, target)) updateDashboard();
+        if (goalManager.setGoal(stat, target)) {
+             updateDashboard();
+        }
     });
     document.getElementById('log-activity-btn').addEventListener('click', () => {
         activityManager.logActivity(document.getElementById('activity-select').value);
     });
+    
     const codexModal = document.getElementById('codex-modal');
     document.getElementById('open-codex-btn').addEventListener('click', () => codexModal.classList.remove('hidden'));
     document.getElementById('close-codex-btn').addEventListener('click', () => codexModal.classList.add('hidden'));
@@ -291,12 +421,18 @@ function setupEventListeners() {
         codexModal.classList.add('hidden');
         openSkillsModal();
     });
+    // This button currently just closes the modal
+    document.getElementById('codex-goals-btn').addEventListener('click', () => {
+        codexModal.classList.add('hidden');
+    });
     document.getElementById('codex-logout-btn').addEventListener('click', handleLogout);
+    
     document.getElementById('close-skills-btn').addEventListener('click', () => skillsModal.classList.add('hidden'));
     skillBackBtn.addEventListener('click', () => {
         currentSkillPath.pop();
         renderSkillTree();
     });
+    
     document.getElementById('scan-face-btn').addEventListener('click', handleFaceScan);
 }
 
@@ -313,6 +449,7 @@ auth.onAuthStateChanged(async user => {
         }
         setupEventListeners();
     } else {
+        characterData = {}; // Clear data on logout
         authScreen.classList.remove('hidden');
         appScreen.classList.add('hidden');
     }
