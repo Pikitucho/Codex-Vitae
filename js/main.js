@@ -8,7 +8,6 @@ const firebaseConfig = {
     appId: "1:1078038224886:web:19a322f88fc529307371d7",
     measurementId: "G-DVGVB274T3"
 };
-// API Key for Stability AI has been inserted below.
 const STABILITY_API_KEY = "sk-yjemGIKgIaJAeTy1sASe42RUNkSDGA5QsbNEErfzPT7KeKIt";
 
 // --- Firebase Initialization ---
@@ -156,14 +155,12 @@ async function loadData(userId) {
         gameManager = loadedData.gameManager;
         choreManager.chores = loadedData.chores || [];
         goalManager.activeGoal = loadedData.activeGoal || null;
-        skillTree = loadedData.skillTree || skillTree; // Use loaded or default
-        if (characterData.avatarUrl) {
-            document.getElementById('captured-photo').src = characterData.avatarUrl;
-        }
+        skillTree = loadedData.skillTree || skillTree;
         return true;
     }
     return false;
 }
+
 
 // --- ONBOARDING, FACE SCAN, & CORE FUNCTIONS ---
 function calculateStartingStats() {
