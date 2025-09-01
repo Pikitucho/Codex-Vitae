@@ -8,7 +8,9 @@ const firebaseConfig = {
     appId: "1:1078038224886:web:19a322f88fc529307371d7",
     measurementId: "G-DVGVB274T3"
 };
-const STABILITY_API_KEY = "sk-yjemGIKgIaJAeTy1sASe42RUNkSDGA5QsbNEErfzPT7KeKIt";
+// Updated with your Google Cloud and Gemini credentials
+const GEMINI_PROJECT_ID = "codex-vitae-470801"; 
+const GEMINI_API_KEY = "AIzaSyCtK7v2gG2g7S7Am5_L6uYId6ZzhRpoQbs";
 
 // --- Firebase Initialization ---
 firebase.initializeApp(firebaseConfig);
@@ -161,7 +163,6 @@ async function loadData(userId) {
     return false;
 }
 
-
 // --- ONBOARDING, FACE SCAN, & CORE FUNCTIONS ---
 function calculateStartingStats() {
     const exerciseValue = parseInt(document.getElementById('exercise-freq').value);
@@ -185,12 +186,14 @@ function handleOnboarding(event) {
     updateDashboard();
 }
 
+// Entire function replaced to use the Gemini API
 async function handleFaceScan() {
     const webcamFeed = document.getElementById('webcam-feed');
     const capturedPhoto = document.getElementById('captured-photo');
     const canvas = document.getElementById('photo-canvas');
     const scanButton = document.getElementById('scan-face-btn');
 
+    // --- Part 1: Capture image from webcam (this part is the same) ---
     if (!webcamFeed.srcObject || !webcamFeed.srcObject.active) {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -212,49 +215,64 @@ async function handleFaceScan() {
     scanButton.textContent = "Generating...";
     scanButton.disabled = true;
 
-    canvas.toBlob(async (blob) => {
-        const formData = new FormData();
-        formData.append('init_image', blob, 'avatar.png');
-        formData.append('init_image_mode', "IMAGE_STRENGTH");
-        formData.append('image_strength', 0.45);
-        formData.append('text_prompts[0][text]', 'A beautiful, Ghibli-inspired digital painting of the person, rpg fantasy character portrait, cinematic, stunning');
-        formData.append('cfg_scale', 7);
-        formData.append('samples', 1);
-        formData.append('steps', 30);
-        formData.append('style_preset', 'fantasy-art');
+    // --- Part 2: Prepare and send the image to the Gemini API ---
+    // Gemini requires the image to be a base64-encoded string
+    const imageBase64 = canvas.toDataURL('image/jpeg').split(',')[1];
+    
+    // The Gemini API endpoint and request body are different
+    const GEMINI_API_ENDPOINT = `https://us-central1-aiplatform.googleapis.com/v1/projects/${GEMINI_PROJECT_ID}/locations/us-central1/publishers/google/models/imagegeneration@006:predict`;
 
-        try {
-            const response = await fetch("https://api.stability.ai/v1/generation/stable-diffusion-v1-6/image-to-image", {
-                method: 'POST',
-                headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${STABILITY_API_KEY}` },
-                body: formData,
-            });
-            if (!response.ok) throw new Error(`API Error: ${await response.text()}`);
-
-            const data = await response.json();
-            const imageUrl = `data:image/png;base64,${data.artifacts[0].base64}`;
-            
-            characterData.avatarUrl = imageUrl; // For immediate display
-            capturedPhoto.src = imageUrl;
-            capturedPhoto.classList.remove('hidden');
-            webcamFeed.classList.add('hidden');
-            
-            const generatedBlob = await (await fetch(imageUrl)).blob();
-            const storageRef = storage.ref();
-            const avatarRef = storageRef.child(`avatars/${auth.currentUser.uid}.png`);
-            await avatarRef.put(generatedBlob);
-            characterData.avatarUrl = await avatarRef.getDownloadURL();
-            
-        } catch (error) {
-            console.error(error);
-            alert("Failed to generate avatar. Please check API key/credits.");
-        } finally {
-            scanButton.textContent = 'Rescan Face';
-            scanButton.disabled = false;
-            updateDashboard();
+    const requestBody = {
+        "instances": [{
+            "prompt": "A beautiful, Ghibli-inspired digital painting of the person, rpg fantasy character portrait, cinematic, stunning",
+            "image": { "bytesBase64Encoded": imageBase64 }
+        }],
+        "parameters": {
+            "sampleCount": 1,
+            "editConfig": { "editMode": "STYLE_TRANSFER" } // Use style transfer mode
         }
-    }, 'image/png');
+    };
+
+    try {
+        const response = await fetch(GEMINI_API_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${GEMINI_API_KEY}`
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) throw new Error(`API Error: ${await response.text()}`);
+        
+        const data = await response.json();
+        
+        // The response structure from Gemini is different
+        const generatedImageBase64 = data.predictions[0].bytesBase64Encoded;
+        const imageUrl = `data:image/png;base64,${generatedImageBase64}`;
+
+        // --- Part 3: Display and save the image (this part is the same) ---
+        characterData.avatarUrl = imageUrl; // For immediate display
+        capturedPhoto.src = imageUrl;
+        capturedPhoto.classList.remove('hidden');
+        webcamFeed.classList.add('hidden');
+        
+        const generatedBlob = await (await fetch(imageUrl)).blob();
+        const storageRef = storage.ref();
+        const avatarRef = storageRef.child(`avatars/${auth.currentUser.uid}.png`);
+        await avatarRef.put(generatedBlob);
+        characterData.avatarUrl = await avatarRef.getDownloadURL();
+        
+    } catch (error) {
+        console.error(error);
+        alert("Failed to generate avatar. Please check your Gemini API key/credits.");
+    } finally {
+        scanButton.textContent = 'Rescan Face';
+        scanButton.disabled = false;
+        updateDashboard();
+    }
 }
+
 
 function updateDashboard() {
     if (!characterData || !characterData.stats) return;
@@ -308,7 +326,7 @@ function updateDashboard() {
     if (auth.currentUser) saveData();
 }
 
-// --- NEW/IMPLEMENTED FUNCTIONS ---
+// --- Skill Tree Functions ---
 function renderSkillTree() {
     skillTreeView.innerHTML = '';
     let currentLevel = skillTree;
