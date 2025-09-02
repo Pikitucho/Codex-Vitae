@@ -4,11 +4,7 @@ const axios = require('axios');
 const { GoogleAuth } = require('google-auth-library');
 
 const app = express();
-
-// *** FIX: Use a more robust CORS configuration for the environment ***
 app.use(cors());
-// *** END FIX ***
-
 app.use(express.json({ limit: '10mb' }));
 
 const PROJECT_ID = 'codex-vitae-470801';
@@ -30,14 +26,12 @@ app.post('/', async (req, res) => {
         const client = await auth.getClient();
         const accessToken = (await client.getAccessToken()).token;
 
+        // *** FIX: Removed the 'parameters' object for a simpler request ***
         const requestBody = {
             "instances": [{
                 "prompt": "A beautiful, Ghibli-inspired digital painting of the person, rpg fantasy character portrait, cinematic, stunning",
                 "image": { "bytesBase64Encoded": req.body.image }
-            }],
-            "parameters": {
-                "sampleCount": 1
-            }
+            }]
         };
 
         const response = await axios.post(MODEL_ENDPOINT_URL, requestBody, {
