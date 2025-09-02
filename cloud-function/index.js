@@ -5,12 +5,8 @@ const { GoogleAuth } = require('google-auth-library');
 
 const app = express();
 
-// *** FIX: Make CORS configuration more specific ***
-const corsOptions = {
-  origin: 'https://pikitucho.github.io',
-  optionsSuccessStatus: 200 
-};
-app.use(cors(corsOptions));
+// *** FIX: Use a more robust CORS configuration for the environment ***
+app.use(cors());
 // *** END FIX ***
 
 app.use(express.json({ limit: '10mb' }));
