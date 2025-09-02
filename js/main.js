@@ -13,7 +13,7 @@ const firebaseConfig = {
 
 // --- BACKEND SERVER URL ---
 // Replace this with the URL of your deployed Express.js server
-const AVATAR_GENERATION_URL = 'YOUR_SERVER_URL_HERE'; 
+const AVATAR_GENERATION_URL = 'https://generate-avatar-393704011058.us-central1.run.app'; 
 
 // --- Firebase Initialization ---
 firebase.initializeApp(firebaseConfig);
@@ -363,3 +363,4 @@ auth.onAuthStateChanged(async user => {
 document.getElementById('login-btn').addEventListener('click', handleLogin);
 document.getElementById('signup-btn').addEventListener('click', handleSignUp);
 document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
+
