@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 const PROJECT_ID = 'codex-vitae-470801';
-const LOCATION = 'us-central1';
+const LOCATION = 'us-east1'; 
 const MODEL_ID = 'imagegeneration@006';
 
 const API_ENDPOINT = `https://${LOCATION}-aiplatform.googleapis.com`;
