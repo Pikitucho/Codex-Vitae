@@ -225,7 +225,7 @@ async function handleFaceScan() {
         characterData.avatarUrl = await avatarRef.getDownloadURL();
 
     } catch (error) {
-        console.error(error);
+        console.error('Erro ao tentar gerar o avatar:', error);
         alert(`Failed to generate avatar. ${error.message}`);
         // Reset to a default state if something fails
         capturedPhoto.classList.add('hidden');
@@ -363,4 +363,5 @@ auth.onAuthStateChanged(async user => {
 document.getElementById('login-btn').addEventListener('click', handleLogin);
 document.getElementById('signup-btn').addEventListener('click', handleSignUp);
 document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
+
 
