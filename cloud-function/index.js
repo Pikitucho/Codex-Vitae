@@ -4,7 +4,15 @@ const axios = require('axios');
 const { GoogleAuth } = require('google-auth-library');
 
 const app = express();
-app.use(cors({ origin: true }));
+
+// *** FIX: Make CORS configuration more specific ***
+const corsOptions = {
+  origin: 'https://pikitucho.github.io',
+  optionsSuccessStatus: 200 
+};
+app.use(cors(corsOptions));
+// *** END FIX ***
+
 app.use(express.json({ limit: '10mb' }));
 
 const PROJECT_ID = 'codex-vitae-470801';
@@ -52,9 +60,7 @@ app.post('/', async (req, res) => {
     }
 });
 
-// *** FIX: This block starts the server and listens for requests ***
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}...`);
 });
- 
