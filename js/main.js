@@ -12,7 +12,6 @@ const firebaseConfig = {
 };
 
 // --- BACKEND SERVER URL ---
-// Replace this with the URL of your deployed Express.js server
 const AVATAR_GENERATION_URL = 'https://generate-avatar-393704011058.us-central1.run.app'; 
 
 // --- Firebase Initialization ---
@@ -151,6 +150,7 @@ function handleOnboarding(event) {
     updateDashboard();
 }
 
+// --- FACE SCAN & AVATAR GENERATION ---
 async function handleFaceScan() {
     const webcamFeed = document.getElementById('webcam-feed');
     const capturedPhoto = document.getElementById('captured-photo');
@@ -317,7 +317,7 @@ function setupEventListeners() {
     document.getElementById('set-goal-btn').addEventListener('click', () => {
         const stat = document.getElementById('goal-stat-select').value;
         const target = parseInt(document.getElementById('goal-value-input').value);
-        // This assumes goalManager.setGoal is implemented elsewhere
+        // This assumes goalManager.setGoal is implemented em outro lugar
         // if (goalManager.setGoal(stat, target)) updateDashboard();
         alert("Goal functionality not fully implemented.");
     });
@@ -363,5 +363,3 @@ auth.onAuthStateChanged(async user => {
 document.getElementById('login-btn').addEventListener('click', handleLogin);
 document.getElementById('signup-btn').addEventListener('click', handleSignUp);
 document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
-
-
