@@ -20,14 +20,12 @@ app.post('/', async (req, res) => {
     }
 
     try {
-        // Automatically get authentication credentials
         const auth = new GoogleAuth({
             scopes: 'https://www.googleapis.com/auth/cloud-platform'
         });
         const client = await auth.getClient();
         const accessToken = (await client.getAccessToken()).token;
 
-        // *** FIX: Simplified the request body ***
         const requestBody = {
             "instances": [{
                 "prompt": "A beautiful, Ghibli-inspired digital painting of the person, rpg fantasy character portrait, cinematic, stunning",
@@ -38,7 +36,6 @@ app.post('/', async (req, res) => {
             }
         };
 
-        // Make the authenticated API call
         const response = await axios.post(MODEL_ENDPOINT_URL, requestBody, {
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
@@ -55,4 +52,8 @@ app.post('/', async (req, res) => {
     }
 });
 
-exports.generateAvatar = app;
+// *** FIX: This block starts the server and listens for requests ***
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}...`);
+});
