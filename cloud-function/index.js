@@ -20,22 +20,21 @@ app.post('/', async (req, res) => {
     }
 
     try {
-        // Automatically get authentication credentials from the Cloud Function's environment
+        // Automatically get authentication credentials
         const auth = new GoogleAuth({
             scopes: 'https://www.googleapis.com/auth/cloud-platform'
         });
         const client = await auth.getClient();
         const accessToken = (await client.getAccessToken()).token;
 
-        // Construct the request body for the AI model
+        // *** FIX: Simplified the request body ***
         const requestBody = {
             "instances": [{
                 "prompt": "A beautiful, Ghibli-inspired digital painting of the person, rpg fantasy character portrait, cinematic, stunning",
                 "image": { "bytesBase64Encoded": req.body.image }
             }],
             "parameters": {
-                "sampleCount": 1,
-                "editConfig": { "editMode": "STYLE_TRANSFER" }
+                "sampleCount": 1
             }
         };
 
