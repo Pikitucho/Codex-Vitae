@@ -194,6 +194,7 @@ async function handleFaceScan() {
     const canvas = document.getElementById('photo-canvas');
     const scanButton = document.getElementById('scan-face-btn');
 
+    // Part 1: Capture image from webcam (same as before)
     if (!webcamFeed.srcObject || !webcamFeed.srcObject.active) {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -209,6 +210,7 @@ async function handleFaceScan() {
         }
     }
 
+    // Part 2: Draw image to canvas and stop the webcam
     const context = canvas.getContext('2d');
     canvas.width = webcamFeed.videoWidth;
     canvas.height = webcamFeed.videoHeight;
@@ -216,9 +218,46 @@ async function handleFaceScan() {
 
     webcamFeed.srcObject.getTracks().forEach(track => track.stop());
     webcamFeed.srcObject = null;
-    scanButton.textContent = "Generating...";
+    scanButton.textContent = "Uploading...";
     scanButton.disabled = true;
 
+    // --- DIRECT UPLOAD TO FIREBASE STORAGE (Simple Version) ---
+    // Convert the canvas image to a blob, which is the format for uploading
+    canvas.toBlob(async (blob) => {
+        try {
+            // Create a reference to the Firebase Storage location
+            const storageRef = storage.ref();
+            // Create a path for the user's avatar, using their unique user ID
+            const avatarRef = storageRef.child(`avatars/${auth.currentUser.uid}.png`);
+            
+            // Upload the image blob
+            await avatarRef.put(blob);
+            
+            // Get the permanent URL for the uploaded image
+            const downloadURL = await avatarRef.getDownloadURL();
+            characterData.avatarUrl = downloadURL;
+
+            // Update the display with the new photo
+            capturedPhoto.src = characterData.avatarUrl;
+            capturedPhoto.classList.remove('hidden');
+            webcamFeed.classList.add('hidden');
+            
+        } catch (error) {
+            console.error("Error uploading image to Firebase Storage:", error);
+            alert(`Failed to save photo. ${error.message}`);
+        } finally {
+            scanButton.textContent = 'Rescan Face';
+            scanButton.disabled = false;
+            updateDashboard(); // Save the new avatarUrl to Firestore
+        }
+    }, 'image/png');
+
+
+    /*
+    // --- AI AVATAR GENERATION (Temporarily Disabled) ---
+    // We will come back to this later. The code below calls our server
+    // to transform the captured photo into a stylized avatar.
+    
     const imageBase64 = canvas.toDataURL('image/jpeg').split(',')[1];
 
     try {
@@ -261,6 +300,7 @@ async function handleFaceScan() {
         scanButton.disabled = false;
         updateDashboard();
     }
+    */
 }
 
 function updateDashboard() {
