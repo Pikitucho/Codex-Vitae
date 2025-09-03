@@ -217,16 +217,28 @@ async function loadData(userId) {
 }
 
 // --- ONBOARDING, FACE SCAN, & CORE FUNCTIONS ---
+
 function calculateStartingStats() {
     const exerciseValue = parseInt(document.getElementById('exercise-freq').value);
     const studyValue = parseInt(document.getElementById('study-habit').value);
     characterData = {
-        skills: [], level: 1, xp: 0, xpToNextLevel: 100,
+        skills: [], 
+        level: 1, 
+        xp: 0, 
+        xpToNextLevel: 100,
         stats: {
-            strength: 8 + exerciseValue, dexterity: 8, constitution: 8 + exerciseValue,
-            intelligence: 8 + studyValue, wisdom: 8 + studyValue, charisma: 8
+            strength: 8 + exerciseValue, 
+            dexterity: 8, 
+            constitution: 8 + exerciseValue,
+            intelligence: 8 + studyValue, 
+            wisdom: 8 + studyValue, 
+            charisma: 8
         },
-        avatarUrl: ''
+        avatarUrl: '',
+        // --- NEW PROPERTIES FOR PERK SYSTEM ---
+        skillPoints: 0, // Start with 0 perk points
+        unlockedPerks: [], // An array to store the names of unlocked perks
+        monthlyActivityLog: [] // An array to store dates of activity for the current month
     };
     checkAllSkillUnlocks();
 }
