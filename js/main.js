@@ -104,10 +104,17 @@ let currentSkillPath = [];
 const levelManager = {
     gainXp: function(amount) {
         characterData.xp += amount;
-        if (characterData.xp >= characterData.xpToNextLevel) this.levelUp();
+        
+        // Use a 'while' loop to handle multiple level-ups from one XP gain
+        while (characterData.xp >= characterData.xpToNextLevel) {
+            this.levelUp();
+        }
+        
+        // Update the UI once after all potential level-ups are complete
         updateDashboard();
     },
     levelUp: function() {
+        // This function now only worries about changing the data
         characterData.level++;
         characterData.xp -= characterData.xpToNextLevel;
         characterData.xpToNextLevel = Math.floor(characterData.xpToNextLevel * 1.5);
@@ -233,26 +240,21 @@ function logMonthlyActivity() {
     const today = now.toISOString().split('T')[0]; // "YYYY-MM-DD" format
     const currentMonth = now.getFullYear() + '-' + (now.getMonth() + 1); // "YYYY-M" format
 
-    // If the log is for a previous month, reset it.
     if (characterData.activityLogMonth !== currentMonth) {
         characterData.activityLogMonth = currentMonth;
         characterData.monthlyActivityLog = [];
-        characterData.monthlyPerkClaimed = false; // Reset the claim flag
+        characterData.monthlyPerkClaimed = false;
     }
     
-    // If the perk for this month is already claimed, do nothing.
     if (characterData.monthlyPerkClaimed) {
         return;
     }
 
-    // If today is not already in the log, add it.
     if (!characterData.monthlyActivityLog.includes(today)) {
         characterData.monthlyActivityLog.push(today);
-
-        // Check if the milestone is reached
         if (characterData.monthlyActivityLog.length >= 25) {
             characterData.skillPoints++;
-            characterData.monthlyPerkClaimed = true; // Set the flag
+            characterData.monthlyPerkClaimed = true;
             showToast("Monthly Milestone! You earned a Perk Point for your consistency!");
         }
     }
@@ -365,7 +367,12 @@ function updateDashboard() {
 
     // Calculate Level Milestone Progress
     const currentLevel = characterData.level || 1;
-    const nextLevelMilestone = (Math.floor((currentLevel - 1) / 10) + 1) * 10;
+    let nextLevelMilestone;
+    if (currentLevel > 0 && currentLevel % 10 === 0) {
+        nextLevelMilestone = currentLevel + 10;
+    } else {
+        nextLevelMilestone = Math.ceil(currentLevel / 10) * 10;
+    }
     const prevLevelMilestone = nextLevelMilestone - 10;
     const levelProgress = ((currentLevel - prevLevelMilestone) / 10) * 100;
     document.getElementById('level-milestone-bar').style.width = `${levelProgress}%`;
@@ -432,34 +439,29 @@ function checkAllSkillUnlocks() {
 }
 
 function renderSkillTree() {
-    skillTreeView.innerHTML = ''; // Clear the current view
+    skillTreeView.innerHTML = '';
     const breadcrumbs = document.getElementById('skill-tree-breadcrumbs');
     breadcrumbs.innerHTML = '';
-
     let currentLevel = skillTree;
     let path = [...currentSkillPath];
     let breadcrumbPath = ['Galaxies'];
 
-    // Navigate to the current depth in the skill tree
     while (path.length > 0) {
         let key = path.shift();
         currentLevel = currentLevel[key]?.constellations || currentLevel[key]?.stars || currentLevel[key];
         breadcrumbPath.push(key);
     }
     
-    // Update header and back button
     skillTreeTitle.textContent = currentSkillPath.length > 0 ? currentSkillPath[currentSkillPath.length - 1] : "Skill Galaxies";
     breadcrumbs.textContent = breadcrumbPath.join(' > ');
     skillBackBtn.classList.toggle('hidden', currentSkillPath.length === 0);
 
-    // Render the items at the current level
     for (const key in currentLevel) {
         const item = currentLevel[key];
         const div = document.createElement('div');
         div.textContent = key;
-        div.className = item.type; // 'galaxy', 'constellation', or 'star'
+        div.className = item.type;
 
-        // Set the title attribute for hover info
         let hoverTitle = item.description || '';
         if (item.type === 'star') {
             const unlocked = characterData.stats[item.requires.stat] >= item.requires.value;
@@ -470,7 +472,6 @@ function renderSkillTree() {
         }
         div.title = hoverTitle.trim();
 
-        // Add click listener for navigation
         if (item.type !== 'star') {
             div.addEventListener('click', () => {
                 currentSkillPath.push(key);
@@ -482,7 +483,7 @@ function renderSkillTree() {
 }
 
 function openSkillsModal() { 
-    currentSkillPath = []; // Reset to top level when opening
+    currentSkillPath = [];
     skillsModal.classList.remove('hidden');
     renderSkillTree();
 }
