@@ -107,11 +107,17 @@ const levelManager = {
         if (characterData.xp >= characterData.xpToNextLevel) this.levelUp();
         updateDashboard();
     },
-    levelUp: function() {
-        characterData.level++;
-        characterData.xp -= characterData.xpToNextLevel;
-        characterData.xpToNextLevel = Math.floor(characterData.xpToNextLevel * 1.5);
-        showToast(`Congratulations! You've reached Level ${characterData.level}!`);
+levelUp: function() {
+    characterData.level++;
+    characterData.xp -= characterData.xpToNextLevel;
+    characterData.xpToNextLevel = Math.floor(characterData.xpToNextLevel * 1.5);
+    showToast(`Congratulations! You've reached Level ${characterData.level}!`);
+
+        // --- NEW: Check for Leveling Milestone ---
+        if (characterData.level % 10 === 0) {
+            characterData.skillPoints++;
+            showToast(`Level ${characterData.level} Milestone! You earned a Perk Point!`);
+        }
     }
 };
 
@@ -127,6 +133,9 @@ const activityManager = {
             const activity = this.activities[activityKey];
             characterData.stats[activity.stat] += activity.points;
             levelManager.gainXp(activity.xp);
+            
+            logMonthlyActivity(); // --- ADD THIS LINE ---
+
             checkAllSkillUnlocks();
         }
     }
@@ -216,6 +225,43 @@ async function loadData(userId) {
     return false;
 }
 
+// js/main.js
+
+// --- NEW FUNCTION for Monthly Milestones ---
+function logMonthlyActivity() {
+    if (!characterData.monthlyActivityLog) {
+        characterData.monthlyActivityLog = [];
+    }
+
+    const now = new Date();
+    const today = now.toISOString().split('T')[0]; // "YYYY-MM-DD" format
+    const currentMonth = now.getFullYear() + '-' + (now.getMonth() + 1); // "YYYY-M" format
+
+    // If the log is for a previous month, reset it.
+    if (characterData.activityLogMonth !== currentMonth) {
+        characterData.activityLogMonth = currentMonth;
+        characterData.monthlyActivityLog = [];
+        characterData.monthlyPerkClaimed = false; // Reset the claim flag
+    }
+    
+    // If the perk for this month is already claimed, do nothing.
+    if (characterData.monthlyPerkClaimed) {
+        return;
+    }
+
+    // If today is not already in the log, add it.
+    if (!characterData.monthlyActivityLog.includes(today)) {
+        characterData.monthlyActivityLog.push(today);
+
+        // Check if the milestone is reached
+        if (characterData.monthlyActivityLog.length >= 25) {
+            characterData.skillPoints++;
+            characterData.monthlyPerkClaimed = true; // Set the flag
+            showToast("Monthly Milestone! You earned a Perk Point for your consistency!");
+        }
+    }
+}
+
 // --- ONBOARDING, FACE SCAN, & CORE FUNCTIONS ---
 
 function calculateStartingStats() {
@@ -238,7 +284,9 @@ function calculateStartingStats() {
         // --- NEW PROPERTIES FOR PERK SYSTEM ---
         skillPoints: 0, // Start with 0 perk points
         unlockedPerks: [], // An array to store the names of unlocked perks
-        monthlyActivityLog: [] // An array to store dates of activity for the current month
+        monthlyActivityLog: [],
+        activityLogMonth: new Date().getFullYear() + '-' + (new Date().getMonth() + 1),
+        monthlyPerkClaimed: false
     };
     checkAllSkillUnlocks();
 }
@@ -333,6 +381,7 @@ function updateDashboard() {
             li.addEventListener('click', () => { 
                 if (choreManager.completeChore(index)) {
                     levelManager.gainXp(10);
+                    logMonthlyActivity();
                 }
             });
         }
