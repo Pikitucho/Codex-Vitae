@@ -35,15 +35,66 @@ let gameManager = {};
 let skillTree = {
     'Mind': {
         type: 'galaxy',
+        description: 'Skills of logic, learning, and creativity.',
         constellations: {
-            'Academics': { type: 'constellation', stars: { 'Active Learner': { type: 'star', unlocked: false, requires: { stat: 'intelligence', value: 12 } }, 'Critical Thinker': { type: 'star', unlocked: false, requires: { stat: 'intelligence', value: 15 } } } },
-            'Creativity': { type: 'constellation', stars: { 'Doodler': { type: 'star', unlocked: false, requires: { stat: 'wisdom', value: 11 } }, 'Storyteller': { type: 'star', unlocked: false, requires: { stat: 'charisma', value: 12 } } } }
+            'Academics': { 
+                type: 'constellation', 
+                stars: { 
+                    'Active Learner': { type: 'star', unlocked: false, requires: { stat: 'intelligence', value: 12 }, description: 'Gain more XP from reading and studying activities.' }, 
+                    'Critical Thinker': { type: 'star', unlocked: false, requires: { stat: 'intelligence', value: 15 }, description: 'Increases success rate on logic-based challenges.' },
+                    'Polymath': { type: 'star', unlocked: false, requires: { stat: 'intelligence', value: 20 }, description: 'Reduces the XP cost of learning new skills.' }
+                } 
+            },
+            'Creativity': { 
+                type: 'constellation', 
+                stars: { 
+                    'Doodler': { type: 'star', unlocked: false, requires: { stat: 'wisdom', value: 11 }, description: 'Unlocks the ability to generate simple creative works.' }, 
+                    'Storyteller': { type: 'star', unlocked: false, requires: { stat: 'charisma', value: 12 }, description: 'Improves outcomes in social interactions.' },
+                    'Improviser': { type: 'star', unlocked: false, requires: { stat: 'wisdom', value: 16 }, description: 'Provides new options in unexpected situations.' }
+                } 
+            }
         }
     },
     'Body': {
         type: 'galaxy',
+        description: 'Skills of strength, endurance, and physical prowess.',
         constellations: {
-            'Fitness': { type: 'constellation', stars: { 'Basic Fitness': { type: 'star', unlocked: false, requires: { stat: 'strength', value: 12 } }, 'Resilience': { type: 'star', unlocked: false, requires: { stat: 'constitution', value: 12 } } } }
+            'Fitness': { 
+                type: 'constellation', 
+                stars: { 
+                    'Basic Fitness': { type: 'star', unlocked: false, requires: { stat: 'strength', value: 12 }, description: 'Reduces chance of negative outcomes from physical exertion.' }, 
+                    'Resilience': { type: 'star', unlocked: false, requires: { stat: 'constitution', value: 14 }, description: 'Faster recovery from setbacks.' },
+                    'Athlete': { type: 'star', unlocked: false, requires: { stat: 'strength', value: 18 }, description: 'Unlocks advanced physical activities.' }
+                } 
+            },
+            'Craftsmanship': {
+                type: 'constellation',
+                stars: {
+                    'Handyman': { type: 'star', unlocked: false, requires: { stat: 'dexterity', value: 12 }, description: 'Ability to perform basic repairs and crafting.' },
+                    'Artisan': { type: 'star', unlocked: false, requires: { stat: 'dexterity', value: 16 }, description: 'Craft higher quality items.' }
+                }
+            }
+        }
+    },
+    'Soul': {
+        type: 'galaxy',
+        description: 'Skills of discipline, charisma, and inner strength.',
+        constellations: {
+            'Discipline': {
+                type: 'constellation',
+                stars: {
+                    'Early Riser': { type: 'star', unlocked: false, requires: { stat: 'constitution', value: 12 }, description: 'Gain a small bonus for activities completed in the morning.' },
+                    'Focused Mind': { type: 'star', unlocked: false, requires: { stat: 'wisdom', value: 15 }, description: 'Reduces distractions, increasing efficiency of study.' },
+                    'Unwavering': { type: 'star', unlocked: false, requires: { stat: 'constitution', value: 18 }, description: 'High resistance to abandoning long-term goals.' }
+                }
+            },
+            'Charisma': {
+                type: 'constellation',
+                stars: {
+                    'Pleasantries': { type: 'star', unlocked: false, requires: { stat: 'charisma', value: 12 }, description: 'Improves initial reactions in social encounters.' },
+                    'Persuasion': { type: 'star', unlocked: false, requires: { stat: 'charisma', value: 15 }, description: 'Increases the chance of convincing others.' }
+                }
+            }
         }
     }
 };
@@ -222,85 +273,25 @@ async function handleFaceScan() {
     scanButton.disabled = true;
 
     // --- DIRECT UPLOAD TO FIREBASE STORAGE (Simple Version) ---
-    // Convert the canvas image to a blob, which is the format for uploading
     canvas.toBlob(async (blob) => {
         try {
-            // Create a reference to the Firebase Storage location
             const storageRef = storage.ref();
-            // Create a path for the user's avatar, using their unique user ID
             const avatarRef = storageRef.child(`avatars/${auth.currentUser.uid}.png`);
-            
-            // Upload the image blob
             await avatarRef.put(blob);
-            
-            // Get the permanent URL for the uploaded image
             const downloadURL = await avatarRef.getDownloadURL();
             characterData.avatarUrl = downloadURL;
-
-            // Update the display with the new photo
             capturedPhoto.src = characterData.avatarUrl;
             capturedPhoto.classList.remove('hidden');
             webcamFeed.classList.add('hidden');
-            
         } catch (error) {
             console.error("Error uploading image to Firebase Storage:", error);
             alert(`Failed to save photo. ${error.message}`);
         } finally {
             scanButton.textContent = 'Rescan Face';
             scanButton.disabled = false;
-            updateDashboard(); // Save the new avatarUrl to Firestore
+            updateDashboard();
         }
     }, 'image/png');
-
-
-    /*
-    // --- AI AVATAR GENERATION (Temporarily Disabled) ---
-    // We will come back to this later. The code below calls our server
-    // to transform the captured photo into a stylized avatar.
-    
-    const imageBase64 = canvas.toDataURL('image/jpeg').split(',')[1];
-
-    try {
-        if (AVATAR_GENERATION_URL === 'YOUR_SERVER_URL_HERE') {
-            throw new Error("Avatar generation URL is not set in main.js!");
-        }
-
-        const response = await fetch(AVATAR_GENERATION_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: imageBase64 }) 
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Server Error: ${errorText}`);
-        }
-
-        const data = await response.json();
-        const imageUrl = `data:image/png;base64,${data.base64Image}`;
-        
-        capturedPhoto.src = imageUrl;
-        capturedPhoto.classList.remove('hidden');
-        webcamFeed.classList.add('hidden');
-
-        const generatedBlob = await (await fetch(imageUrl)).blob();
-        const storageRef = storage.ref();
-        const avatarRef = storageRef.child(`avatars/${auth.currentUser.uid}.png`);
-        
-        await avatarRef.put(generatedBlob);
-        characterData.avatarUrl = await avatarRef.getDownloadURL();
-
-    } catch (error) {
-        console.error(error);
-        alert(`Failed to generate avatar. ${error.message}`);
-        capturedPhoto.classList.add('hidden');
-        webcamFeed.classList.add('hidden'); 
-    } finally {
-        scanButton.textContent = 'Create Avatar';
-        scanButton.disabled = false;
-        updateDashboard();
-    }
-    */
 }
 
 function updateDashboard() {
@@ -368,30 +359,45 @@ function checkAllSkillUnlocks() {
 
 function renderSkillTree() {
     skillTreeView.innerHTML = ''; // Clear the current view
+    const breadcrumbs = document.getElementById('skill-tree-breadcrumbs');
+    breadcrumbs.innerHTML = '';
+
     let currentLevel = skillTree;
     let path = [...currentSkillPath];
+    let breadcrumbPath = ['Galaxies'];
 
+    // Navigate to the current depth in the skill tree
     while (path.length > 0) {
         let key = path.shift();
         currentLevel = currentLevel[key]?.constellations || currentLevel[key]?.stars || currentLevel[key];
+        breadcrumbPath.push(key);
     }
     
+    // Update header and back button
     skillTreeTitle.textContent = currentSkillPath.length > 0 ? currentSkillPath[currentSkillPath.length - 1] : "Skill Galaxies";
+    breadcrumbs.textContent = breadcrumbPath.join(' > ');
     skillBackBtn.classList.toggle('hidden', currentSkillPath.length === 0);
 
+    // Render the items at the current level
     for (const key in currentLevel) {
         const item = currentLevel[key];
         const div = document.createElement('div');
         div.textContent = key;
-        div.className = item.type;
+        div.className = item.type; // 'galaxy', 'constellation', or 'star'
 
+        // Set the title attribute for hover info
+        let hoverTitle = item.description || '';
         if (item.type === 'star') {
             const unlocked = characterData.stats[item.requires.stat] >= item.requires.value;
             div.classList.add(unlocked ? 'unlocked' : 'locked');
             if (!unlocked) {
-                div.title = `Requires ${item.requires.value} ${item.requires.stat}`;
+                hoverTitle += `\n(Requires ${item.requires.value} ${item.requires.stat})`;
             }
-        } else {
+        }
+        div.title = hoverTitle.trim();
+
+        // Add click listener for navigation
+        if (item.type !== 'star') {
             div.addEventListener('click', () => {
                 currentSkillPath.push(key);
                 renderSkillTree();
@@ -408,7 +414,6 @@ function openSkillsModal() {
 }
 
 function showToast(message) { 
-    // This is a more advanced toast notification, but for now, alert is fine.
     alert(message);
 }
 

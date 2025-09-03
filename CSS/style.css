@@ -130,3 +130,13 @@ button:hover { background-color: var(--color-primary-dark); }
 .star { width: 70px; height: 70px; }
 .star.unlocked { background-color: var(--color-success); border-color: #009a7b; }
 .star.locked { background-color: #2d3436; color: #636e72; }
+
+/* style.css */
+
+/* --- SKILL TREE ENHANCEMENTS --- */
+#skill-tree-breadcrumbs {
+    color: #a0aec0; /* Lighter text color */
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 0.9em;
+}
