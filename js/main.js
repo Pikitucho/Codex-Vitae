@@ -107,13 +107,13 @@ const levelManager = {
         if (characterData.xp >= characterData.xpToNextLevel) this.levelUp();
         updateDashboard();
     },
-levelUp: function() {
-    characterData.level++;
-    characterData.xp -= characterData.xpToNextLevel;
-    characterData.xpToNextLevel = Math.floor(characterData.xpToNextLevel * 1.5);
-    showToast(`Congratulations! You've reached Level ${characterData.level}!`);
+    levelUp: function() {
+        characterData.level++;
+        characterData.xp -= characterData.xpToNextLevel;
+        characterData.xpToNextLevel = Math.floor(characterData.xpToNextLevel * 1.5);
+        showToast(`Congratulations! You've reached Level ${characterData.level}!`);
 
-        // --- NEW: Check for Leveling Milestone ---
+        // Check for Leveling Milestone
         if (characterData.level % 10 === 0) {
             characterData.skillPoints++;
             showToast(`Level ${characterData.level} Milestone! You earned a Perk Point!`);
@@ -133,9 +133,7 @@ const activityManager = {
             const activity = this.activities[activityKey];
             characterData.stats[activity.stat] += activity.points;
             levelManager.gainXp(activity.xp);
-            
-            logMonthlyActivity(); // --- ADD THIS LINE ---
-
+            logMonthlyActivity();
             checkAllSkillUnlocks();
         }
     }
@@ -225,9 +223,7 @@ async function loadData(userId) {
     return false;
 }
 
-// js/main.js
-
-// --- NEW FUNCTION for Monthly Milestones ---
+// --- CORE FUNCTIONS ---
 function logMonthlyActivity() {
     if (!characterData.monthlyActivityLog) {
         characterData.monthlyActivityLog = [];
@@ -262,8 +258,6 @@ function logMonthlyActivity() {
     }
 }
 
-// --- ONBOARDING, FACE SCAN, & CORE FUNCTIONS ---
-
 function calculateStartingStats() {
     const exerciseValue = parseInt(document.getElementById('exercise-freq').value);
     const studyValue = parseInt(document.getElementById('study-habit').value);
@@ -281,9 +275,8 @@ function calculateStartingStats() {
             charisma: 8
         },
         avatarUrl: '',
-        // --- NEW PROPERTIES FOR PERK SYSTEM ---
-        skillPoints: 0, // Start with 0 perk points
-        unlockedPerks: [], // An array to store the names of unlocked perks
+        skillPoints: 0,
+        unlockedPerks: [],
         monthlyActivityLog: [],
         activityLogMonth: new Date().getFullYear() + '-' + (new Date().getMonth() + 1),
         monthlyPerkClaimed: false
@@ -305,7 +298,6 @@ async function handleFaceScan() {
     const canvas = document.getElementById('photo-canvas');
     const scanButton = document.getElementById('scan-face-btn');
 
-    // Part 1: Capture image from webcam (same as before)
     if (!webcamFeed.srcObject || !webcamFeed.srcObject.active) {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -321,7 +313,6 @@ async function handleFaceScan() {
         }
     }
 
-    // Part 2: Draw image to canvas and stop the webcam
     const context = canvas.getContext('2d');
     canvas.width = webcamFeed.videoWidth;
     canvas.height = webcamFeed.videoHeight;
@@ -332,7 +323,6 @@ async function handleFaceScan() {
     scanButton.textContent = "Uploading...";
     scanButton.disabled = true;
 
-    // --- DIRECT UPLOAD TO FIREBASE STORAGE (Simple Version) ---
     canvas.toBlob(async (blob) => {
         try {
             const storageRef = storage.ref();
@@ -357,6 +347,7 @@ async function handleFaceScan() {
 function updateDashboard() {
     if (!characterData || !characterData.stats) return;
 
+    // --- Core Stats ---
     document.getElementById('str-value').textContent = characterData.stats.strength;
     document.getElementById('dex-value').textContent = characterData.stats.dexterity;
     document.getElementById('con-value').textContent = characterData.stats.constitution;
@@ -364,10 +355,29 @@ function updateDashboard() {
     document.getElementById('wis-value').textContent = characterData.stats.wisdom;
     document.getElementById('cha-value').textContent = characterData.stats.charisma;
 
+    // --- Level and XP ---
     document.getElementById('level-value').textContent = characterData.level;
     document.getElementById('xp-text').textContent = `${characterData.xp} / ${characterData.xpToNextLevel} XP`;
     document.getElementById('xp-bar').style.width = `${(characterData.xp / characterData.xpToNextLevel) * 100}%`;
 
+    // --- Perk Point Progression ---
+    document.getElementById('pp-total').textContent = characterData.skillPoints || 0;
+
+    // Calculate Level Milestone Progress
+    const currentLevel = characterData.level || 1;
+    const nextLevelMilestone = (Math.floor((currentLevel - 1) / 10) + 1) * 10;
+    const prevLevelMilestone = nextLevelMilestone - 10;
+    const levelProgress = ((currentLevel - prevLevelMilestone) / 10) * 100;
+    document.getElementById('level-milestone-bar').style.width = `${levelProgress}%`;
+    document.getElementById('level-milestone-text').textContent = `${currentLevel} / ${nextLevelMilestone}`;
+
+    // Calculate Monthly Milestone Progress
+    const activeDays = characterData.monthlyActivityLog ? characterData.monthlyActivityLog.length : 0;
+    const monthlyProgress = (activeDays / 25) * 100;
+    document.getElementById('monthly-milestone-bar').style.width = `${monthlyProgress}%`;
+    document.getElementById('monthly-milestone-text').textContent = `${activeDays} / 25 Days`;
+
+    // --- Chores ---
     const choreList = document.getElementById('chore-list');
     choreList.innerHTML = '';
     (choreManager.chores.length === 0 ? ['No chores added yet.'] : choreManager.chores).forEach((chore, index) => {
@@ -388,6 +398,7 @@ function updateDashboard() {
         choreList.appendChild(li);
     });
 
+    // --- Goals ---
     const activeGoalDisplay = document.getElementById('active-goal-display');
     if (goalManager.activeGoal) {
         const { stat, target } = goalManager.activeGoal;
@@ -399,6 +410,7 @@ function updateDashboard() {
         activeGoalDisplay.classList.add('hidden');
     }
 
+    // --- Avatar ---
     const capturedPhoto = document.getElementById('captured-photo');
     if (characterData.avatarUrl) {
         capturedPhoto.src = characterData.avatarUrl;
@@ -410,6 +422,7 @@ function updateDashboard() {
         capturedPhoto.classList.add('hidden');
     }
 
+    // --- Save Data ---
     if (auth.currentUser) saveData();
 }
 
