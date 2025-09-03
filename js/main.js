@@ -12,7 +12,8 @@ const firebaseConfig = {
 };
 
 // --- BACKEND SERVER URL ---
-const AVATAR_GENERATION_URL = 'https://generate-avatar-393704011058.us-central1.run.app'; 
+// Replace this with the URL of your deployed Express.js server
+const AVATAR_GENERATION_URL = 'https://generate-avatar-393704011058.us-central1.run.app';
 
 // --- Firebase Initialization ---
 firebase.initializeApp(firebaseConfig);
@@ -31,8 +32,6 @@ const skillBackBtn = document.getElementById('skill-back-btn');
 // --- Global Data Variables ---
 let characterData = {};
 let gameManager = {};
-let choreManager = { chores: [] };
-let goalManager = { activeGoal: null };
 let skillTree = {
     'Mind': {
         type: 'galaxy',
@@ -78,6 +77,45 @@ const activityManager = {
             characterData.stats[activity.stat] += activity.points;
             levelManager.gainXp(activity.xp);
             checkAllSkillUnlocks();
+        }
+    }
+};
+
+let choreManager = {
+    chores: [],
+    addChore: function(text) {
+        if (text) {
+            this.chores.push({ text: text, completed: false });
+            return true;
+        }
+        return false;
+    },
+    completeChore: function(index) {
+        if (this.chores[index] && !this.chores[index].completed) {
+            this.chores[index].completed = true;
+            showToast("Chore completed! +10 XP");
+            return true;
+        }
+        return false;
+    }
+};
+
+let goalManager = {
+    activeGoal: null,
+    setGoal: function(stat, target) {
+        if (stat && target > (characterData.stats[stat] || 0)) {
+            this.activeGoal = { stat: stat, target: target };
+            showToast(`New Goal Set: Reach ${target} ${stat}!`);
+            return true;
+        }
+        alert("Invalid goal. Target must be higher than current stat.");
+        return false;
+    },
+    checkGoal: function() {
+        if (this.activeGoal && characterData.stats[this.activeGoal.stat] >= this.activeGoal.target) {
+            showToast(`Goal Achieved! You reached ${this.activeGoal.target} ${this.activeGoal.stat}! +100 XP`);
+            levelManager.gainXp(100);
+            this.activeGoal = null;
         }
     }
 };
@@ -150,14 +188,12 @@ function handleOnboarding(event) {
     updateDashboard();
 }
 
-// --- FACE SCAN & AVATAR GENERATION ---
 async function handleFaceScan() {
     const webcamFeed = document.getElementById('webcam-feed');
     const capturedPhoto = document.getElementById('captured-photo');
     const canvas = document.getElementById('photo-canvas');
     const scanButton = document.getElementById('scan-face-btn');
 
-    // Part 1: Capture image from webcam
     if (!webcamFeed.srcObject || !webcamFeed.srcObject.active) {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -173,7 +209,6 @@ async function handleFaceScan() {
         }
     }
 
-    // Part 2: Draw image to canvas and prepare for sending
     const context = canvas.getContext('2d');
     canvas.width = webcamFeed.videoWidth;
     canvas.height = webcamFeed.videoHeight;
@@ -184,16 +219,13 @@ async function handleFaceScan() {
     scanButton.textContent = "Generating...";
     scanButton.disabled = true;
 
-    // Get the image data as a base64 string, removing the header
     const imageBase64 = canvas.toDataURL('image/jpeg').split(',')[1];
 
-    // Part 3: Call your secure backend server
     try {
         if (AVATAR_GENERATION_URL === 'YOUR_SERVER_URL_HERE') {
             throw new Error("Avatar generation URL is not set in main.js!");
         }
 
-        // Securely call your backend server, which will then call Vertex AI
         const response = await fetch(AVATAR_GENERATION_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -206,34 +238,28 @@ async function handleFaceScan() {
         }
 
         const data = await response.json();
-        // The server returns the generated image as a base64 string
         const imageUrl = `data:image/png;base64,${data.base64Image}`;
-
-        // Part 4: Display and Save the new image to Firebase Storage
+        
         capturedPhoto.src = imageUrl;
         capturedPhoto.classList.remove('hidden');
         webcamFeed.classList.add('hidden');
 
-        // Convert the base64 URL back to a blob for uploading
         const generatedBlob = await (await fetch(imageUrl)).blob();
         const storageRef = storage.ref();
         const avatarRef = storageRef.child(`avatars/${auth.currentUser.uid}.png`);
         
         await avatarRef.put(generatedBlob);
-        
-        // Get the permanent URL from Storage and save it to the database
         characterData.avatarUrl = await avatarRef.getDownloadURL();
 
     } catch (error) {
-        console.error('Erro ao tentar gerar o avatar:', error);
+        console.error(error);
         alert(`Failed to generate avatar. ${error.message}`);
-        // Reset to a default state if something fails
         capturedPhoto.classList.add('hidden');
         webcamFeed.classList.add('hidden'); 
     } finally {
         scanButton.textContent = 'Create Avatar';
         scanButton.disabled = false;
-        updateDashboard(); // This will save the new avatarUrl
+        updateDashboard();
     }
 }
 
@@ -261,7 +287,11 @@ function updateDashboard() {
         } else {
             li.textContent = chore.text;
             if (chore.completed) li.classList.add('completed');
-            li.addEventListener('click', () => { if (choreManager.completeChore(index)) levelManager.gainXp(10); });
+            li.addEventListener('click', () => { 
+                if (choreManager.completeChore(index)) {
+                    levelManager.gainXp(10);
+                }
+            });
         }
         choreList.appendChild(li);
     });
@@ -284,42 +314,78 @@ function updateDashboard() {
         document.getElementById('webcam-feed').classList.add('hidden');
         document.getElementById('scan-face-btn').textContent = 'Update Avatar';
     } else {
-        capturedPhoto.src = ''; // Clear if no URL
+        capturedPhoto.src = '';
         capturedPhoto.classList.add('hidden');
     }
 
     if (auth.currentUser) saveData();
 }
 
-// NOTE: These functions need to be implemented fully
-function renderSkillTree() { 
-    console.log("Rendering skill tree...");
-    // Add logic to display galaxies, constellations, and stars
+function checkAllSkillUnlocks() {
+    if (!skillTree || !characterData.stats) return;
+    console.log("Checking for skill unlocks...");
 }
-function checkAllSkillUnlocks() { 
-    console.log("Checking skill unlocks...");
-    // Add logic to iterate through skillTree and check requirements
+
+function renderSkillTree() {
+    skillTreeView.innerHTML = ''; // Clear the current view
+    let currentLevel = skillTree;
+    let path = [...currentSkillPath];
+
+    while (path.length > 0) {
+        let key = path.shift();
+        currentLevel = currentLevel[key]?.constellations || currentLevel[key]?.stars || currentLevel[key];
+    }
+    
+    skillTreeTitle.textContent = currentSkillPath.length > 0 ? currentSkillPath[currentSkillPath.length - 1] : "Skill Galaxies";
+    skillBackBtn.classList.toggle('hidden', currentSkillPath.length === 0);
+
+    for (const key in currentLevel) {
+        const item = currentLevel[key];
+        const div = document.createElement('div');
+        div.textContent = key;
+        div.className = item.type;
+
+        if (item.type === 'star') {
+            const unlocked = characterData.stats[item.requires.stat] >= item.requires.value;
+            div.classList.add(unlocked ? 'unlocked' : 'locked');
+            if (!unlocked) {
+                div.title = `Requires ${item.requires.value} ${item.requires.stat}`;
+            }
+        } else {
+            div.addEventListener('click', () => {
+                currentSkillPath.push(key);
+                renderSkillTree();
+            });
+        }
+        skillTreeView.appendChild(div);
+    }
 }
+
 function openSkillsModal() { 
-    console.log("Opening skills modal...");
+    currentSkillPath = []; // Reset to top level when opening
     skillsModal.classList.remove('hidden');
     renderSkillTree();
 }
-function showToast(message) { alert(message); } // Simple placeholder
+
+function showToast(message) { 
+    // This is a more advanced toast notification, but for now, alert is fine.
+    alert(message);
+}
 
 function setupEventListeners() {
     document.getElementById('add-chore-btn').addEventListener('click', () => {
         const choreInput = document.getElementById('chore-input');
-        // This assumes choreManager.addChore is implemented elsewhere
-        // if (choreManager.addChore(choreInput.value.trim())) { choreInput.value = ''; updateDashboard(); }
-        alert("Chore functionality not fully implemented.");
+        if (choreManager.addChore(choreInput.value.trim())) { 
+            choreInput.value = ''; 
+            updateDashboard(); 
+        }
     });
     document.getElementById('set-goal-btn').addEventListener('click', () => {
         const stat = document.getElementById('goal-stat-select').value;
         const target = parseInt(document.getElementById('goal-value-input').value);
-        // This assumes goalManager.setGoal is implemented em outro lugar
-        // if (goalManager.setGoal(stat, target)) updateDashboard();
-        alert("Goal functionality not fully implemented.");
+        if (goalManager.setGoal(stat, target)) {
+            updateDashboard();
+        }
     });
     document.getElementById('log-activity-btn').addEventListener('click', () => {
         activityManager.logActivity(document.getElementById('activity-select').value);
@@ -355,7 +421,6 @@ auth.onAuthStateChanged(async user => {
     } else {
         authScreen.classList.remove('hidden');
         appScreen.classList.add('hidden');
-        // Clear data when logged out
         characterData = {};
     }
 });
