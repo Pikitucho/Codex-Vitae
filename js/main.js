@@ -133,7 +133,7 @@ async function saveData() {
     const userId = auth.currentUser.uid;
     characterData.chores = choreManager.chores;
     const userRef = db.collection('users').doc(userId);
-    const dataToSave = { characterData, gameManager, skillTree };
+    const dataToSave = { characterData, gameManager }; // skillTree is now static
     await userRef.set(dataToSave, { merge: true });
     console.log("Data saved to Firestore!");
 }
@@ -146,7 +146,6 @@ async function loadData(userId) {
         characterData = loadedData.characterData;
         gameManager = loadedData.gameManager;
         choreManager.chores = characterData.chores || [];
-        // skillTree is loaded from the separate file now, so we don't load it from save.
         if (characterData.avatarUrl) {
             document.getElementById('captured-photo').src = characterData.avatarUrl;
         }
@@ -229,18 +228,11 @@ function calculateStartingStats() {
     };
 }
 
-
 async function handleOnboarding(event) {
     event.preventDefault();
-    
-    // 1. Create the character data locally
     calculateStartingStats();
     gameManager.onboardingComplete = true;
-
-    // 2. IMPORTANT: Wait for the data to be saved to the database
     await saveData();
-
-    // 3. Only after the save is complete, hide the modal and update the UI
     document.getElementById('onboarding-modal').classList.add('hidden');
     updateDashboard();
 }
@@ -283,9 +275,6 @@ async function handleFaceScan() {
             await avatarRef.put(blob);
             const downloadURL = await avatarRef.getDownloadURL();
             characterData.avatarUrl = downloadURL;
-            capturedPhoto.src = characterData.avatarUrl;
-            capturedPhoto.classList.remove('hidden');
-            webcamFeed.classList.add('hidden');
         } catch (error) {
             console.error("Error uploading image to Firebase Storage:", error);
             alert(`Failed to save photo. ${error.message}`);
@@ -408,22 +397,19 @@ function showToast(message) {
 
 function setupEventListeners() {
     const choreInput = document.getElementById('chore-input');
-    const addChoreBtn = document.getElementById('add-chore-btn');
 
     const handleAddChore = async () => {
         const text = choreInput.value.trim();
         if(text) {
-            addChoreBtn.disabled = true;
             choreInput.disabled = true;
             await choreManager.addChore(text);
             choreInput.value = '';
-            addChoreBtn.disabled = false;
             choreInput.disabled = false;
             choreInput.focus();
         }
     };
 
-    addChoreBtn.addEventListener('click', handleAddChore);
+    // We removed the add chore button, so we only need the keypress listener
     choreInput.addEventListener('keypress', (event) => {
         if (event.key === 'Enter') {
             handleAddChore();
