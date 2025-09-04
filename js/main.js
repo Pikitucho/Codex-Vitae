@@ -229,10 +229,18 @@ function calculateStartingStats() {
     };
 }
 
-function handleOnboarding(event) {
+
+async function handleOnboarding(event) {
     event.preventDefault();
+    
+    // 1. Create the character data locally
     calculateStartingStats();
     gameManager.onboardingComplete = true;
+
+    // 2. IMPORTANT: Wait for the data to be saved to the database
+    await saveData();
+
+    // 3. Only after the save is complete, hide the modal and update the UI
     document.getElementById('onboarding-modal').classList.add('hidden');
     updateDashboard();
 }
