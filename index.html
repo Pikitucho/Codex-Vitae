@@ -95,41 +95,83 @@
         </div>
 
         <div id="chore-section" class="widget">
-            <h4>Daily Chores</h4>
+            <h4>Chore Effort</h4>
+            <p class="widget-subtitle">Complete chores to gain Stat Fragments. 1,000 Fragments = +1 Stat Point.</p>
+            
+            <div id="chore-progress-grid">
+                <div class="chore-stat-tracker">
+                    <div class="flex-between">
+                        <p class="chore-stat-label">Strength</p>
+                        <p class="chore-fragment-text" id="strength-chore-text">0 / 1000</p>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div id="strength-chore-bar" class="progress-bar"></div>
+                    </div>
+                </div>
+                <div class="chore-stat-tracker">
+                    <div class="flex-between">
+                        <p class="chore-stat-label">Dexterity</p>
+                        <p class="chore-fragment-text" id="dexterity-chore-text">0 / 1000</p>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div id="dexterity-chore-bar" class="progress-bar"></div>
+                    </div>
+                </div>
+                <div class="chore-stat-tracker">
+                    <div class="flex-between">
+                        <p class="chore-stat-label">Constitution</p>
+                        <p class="chore-fragment-text" id="constitution-chore-text">0 / 1000</p>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div id="constitution-chore-bar" class="progress-bar"></div>
+                    </div>
+                </div>
+                <div class="chore-stat-tracker">
+                    <div class="flex-between">
+                        <p class="chore-stat-label">Intelligence</p>
+                        <p class="chore-fragment-text" id="intelligence-chore-text">0 / 1000</p>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div id="intelligence-chore-bar" class="progress-bar"></div>
+                    </div>
+                </div>
+                <div class="chore-stat-tracker">
+                    <div class="flex-between">
+                        <p class="chore-stat-label">Wisdom</p>
+                        <p class="chore-fragment-text" id="wisdom-chore-text">0 / 1000</p>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div id="wisdom-chore-bar" class="progress-bar"></div>
+                    </div>
+                </div>
+                <div class="chore-stat-tracker">
+                    <div class="flex-between">
+                        <p class="chore-stat-label">Charisma</p>
+                        <p class="chore-fragment-text" id="charisma-chore-text">0 / 1000</p>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div id="charisma-chore-bar" class="progress-bar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="add-chore-input-group" class="input-group">
+                <input type="text" id="chore-input" placeholder="Log a completed chore and press Enter...">
+            </div>
+            
             <ul id="chore-list"></ul>
-            <div class="input-group">
-                <input type="text" id="chore-input" placeholder="Add a new chore...">
-                <button id="add-chore-btn">+</button>
-            </div>
         </div>
-
-        <div id="goal-section" class="widget">
-            <h4>Set a New Goal</h4>
-            <div class="input-group">
-                <select id="goal-stat-select">
-                    <option value="strength">Strength</option>
-                    <option value="dexterity">Dexterity</option>
-                    <option value="constitution">Constitution</option>
-                    <option value="intelligence">Intelligence</option>
-                    <option value="wisdom">Wisdom</option>
-                    <option value="charisma">Charisma</option>
-                </select>
-                <input type="number" id="goal-value-input" placeholder="Target">
-                <button id="set-goal-btn">Set</button>
-            </div>
-            <div id="active-goal-display" class="hidden">
-                <p id="goal-text"></p>
-            </div>
-        </div>
-
+        
         <div id="activity-log-section" class="widget">
-            <h4>Log an Activity</h4>
+            <h4>Log a Quick Stat Gain</h4>
             <div class="input-group">
                 <select id="activity-select">
-                    <option value="strength">Lifted Weights</option>
-                    <option value="constitution">Went for a Run</option>
-                    <option value="intelligence">Read a Book (1hr)</option>
-                    <option value="wisdom">Meditated (15min)</option>
+                    <option value="strength">+1 Strength</option>
+                    <option value="dexterity">+1 Dexterity</option>
+                    <option value="constitution">+1 Constitution</option>
+                    <option value="intelligence">+1 Intelligence</option>
+                    <option value="wisdom">+1 Wisdom</option>
+                    <option value="charisma">+1 Charisma</option>
                 </select>
                 <button id="log-activity-btn">Log</button>
             </div>
@@ -188,6 +230,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    
+    <script src="js/skill-tree-data.js"></script> 
     <script src="js/main.js"></script>
 </body>
 </html>

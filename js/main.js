@@ -44,7 +44,7 @@ const levelManager = {
     },
     levelUp: function() {
         characterData.level++;
-        characterData.statProgress -= characterData.statsToNextLevel; // Carry over extra progress
+        characterData.statProgress -= characterData.statsToNextLevel;
         showToast(`Congratulations! You've reached Level ${characterData.level}!`);
 
         if (characterData.level % 10 === 0) {
@@ -57,9 +57,11 @@ const levelManager = {
 const activityManager = {
     activities: {
         strength: { stat: 'strength', points: 1 },
+        dexterity: { stat: 'dexterity', points: 1 },
         constitution: { stat: 'constitution', points: 1 },
         intelligence: { stat: 'intelligence', points: 1 },
-        wisdom: { stat: 'wisdom', points: 1 }
+        wisdom: { stat: 'wisdom', points: 1 },
+        charisma: { stat: 'charisma', points: 1 }
     },
     logActivity: function(activityKey) {
         if (this.activities[activityKey]) {
@@ -67,43 +69,47 @@ const activityManager = {
             characterData.stats[activity.stat] += activity.points;
             levelManager.gainStatProgress(activity.points);
             logMonthlyActivity();
-            checkAllSkillUnlocks();
         }
     }
 };
 
 let choreManager = {
     chores: [],
-    addChore: function(text) {
-        if (text) { this.chores.push({ text: text, completed: false }); return true; }
-        return false;
-    },
-    completeChore: function(index) {
-        if (this.chores[index] && !this.chores[index].completed) {
-            this.chores[index].completed = true;
-            showToast("Chore completed!");
-            return true;
-        }
-        return false;
-    }
-};
+    addChore: async function(text) {
+        if (!text) return;
+        
+        const classification = await getAIChoreClassification(text);
 
-let goalManager = {
-    activeGoal: null,
-    setGoal: function(stat, target) {
-        if (stat && target > (characterData.stats[stat] || 0)) {
-            this.activeGoal = { stat: stat, target: target };
-            showToast(`New Goal Set: Reach ${target} ${stat}!`);
-            return true;
-        }
-        alert("Invalid goal. Target must be higher than current stat.");
-        return false;
+        const newChore = {
+            id: Date.now(),
+            text: text,
+            stat: classification.stat,
+            effort: classification.effort,
+            completed: false
+        };
+        this.chores.push(newChore);
+        updateDashboard();
     },
-    checkGoal: function() {
-        if (this.activeGoal && characterData.stats[this.activeGoal.stat] >= this.activeGoal.target) {
-            showToast(`Goal Achieved! You reached ${this.activeGoal.target} ${this.activeGoal.stat}!`);
-            this.activeGoal = null;
+    completeChore: function(choreId) {
+        const choreIndex = this.chores.findIndex(c => c.id === choreId);
+        if (choreIndex === -1) return;
+
+        const chore = this.chores[choreIndex];
+        
+        characterData.choreProgress[chore.stat] += chore.effort;
+        showToast(`+${chore.effort} ${chore.stat.slice(0,3).toUpperCase()} Fragments!`);
+
+        if (characterData.choreProgress[chore.stat] >= 1000) {
+            const pointsGained = Math.floor(characterData.choreProgress[chore.stat] / 1000);
+            characterData.choreProgress[chore.stat] %= 1000;
+            characterData.stats[chore.stat] += pointsGained;
+            levelManager.gainStatProgress(pointsGained);
+            showToast(`Mastery increased! +${pointsGained} ${chore.stat.toUpperCase()}`);
         }
+
+        this.chores.splice(choreIndex, 1);
+        logMonthlyActivity();
+        updateDashboard();
     }
 };
 
@@ -125,12 +131,10 @@ function handleLogout() { auth.signOut(); }
 async function saveData() {
     if (!auth.currentUser) return;
     const userId = auth.currentUser.uid;
+    characterData.chores = choreManager.chores;
     const userRef = db.collection('users').doc(userId);
-    const dataToSave = {
-        characterData, gameManager, chores: choreManager.chores,
-        activeGoal: goalManager.activeGoal, skillTree
-    };
-    await userRef.set(dataToSave);
+    const dataToSave = { characterData, gameManager, skillTree };
+    await userRef.set(dataToSave, { merge: true });
     console.log("Data saved to Firestore!");
 }
 
@@ -141,9 +145,8 @@ async function loadData(userId) {
         const loadedData = doc.data();
         characterData = loadedData.characterData;
         gameManager = loadedData.gameManager;
-        choreManager.chores = loadedData.chores || [];
-        goalManager.activeGoal = loadedData.activeGoal || null;
-        skillTree = loadedData.skillTree || skillTree;
+        choreManager.chores = characterData.chores || [];
+        // skillTree is loaded from the separate file now, so we don't load it from save.
         if (characterData.avatarUrl) {
             document.getElementById('captured-photo').src = characterData.avatarUrl;
         }
@@ -153,6 +156,30 @@ async function loadData(userId) {
 }
 
 // --- CORE FUNCTIONS ---
+async function getAIChoreClassification(text) {
+    console.log(`(Simulating AI classification for: "${text}")`);
+    await new Promise(resolve => setTimeout(resolve, 500)); 
+    const lowerCaseText = text.toLowerCase();
+    
+    // Effort Tier Simulation
+    let effort = 25; // Standard
+    if (lowerCaseText.includes('major') || lowerCaseText.includes('project') ||  lowerCaseText.includes('deep clean')) effort = 250;
+    if (lowerCaseText.includes('minor') || lowerCaseText.includes('quick')) effort = 10;
+    if (lowerCaseText.includes('trivial') || lowerCaseText.includes('brush teeth')) effort = 1;
+    if (lowerCaseText.includes('epic') || lowerCaseText.includes('marathon')) effort = 1000;
+
+    // Stat Category Simulation
+    if (lowerCaseText.includes('gym') || lowerCaseText.includes('lift') || lowerCaseText.includes('mow')) return { stat: 'strength', effort: effort };
+    if (lowerCaseText.includes('run') || lowerCaseText.includes('clean') || lowerCaseText.includes('dishes') || lowerCaseText.includes('laundry')) return { stat: 'constitution', effort: effort };
+    if (lowerCaseText.includes('read') || lowerCaseText.includes('study') || lowerCaseText.includes('budget') || lowerCaseText.includes('taxes')) return { stat: 'intelligence', effort: effort };
+    if (lowerCaseText.includes('meditate') || lowerCaseText.includes('plan') || lowerCaseText.includes('journal')) return { stat: 'wisdom', effort: effort };
+    if (lowerCaseText.includes('call') || lowerCaseText.includes('talk') || lowerCaseText.includes('meeting')) return { stat: 'charisma', effort: effort };
+    if (lowerCaseText.includes('practice') || lowerCaseText.includes('draw') || lowerCaseText.includes('build')) return { stat: 'dexterity', effort: effort };
+
+    const stats = ["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"];
+    return { stat: stats[Math.floor(Math.random() * stats.length)], effort: 10 };
+}
+
 function logMonthlyActivity() {
     if (!characterData.monthlyActivityLog) { characterData.monthlyActivityLog = []; }
     const now = new Date();
@@ -189,6 +216,10 @@ function calculateStartingStats() {
             wisdom: 8 + studyValue, 
             charisma: 8
         },
+        choreProgress: {
+            strength: 0, dexterity: 0, constitution: 0,
+            intelligence: 0, wisdom: 0, charisma: 0
+        },
         avatarUrl: '',
         skillPoints: 0,
         unlockedPerks: [],
@@ -196,7 +227,6 @@ function calculateStartingStats() {
         activityLogMonth: new Date().getFullYear() + '-' + (new Date().getMonth() + 1),
         monthlyPerkClaimed: false
     };
-    checkAllSkillUnlocks();
 }
 
 function handleOnboarding(event) {
@@ -262,67 +292,47 @@ async function handleFaceScan() {
 function updateDashboard() {
     if (!characterData || !characterData.stats) return;
 
-    // --- Core Stats ---
+    // --- Update all stat displays ---
     document.getElementById('str-value').textContent = characterData.stats.strength;
     document.getElementById('dex-value').textContent = characterData.stats.dexterity;
     document.getElementById('con-value').textContent = characterData.stats.constitution;
     document.getElementById('int-value').textContent = characterData.stats.intelligence;
     document.getElementById('wis-value').textContent = characterData.stats.wisdom;
     document.getElementById('cha-value').textContent = characterData.stats.charisma;
-
-    // --- Stat Progression to Level Up ---
     document.getElementById('level-value').textContent = characterData.level;
     document.getElementById('xp-text').textContent = `${characterData.statProgress} / ${characterData.statsToNextLevel} Stats`;
     document.getElementById('xp-bar').style.width = `${(characterData.statProgress / characterData.statsToNextLevel) * 100}%`;
-
-    // --- Perk Point Progression ---
     document.getElementById('pp-total').textContent = characterData.skillPoints || 0;
-
-    // Calculate Level Milestone Progress
     const currentLevel = characterData.level || 1;
     const progressInTier = (currentLevel - 1) % 10;
-    const levelProgress = (progressInTier / 10) * 100;
-    document.getElementById('level-milestone-bar').style.width = `${levelProgress}%`;
+    document.getElementById('level-milestone-bar').style.width = `${(progressInTier / 10) * 100}%`;
     document.getElementById('level-milestone-text').textContent = `${progressInTier} / 10`;
-
-    // Calculate Monthly Milestone Progress
     const activeDays = characterData.monthlyActivityLog ? characterData.monthlyActivityLog.length : 0;
-    const monthlyProgress = (activeDays / 25) * 100;
-    document.getElementById('monthly-milestone-bar').style.width = `${monthlyProgress}%`;
+    document.getElementById('monthly-milestone-bar').style.width = `${(activeDays / 25) * 100}%`;
     document.getElementById('monthly-milestone-text').textContent = `${activeDays} / 25 Days`;
 
-    // --- Chores ---
+    // --- Chore Effort Progress ---
+    for (const stat in characterData.choreProgress) {
+        const progress = characterData.choreProgress[stat];
+        const progressPercent = (progress / 1000) * 100;
+        document.getElementById(`${stat}-chore-bar`).style.width = `${progressPercent}%`;
+        document.getElementById(`${stat}-chore-text`).textContent = `${progress} / 1000`;
+    }
+    
+    // --- Active Chore List ---
     const choreList = document.getElementById('chore-list');
     choreList.innerHTML = '';
-    (choreManager.chores.length === 0 ? ['No chores added yet.'] : choreManager.chores).forEach((chore, index) => {
+    choreManager.chores.forEach(chore => {
         const li = document.createElement('li');
-        if (typeof chore === 'string') { 
-            li.textContent = chore; 
-            li.style.fontStyle = 'italic'; 
-        } else {
-            li.textContent = chore.text;
-            if (chore.completed) li.classList.add('completed');
-            li.addEventListener('click', () => { 
-                if (choreManager.completeChore(index)) {
-                    logMonthlyActivity();
-                    updateDashboard(); // Refresh dashboard to show chore is completed
-                }
-            });
-        }
+        li.className = 'chore-item';
+        li.innerHTML = `
+            <span>${chore.text}</span>
+            <span class="chore-details">(+${chore.effort} ${chore.stat.slice(0,3).toUpperCase()})</span>
+            <button class="complete-chore-btn">✓</button>
+        `;
+        li.querySelector('.complete-chore-btn').addEventListener('click', () => choreManager.completeChore(chore.id));
         choreList.appendChild(li);
     });
-
-    // --- Goals ---
-    const activeGoalDisplay = document.getElementById('active-goal-display');
-    if (goalManager.activeGoal) {
-        const { stat, target } = goalManager.activeGoal;
-        const current = characterData.stats[stat];
-        document.getElementById('goal-text').textContent = `Goal: ${target} ${stat} (${current}/${target})`;
-        activeGoalDisplay.classList.remove('hidden');
-        goalManager.checkGoal();
-    } else {
-        activeGoalDisplay.classList.add('hidden');
-    }
 
     // --- Avatar ---
     const capturedPhoto = document.getElementById('captured-photo');
@@ -336,13 +346,7 @@ function updateDashboard() {
         capturedPhoto.classList.add('hidden');
     }
 
-    // --- Save Data ---
     if (auth.currentUser) saveData();
-}
-
-function checkAllSkillUnlocks() {
-    if (!skillTree || !characterData.stats) return;
-    console.log("Checking for skill unlocks...");
 }
 
 function renderSkillTree() {
@@ -395,23 +399,37 @@ function showToast(message) {
 }
 
 function setupEventListeners() {
-    document.getElementById('add-chore-btn').addEventListener('click', () => {
-        const choreInput = document.getElementById('chore-input');
-        if (choreManager.addChore(choreInput.value.trim())) { 
-            choreInput.value = ''; 
-            updateDashboard(); 
+    const choreInput = document.getElementById('chore-input');
+    const addChoreBtn = document.getElementById('add-chore-btn');
+
+    const handleAddChore = async () => {
+        const text = choreInput.value.trim();
+        if(text) {
+            addChoreBtn.disabled = true;
+            choreInput.disabled = true;
+            await choreManager.addChore(text);
+            choreInput.value = '';
+            addChoreBtn.disabled = false;
+            choreInput.disabled = false;
+            choreInput.focus();
+        }
+    };
+
+    addChoreBtn.addEventListener('click', handleAddChore);
+    choreInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            handleAddChore();
         }
     });
-    document.getElementById('set-goal-btn').addEventListener('click', () => {
-        const stat = document.getElementById('goal-stat-select').value;
-        const target = parseInt(document.getElementById('goal-value-input').value);
-        if (goalManager.setGoal(stat, target)) {
-            updateDashboard();
-        }
-    });
+
     document.getElementById('log-activity-btn').addEventListener('click', () => {
         activityManager.logActivity(document.getElementById('activity-select').value);
     });
+    
+    // --- Other Listeners ---
+    document.getElementById('login-btn').addEventListener('click', handleLogin);
+    document.getElementById('signup-btn').addEventListener('click', handleSignUp);
+    document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
     const codexModal = document.getElementById('codex-modal');
     document.getElementById('open-codex-btn').addEventListener('click', () => codexModal.classList.remove('hidden'));
     document.getElementById('close-codex-btn').addEventListener('click', () => codexModal.classList.add('hidden'));
@@ -446,7 +464,3 @@ auth.onAuthStateChanged(async user => {
         characterData = {};
     }
 });
-
-document.getElementById('login-btn').addEventListener('click', handleLogin);
-document.getElementById('signup-btn').addEventListener('click', handleSignUp);
-document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
