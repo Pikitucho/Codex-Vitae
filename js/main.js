@@ -91,7 +91,7 @@ const activityManager = {
         if (this.activities[activityKey]) {
             const activity = this.activities[activityKey];
             characterData.stats[activity.stat] += activity.points;
-            levelManager.gainStatProgress(activity.points); // Use the new function
+            levelManager.gainStatProgress(activity.points);
             logMonthlyActivity();
             checkAllSkillUnlocks();
         }
@@ -107,7 +107,7 @@ let choreManager = {
     completeChore: function(index) {
         if (this.chores[index] && !this.chores[index].completed) {
             this.chores[index].completed = true;
-            showToast("Chore completed!"); // Chores no longer grant direct level progress
+            showToast("Chore completed!");
             return true;
         }
         return false;
@@ -288,6 +288,7 @@ async function handleFaceScan() {
 function updateDashboard() {
     if (!characterData || !characterData.stats) return;
 
+    // --- Core Stats ---
     document.getElementById('str-value').textContent = characterData.stats.strength;
     document.getElementById('dex-value').textContent = characterData.stats.dexterity;
     document.getElementById('con-value').textContent = characterData.stats.constitution;
@@ -295,29 +296,28 @@ function updateDashboard() {
     document.getElementById('wis-value').textContent = characterData.stats.wisdom;
     document.getElementById('cha-value').textContent = characterData.stats.charisma;
 
+    // --- Stat Progression to Level Up ---
     document.getElementById('level-value').textContent = characterData.level;
     document.getElementById('xp-text').textContent = `${characterData.statProgress} / ${characterData.statsToNextLevel} Stats`;
     document.getElementById('xp-bar').style.width = `${(characterData.statProgress / characterData.statsToNextLevel) * 100}%`;
 
+    // --- Perk Point Progression ---
     document.getElementById('pp-total').textContent = characterData.skillPoints || 0;
 
+    // Calculate Level Milestone Progress
     const currentLevel = characterData.level || 1;
-    let nextLevelMilestone;
-    if (currentLevel > 0 && currentLevel % 10 === 0) {
-        nextLevelMilestone = currentLevel + 10;
-    } else {
-        nextLevelMilestone = Math.ceil(currentLevel / 10) * 10;
-    }
-    const prevLevelMilestone = nextLevelMilestone - 10;
-    const levelProgress = ((currentLevel - prevLevelMilestone) / 10) * 100;
+    const progressInTier = (currentLevel - 1) % 10;
+    const levelProgress = (progressInTier / 10) * 100;
     document.getElementById('level-milestone-bar').style.width = `${levelProgress}%`;
-    document.getElementById('level-milestone-text').textContent = `${currentLevel} / ${nextLevelMilestone}`;
+    document.getElementById('level-milestone-text').textContent = `${progressInTier} / 10`;
 
+    // Calculate Monthly Milestone Progress
     const activeDays = characterData.monthlyActivityLog ? characterData.monthlyActivityLog.length : 0;
     const monthlyProgress = (activeDays / 25) * 100;
     document.getElementById('monthly-milestone-bar').style.width = `${monthlyProgress}%`;
     document.getElementById('monthly-milestone-text').textContent = `${activeDays} / 25 Days`;
 
+    // --- Chores ---
     const choreList = document.getElementById('chore-list');
     choreList.innerHTML = '';
     (choreManager.chores.length === 0 ? ['No chores added yet.'] : choreManager.chores).forEach((chore, index) => {
@@ -331,12 +331,14 @@ function updateDashboard() {
             li.addEventListener('click', () => { 
                 if (choreManager.completeChore(index)) {
                     logMonthlyActivity();
+                    updateDashboard(); // Refresh dashboard to show chore is completed
                 }
             });
         }
         choreList.appendChild(li);
     });
 
+    // --- Goals ---
     const activeGoalDisplay = document.getElementById('active-goal-display');
     if (goalManager.activeGoal) {
         const { stat, target } = goalManager.activeGoal;
@@ -348,6 +350,7 @@ function updateDashboard() {
         activeGoalDisplay.classList.add('hidden');
     }
 
+    // --- Avatar ---
     const capturedPhoto = document.getElementById('captured-photo');
     if (characterData.avatarUrl) {
         capturedPhoto.src = characterData.avatarUrl;
@@ -359,6 +362,7 @@ function updateDashboard() {
         capturedPhoto.classList.add('hidden');
     }
 
+    // --- Save Data ---
     if (auth.currentUser) saveData();
 }
 
