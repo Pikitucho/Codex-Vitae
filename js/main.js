@@ -12,7 +12,6 @@ const firebaseConfig = {
 };
 
 // --- BACKEND SERVER URL ---
-// Replace this with the URL of your deployed Express.js server
 const AVATAR_GENERATION_URL = 'https://generate-avatar-393704011058.us-central1.run.app';
 
 // --- Firebase Initialization ---
@@ -37,64 +36,24 @@ let skillTree = {
         type: 'galaxy',
         description: 'Skills of logic, learning, and creativity.',
         constellations: {
-            'Academics': { 
-                type: 'constellation', 
-                stars: { 
-                    'Active Learner': { type: 'star', unlocked: false, requires: { stat: 'intelligence', value: 12 }, description: 'Gain more XP from reading and studying activities.' }, 
-                    'Critical Thinker': { type: 'star', unlocked: false, requires: { stat: 'intelligence', value: 15 }, description: 'Increases success rate on logic-based challenges.' },
-                    'Polymath': { type: 'star', unlocked: false, requires: { stat: 'intelligence', value: 20 }, description: 'Reduces the XP cost of learning new skills.' }
-                } 
-            },
-            'Creativity': { 
-                type: 'constellation', 
-                stars: { 
-                    'Doodler': { type: 'star', unlocked: false, requires: { stat: 'wisdom', value: 11 }, description: 'Unlocks the ability to generate simple creative works.' }, 
-                    'Storyteller': { type: 'star', unlocked: false, requires: { stat: 'charisma', value: 12 }, description: 'Improves outcomes in social interactions.' },
-                    'Improviser': { type: 'star', unlocked: false, requires: { stat: 'wisdom', value: 16 }, description: 'Provides new options in unexpected situations.' }
-                } 
-            }
+            'Academics': { type: 'constellation', stars: { 'Active Learner': { type: 'star', unlocked: false, requires: { stat: 'intelligence', value: 12 }, description: 'Gain more XP from reading and studying activities.' }, 'Critical Thinker': { type: 'star', unlocked: false, requires: { stat: 'intelligence', value: 15 }, description: 'Increases success rate on logic-based challenges.' },'Polymath': { type: 'star', unlocked: false, requires: { stat: 'intelligence', value: 20 }, description: 'Reduces the XP cost of learning new skills.' } } },
+            'Creativity': { type: 'constellation', stars: { 'Doodler': { type: 'star', unlocked: false, requires: { stat: 'wisdom', value: 11 }, description: 'Unlocks the ability to generate simple creative works.' }, 'Storyteller': { type: 'star', unlocked: false, requires: { stat: 'charisma', value: 12 }, description: 'Improves outcomes in social interactions.' },'Improviser': { type: 'star', unlocked: false, requires: { stat: 'wisdom', value: 16 }, description: 'Provides new options in unexpected situations.' } } }
         }
     },
     'Body': {
         type: 'galaxy',
         description: 'Skills of strength, endurance, and physical prowess.',
         constellations: {
-            'Fitness': { 
-                type: 'constellation', 
-                stars: { 
-                    'Basic Fitness': { type: 'star', unlocked: false, requires: { stat: 'strength', value: 12 }, description: 'Reduces chance of negative outcomes from physical exertion.' }, 
-                    'Resilience': { type: 'star', unlocked: false, requires: { stat: 'constitution', value: 14 }, description: 'Faster recovery from setbacks.' },
-                    'Athlete': { type: 'star', unlocked: false, requires: { stat: 'strength', value: 18 }, description: 'Unlocks advanced physical activities.' }
-                } 
-            },
-            'Craftsmanship': {
-                type: 'constellation',
-                stars: {
-                    'Handyman': { type: 'star', unlocked: false, requires: { stat: 'dexterity', value: 12 }, description: 'Ability to perform basic repairs and crafting.' },
-                    'Artisan': { type: 'star', unlocked: false, requires: { stat: 'dexterity', value: 16 }, description: 'Craft higher quality items.' }
-                }
-            }
+            'Fitness': { type: 'constellation', stars: { 'Basic Fitness': { type: 'star', unlocked: false, requires: { stat: 'strength', value: 12 }, description: 'Reduces chance of negative outcomes from physical exertion.' }, 'Resilience': { type: 'star', unlocked: false, requires: { stat: 'constitution', value: 14 }, description: 'Faster recovery from setbacks.' },'Athlete': { type: 'star', unlocked: false, requires: { stat: 'strength', value: 18 }, description: 'Unlocks advanced physical activities.' } } },
+            'Craftsmanship': { type: 'constellation', stars: { 'Handyman': { type: 'star', unlocked: false, requires: { stat: 'dexterity', value: 12 }, description: 'Ability to perform basic repairs and crafting.' },'Artisan': { type: 'star', unlocked: false, requires: { stat: 'dexterity', value: 16 }, description: 'Craft higher quality items.' } } }
         }
     },
     'Soul': {
         type: 'galaxy',
         description: 'Skills of discipline, charisma, and inner strength.',
         constellations: {
-            'Discipline': {
-                type: 'constellation',
-                stars: {
-                    'Early Riser': { type: 'star', unlocked: false, requires: { stat: 'constitution', value: 12 }, description: 'Gain a small bonus for activities completed in the morning.' },
-                    'Focused Mind': { type: 'star', unlocked: false, requires: { stat: 'wisdom', value: 15 }, description: 'Reduces distractions, increasing efficiency of study.' },
-                    'Unwavering': { type: 'star', unlocked: false, requires: { stat: 'constitution', value: 18 }, description: 'High resistance to abandoning long-term goals.' }
-                }
-            },
-            'Charisma': {
-                type: 'constellation',
-                stars: {
-                    'Pleasantries': { type: 'star', unlocked: false, requires: { stat: 'charisma', value: 12 }, description: 'Improves initial reactions in social encounters.' },
-                    'Persuasion': { type: 'star', unlocked: false, requires: { stat: 'charisma', value: 15 }, description: 'Increases the chance of convincing others.' }
-                }
-            }
+            'Discipline': { type: 'constellation', stars: { 'Early Riser': { type: 'star', unlocked: false, requires: { stat: 'constitution', value: 12 }, description: 'Gain a small bonus for activities completed in the morning.' },'Focused Mind': { type: 'star', unlocked: false, requires: { stat: 'wisdom', value: 15 }, description: 'Reduces distractions, increasing efficiency of study.' },'Unwavering': { type: 'star', unlocked: false, requires: { stat: 'constitution', value: 18 }, description: 'High resistance to abandoning long-term goals.' } } },
+            'Charisma': { type: 'constellation', stars: { 'Pleasantries': { type: 'star', unlocked: false, requires: { stat: 'charisma', value: 12 }, description: 'Improves initial reactions in social encounters.' },'Persuasion': { type: 'star', unlocked: false, requires: { stat: 'charisma', value: 15 }, description: 'Increases the chance of convincing others.' } } }
         }
     }
 };
@@ -102,25 +61,18 @@ let currentSkillPath = [];
 
 // --- Manager Logic ---
 const levelManager = {
-    gainXp: function(amount) {
-        characterData.xp += amount;
-        
-        // Use a 'while' loop to handle multiple level-ups from one XP gain
-        while (characterData.xp >= characterData.xpToNextLevel) {
+    gainStatProgress: function(amount) {
+        characterData.statProgress += amount;
+        while (characterData.statProgress >= characterData.statsToNextLevel) {
             this.levelUp();
         }
-        
-        // Update the UI once after all potential level-ups are complete
         updateDashboard();
     },
     levelUp: function() {
-        // This function now only worries about changing the data
         characterData.level++;
-        characterData.xp -= characterData.xpToNextLevel;
-        characterData.xpToNextLevel = Math.floor(characterData.xpToNextLevel * 1.5);
+        characterData.statProgress -= characterData.statsToNextLevel; // Carry over extra progress
         showToast(`Congratulations! You've reached Level ${characterData.level}!`);
 
-        // Check for Leveling Milestone
         if (characterData.level % 10 === 0) {
             characterData.skillPoints++;
             showToast(`Level ${characterData.level} Milestone! You earned a Perk Point!`);
@@ -130,16 +82,16 @@ const levelManager = {
 
 const activityManager = {
     activities: {
-        strength: { stat: 'strength', points: 1, xp: 15 },
-        constitution: { stat: 'constitution', points: 1, xp: 15 },
-        intelligence: { stat: 'intelligence', points: 1, xp: 10 },
-        wisdom: { stat: 'wisdom', points: 1, xp: 10 }
+        strength: { stat: 'strength', points: 1 },
+        constitution: { stat: 'constitution', points: 1 },
+        intelligence: { stat: 'intelligence', points: 1 },
+        wisdom: { stat: 'wisdom', points: 1 }
     },
     logActivity: function(activityKey) {
         if (this.activities[activityKey]) {
             const activity = this.activities[activityKey];
             characterData.stats[activity.stat] += activity.points;
-            levelManager.gainXp(activity.xp);
+            levelManager.gainStatProgress(activity.points); // Use the new function
             logMonthlyActivity();
             checkAllSkillUnlocks();
         }
@@ -149,16 +101,13 @@ const activityManager = {
 let choreManager = {
     chores: [],
     addChore: function(text) {
-        if (text) {
-            this.chores.push({ text: text, completed: false });
-            return true;
-        }
+        if (text) { this.chores.push({ text: text, completed: false }); return true; }
         return false;
     },
     completeChore: function(index) {
         if (this.chores[index] && !this.chores[index].completed) {
             this.chores[index].completed = true;
-            showToast("Chore completed! +10 XP");
+            showToast("Chore completed!"); // Chores no longer grant direct level progress
             return true;
         }
         return false;
@@ -178,8 +127,7 @@ let goalManager = {
     },
     checkGoal: function() {
         if (this.activeGoal && characterData.stats[this.activeGoal.stat] >= this.activeGoal.target) {
-            showToast(`Goal Achieved! You reached ${this.activeGoal.target} ${this.activeGoal.stat}! +100 XP`);
-            levelManager.gainXp(100);
+            showToast(`Goal Achieved! You reached ${this.activeGoal.target} ${this.activeGoal.stat}!`);
             this.activeGoal = null;
         }
     }
@@ -232,24 +180,16 @@ async function loadData(userId) {
 
 // --- CORE FUNCTIONS ---
 function logMonthlyActivity() {
-    if (!characterData.monthlyActivityLog) {
-        characterData.monthlyActivityLog = [];
-    }
-
+    if (!characterData.monthlyActivityLog) { characterData.monthlyActivityLog = []; }
     const now = new Date();
-    const today = now.toISOString().split('T')[0]; // "YYYY-MM-DD" format
-    const currentMonth = now.getFullYear() + '-' + (now.getMonth() + 1); // "YYYY-M" format
-
+    const today = now.toISOString().split('T')[0];
+    const currentMonth = now.getFullYear() + '-' + (now.getMonth() + 1);
     if (characterData.activityLogMonth !== currentMonth) {
         characterData.activityLogMonth = currentMonth;
         characterData.monthlyActivityLog = [];
         characterData.monthlyPerkClaimed = false;
     }
-    
-    if (characterData.monthlyPerkClaimed) {
-        return;
-    }
-
+    if (characterData.monthlyPerkClaimed) { return; }
     if (!characterData.monthlyActivityLog.includes(today)) {
         characterData.monthlyActivityLog.push(today);
         if (characterData.monthlyActivityLog.length >= 25) {
@@ -264,10 +204,9 @@ function calculateStartingStats() {
     const exerciseValue = parseInt(document.getElementById('exercise-freq').value);
     const studyValue = parseInt(document.getElementById('study-habit').value);
     characterData = {
-        skills: [], 
         level: 1, 
-        xp: 0, 
-        xpToNextLevel: 100,
+        statProgress: 0, 
+        statsToNextLevel: 10,
         stats: {
             strength: 8 + exerciseValue, 
             dexterity: 8, 
@@ -349,7 +288,6 @@ async function handleFaceScan() {
 function updateDashboard() {
     if (!characterData || !characterData.stats) return;
 
-    // --- Core Stats ---
     document.getElementById('str-value').textContent = characterData.stats.strength;
     document.getElementById('dex-value').textContent = characterData.stats.dexterity;
     document.getElementById('con-value').textContent = characterData.stats.constitution;
@@ -357,15 +295,12 @@ function updateDashboard() {
     document.getElementById('wis-value').textContent = characterData.stats.wisdom;
     document.getElementById('cha-value').textContent = characterData.stats.charisma;
 
-    // --- Level and XP ---
     document.getElementById('level-value').textContent = characterData.level;
-    document.getElementById('xp-text').textContent = `${characterData.xp} / ${characterData.xpToNextLevel} XP`;
-    document.getElementById('xp-bar').style.width = `${(characterData.xp / characterData.xpToNextLevel) * 100}%`;
+    document.getElementById('xp-text').textContent = `${characterData.statProgress} / ${characterData.statsToNextLevel} Stats`;
+    document.getElementById('xp-bar').style.width = `${(characterData.statProgress / characterData.statsToNextLevel) * 100}%`;
 
-    // --- Perk Point Progression ---
     document.getElementById('pp-total').textContent = characterData.skillPoints || 0;
 
-    // Calculate Level Milestone Progress
     const currentLevel = characterData.level || 1;
     let nextLevelMilestone;
     if (currentLevel > 0 && currentLevel % 10 === 0) {
@@ -378,13 +313,11 @@ function updateDashboard() {
     document.getElementById('level-milestone-bar').style.width = `${levelProgress}%`;
     document.getElementById('level-milestone-text').textContent = `${currentLevel} / ${nextLevelMilestone}`;
 
-    // Calculate Monthly Milestone Progress
     const activeDays = characterData.monthlyActivityLog ? characterData.monthlyActivityLog.length : 0;
     const monthlyProgress = (activeDays / 25) * 100;
     document.getElementById('monthly-milestone-bar').style.width = `${monthlyProgress}%`;
     document.getElementById('monthly-milestone-text').textContent = `${activeDays} / 25 Days`;
 
-    // --- Chores ---
     const choreList = document.getElementById('chore-list');
     choreList.innerHTML = '';
     (choreManager.chores.length === 0 ? ['No chores added yet.'] : choreManager.chores).forEach((chore, index) => {
@@ -397,7 +330,6 @@ function updateDashboard() {
             if (chore.completed) li.classList.add('completed');
             li.addEventListener('click', () => { 
                 if (choreManager.completeChore(index)) {
-                    levelManager.gainXp(10);
                     logMonthlyActivity();
                 }
             });
@@ -405,7 +337,6 @@ function updateDashboard() {
         choreList.appendChild(li);
     });
 
-    // --- Goals ---
     const activeGoalDisplay = document.getElementById('active-goal-display');
     if (goalManager.activeGoal) {
         const { stat, target } = goalManager.activeGoal;
@@ -417,7 +348,6 @@ function updateDashboard() {
         activeGoalDisplay.classList.add('hidden');
     }
 
-    // --- Avatar ---
     const capturedPhoto = document.getElementById('captured-photo');
     if (characterData.avatarUrl) {
         capturedPhoto.src = characterData.avatarUrl;
@@ -429,7 +359,6 @@ function updateDashboard() {
         capturedPhoto.classList.add('hidden');
     }
 
-    // --- Save Data ---
     if (auth.currentUser) saveData();
 }
 
@@ -445,23 +374,19 @@ function renderSkillTree() {
     let currentLevel = skillTree;
     let path = [...currentSkillPath];
     let breadcrumbPath = ['Galaxies'];
-
     while (path.length > 0) {
         let key = path.shift();
         currentLevel = currentLevel[key]?.constellations || currentLevel[key]?.stars || currentLevel[key];
         breadcrumbPath.push(key);
     }
-    
     skillTreeTitle.textContent = currentSkillPath.length > 0 ? currentSkillPath[currentSkillPath.length - 1] : "Skill Galaxies";
     breadcrumbs.textContent = breadcrumbPath.join(' > ');
     skillBackBtn.classList.toggle('hidden', currentSkillPath.length === 0);
-
     for (const key in currentLevel) {
         const item = currentLevel[key];
         const div = document.createElement('div');
         div.textContent = key;
         div.className = item.type;
-
         let hoverTitle = item.description || '';
         if (item.type === 'star') {
             const unlocked = characterData.stats[item.requires.stat] >= item.requires.value;
@@ -471,7 +396,6 @@ function renderSkillTree() {
             }
         }
         div.title = hoverTitle.trim();
-
         if (item.type !== 'star') {
             div.addEventListener('click', () => {
                 currentSkillPath.push(key);
