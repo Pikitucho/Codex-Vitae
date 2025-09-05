@@ -134,7 +134,7 @@ async function saveData() {
     const userId = auth.currentUser.uid;
     characterData.chores = choreManager.chores;
     const userRef = db.collection('users').doc(userId);
-    const dataToSave = { characterData, gameManager };
+    const dataToSave = { characterData, gameManager }; // skillTree is static, not saved with user data
     await userRef.set(dataToSave, { merge: true });
     console.log("Data saved to Firestore!");
 }
@@ -227,7 +227,50 @@ async function handleOnboarding(event) {
 }
 
 async function handleFaceScan() {
-    // ... same as before
+    const webcamFeed = document.getElementById('webcam-feed');
+    const capturedPhoto = document.getElementById('captured-photo');
+    const canvas = document.getElementById('photo-canvas');
+    const scanButton = document.getElementById('scan-face-btn');
+
+    if (!webcamFeed.srcObject || !webcamFeed.srcObject.active) {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            webcamFeed.srcObject = stream;
+            webcamFeed.classList.remove('hidden');
+            capturedPhoto.classList.add('hidden');
+            scanButton.textContent = 'Capture';
+            return;
+        } catch (error) {
+            console.error("Webcam access error:", error);
+            alert("Could not access webcam. Please ensure you've given permission.");
+            return;
+        }
+    }
+
+    const context = canvas.getContext('2d');
+    canvas.width = webcamFeed.videoWidth;
+    canvas.height = webcamFeed.videoHeight;
+    context.drawImage(webcamFeed, 0, 0, canvas.width, canvas.height);
+    webcamFeed.srcObject.getTracks().forEach(track => track.stop());
+    webcamFeed.srcObject = null;
+    scanButton.textContent = "Uploading...";
+    scanButton.disabled = true;
+
+    canvas.toBlob(async (blob) => {
+        try {
+            const storageRef = storage.ref();
+            const avatarRef = storageRef.child(`avatars/${auth.currentUser.uid}.png`);
+            await avatarRef.put(blob);
+            characterData.avatarUrl = await avatarRef.getDownloadURL();
+        } catch (error) {
+            console.error("Error uploading image to Firebase Storage:", error);
+            alert(`Failed to save photo. ${error.message}`);
+        } finally {
+            scanButton.textContent = 'Rescan Face';
+            scanButton.disabled = false;
+            updateDashboard();
+        }
+    }, 'image/png');
 }
 
 function updateDashboard() {
@@ -285,7 +328,6 @@ function updateDashboard() {
     if (auth.currentUser) saveData();
 }
 
-// --- NEW FUNCTION for unlocking perks ---
 function unlockPerk(perkName, perkData) {
     if (characterData.skillPoints < 1) {
         showToast("Not enough Perk Points!");
@@ -300,16 +342,14 @@ function unlockPerk(perkName, perkData) {
         return;
     }
 
-    // All checks pass, unlock the perk
     characterData.skillPoints--;
     characterData.unlockedPerks.push(perkName);
     showToast(`Perk Unlocked: ${perkName}!`);
     
-    renderSkillTree(); // Re-render to show the change
-    updateDashboard(); // Update the perk point total
+    renderSkillTree();
+    updateDashboard();
 }
 
-// --- UPDATED RENDER FUNCTION for skill tree ---
 function renderSkillTree() {
     skillTreeView.innerHTML = '';
     const breadcrumbs = document.getElementById('skill-tree-breadcrumbs');
@@ -377,6 +417,7 @@ function showToast(message) {
 
 function setupEventListeners() {
     const choreInput = document.getElementById('chore-input');
+
     const handleAddChore = async () => {
         const text = choreInput.value.trim();
         if(text) {
@@ -387,6 +428,7 @@ function setupEventListeners() {
             choreInput.focus();
         }
     };
+
     choreInput.addEventListener('keypress', (event) => {
         if (event.key === 'Enter') {
             handleAddChore();
@@ -397,18 +439,14 @@ function setupEventListeners() {
         activityManager.logActivity(document.getElementById('activity-select').value);
     });
     
-    document.getElementById('login-btn').addEventListener('click', handleLogin);
-    document.getElementById('signup-btn').addEventListener('click', handleSignUp);
-    document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
-    const codexModal = document.getElementById('codex-modal');
-    document.getElementById('open-codex-btn').addEventListener('click', () => codexModal.classList.remove('hidden'));
-    document.getElementById('close-codex-btn').addEventListener('click', () => codexModal.classList.add('hidden'));
+    document.getElementById('open-codex-btn').addEventListener('click', () => document.getElementById('codex-modal').classList.remove('hidden'));
+    document.getElementById('close-codex-btn').addEventListener('click', () => document.getElementById('codex-modal').classList.add('hidden'));
     document.getElementById('codex-skills-btn').addEventListener('click', () => {
-        codexModal.classList.add('hidden');
+        document.getElementById('codex-modal').classList.add('hidden');
         openSkillsModal();
     });
     document.getElementById('codex-logout-btn').addEventListener('click', handleLogout);
-    document.getElementById('close-skills-btn').addEventListener('click', () => skillsModal.classList.add('hidden'));
+    document.getElementById('close-skills-btn').addEventListener('click', () => document.getElementById('skills-modal').classList.add('hidden'));
     skillBackBtn.addEventListener('click', () => {
         currentSkillPath.pop();
         renderSkillTree();
@@ -434,3 +472,7 @@ auth.onAuthStateChanged(async user => {
         characterData = {};
     }
 });
+
+document.getElementById('login-btn').addEventListener('click', handleLogin);
+document.getElementById('signup-btn').addEventListener('click', handleSignUp);
+document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
