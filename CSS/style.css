@@ -133,3 +133,14 @@ button:hover { background-color: var(--color-primary-dark); }
 #chore-progress-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
 .chore-stat-label { font-weight: 600; font-size: 0.9em; }
 .chore-fragment-text { font-size: 0.8em; color: var(--color-text-medium); }
+
+
+/* --- SKILL TREE UNLOCK STATE --- */
+.star.available {
+    cursor: pointer;
+    border-color: var(--color-accent); /* Golden amber border */
+    box-shadow: 0 0 15px rgba(240, 147, 43, 0.7);
+}
+.star.available:hover {
+    transform: scale(1.1);
+}

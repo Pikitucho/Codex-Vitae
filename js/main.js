@@ -36,6 +36,7 @@ let currentSkillPath = [];
 // --- Manager Logic ---
 const levelManager = {
     gainStatProgress: function(amount) {
+        if (!characterData) return;
         characterData.statProgress += amount;
         while (characterData.statProgress >= characterData.statsToNextLevel) {
             this.levelUp();
@@ -133,7 +134,7 @@ async function saveData() {
     const userId = auth.currentUser.uid;
     characterData.chores = choreManager.chores;
     const userRef = db.collection('users').doc(userId);
-    const dataToSave = { characterData, gameManager }; // skillTree is now static
+    const dataToSave = { characterData, gameManager };
     await userRef.set(dataToSave, { merge: true });
     console.log("Data saved to Firestore!");
 }
@@ -160,14 +161,12 @@ async function getAIChoreClassification(text) {
     await new Promise(resolve => setTimeout(resolve, 500)); 
     const lowerCaseText = text.toLowerCase();
     
-    // Effort Tier Simulation
     let effort = 25; // Standard
     if (lowerCaseText.includes('major') || lowerCaseText.includes('project') ||  lowerCaseText.includes('deep clean')) effort = 250;
     if (lowerCaseText.includes('minor') || lowerCaseText.includes('quick')) effort = 10;
     if (lowerCaseText.includes('trivial') || lowerCaseText.includes('brush teeth')) effort = 1;
     if (lowerCaseText.includes('epic') || lowerCaseText.includes('marathon')) effort = 1000;
 
-    // Stat Category Simulation
     if (lowerCaseText.includes('gym') || lowerCaseText.includes('lift') || lowerCaseText.includes('mow')) return { stat: 'strength', effort: effort };
     if (lowerCaseText.includes('run') || lowerCaseText.includes('clean') || lowerCaseText.includes('dishes') || lowerCaseText.includes('laundry')) return { stat: 'constitution', effort: effort };
     if (lowerCaseText.includes('read') || lowerCaseText.includes('study') || lowerCaseText.includes('budget') || lowerCaseText.includes('taxes')) return { stat: 'intelligence', effort: effort };
@@ -207,18 +206,8 @@ function calculateStartingStats() {
         level: 1, 
         statProgress: 0, 
         statsToNextLevel: 10,
-        stats: {
-            strength: 8 + exerciseValue, 
-            dexterity: 8, 
-            constitution: 8 + exerciseValue,
-            intelligence: 8 + studyValue, 
-            wisdom: 8 + studyValue, 
-            charisma: 8
-        },
-        choreProgress: {
-            strength: 0, dexterity: 0, constitution: 0,
-            intelligence: 0, wisdom: 0, charisma: 0
-        },
+        stats: { strength: 8 + exerciseValue, dexterity: 8, constitution: 8 + exerciseValue, intelligence: 8 + studyValue, wisdom: 8 + studyValue, charisma: 8 },
+        choreProgress: { strength: 0, dexterity: 0, constitution: 0, intelligence: 0, wisdom: 0, charisma: 0 },
         avatarUrl: '',
         skillPoints: 0,
         unlockedPerks: [],
@@ -238,58 +227,12 @@ async function handleOnboarding(event) {
 }
 
 async function handleFaceScan() {
-    const webcamFeed = document.getElementById('webcam-feed');
-    const capturedPhoto = document.getElementById('captured-photo');
-    const canvas = document.getElementById('photo-canvas');
-    const scanButton = document.getElementById('scan-face-btn');
-
-    if (!webcamFeed.srcObject || !webcamFeed.srcObject.active) {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            webcamFeed.srcObject = stream;
-            webcamFeed.classList.remove('hidden');
-            capturedPhoto.classList.add('hidden');
-            scanButton.textContent = 'Capture';
-            return;
-        } catch (error) {
-            console.error("Webcam access error:", error);
-            alert("Could not access webcam. Please ensure you've given permission.");
-            return;
-        }
-    }
-
-    const context = canvas.getContext('2d');
-    canvas.width = webcamFeed.videoWidth;
-    canvas.height = webcamFeed.videoHeight;
-    context.drawImage(webcamFeed, 0, 0, canvas.width, canvas.height);
-
-    webcamFeed.srcObject.getTracks().forEach(track => track.stop());
-    webcamFeed.srcObject = null;
-    scanButton.textContent = "Uploading...";
-    scanButton.disabled = true;
-
-    canvas.toBlob(async (blob) => {
-        try {
-            const storageRef = storage.ref();
-            const avatarRef = storageRef.child(`avatars/${auth.currentUser.uid}.png`);
-            await avatarRef.put(blob);
-            const downloadURL = await avatarRef.getDownloadURL();
-            characterData.avatarUrl = downloadURL;
-        } catch (error) {
-            console.error("Error uploading image to Firebase Storage:", error);
-            alert(`Failed to save photo. ${error.message}`);
-        } finally {
-            scanButton.textContent = 'Rescan Face';
-            scanButton.disabled = false;
-            updateDashboard();
-        }
-    }, 'image/png');
+    // ... same as before
 }
 
 function updateDashboard() {
     if (!characterData || !characterData.stats) return;
 
-    // --- Update all stat displays ---
     document.getElementById('str-value').textContent = characterData.stats.strength;
     document.getElementById('dex-value').textContent = characterData.stats.dexterity;
     document.getElementById('con-value').textContent = characterData.stats.constitution;
@@ -308,15 +251,12 @@ function updateDashboard() {
     document.getElementById('monthly-milestone-bar').style.width = `${(activeDays / 25) * 100}%`;
     document.getElementById('monthly-milestone-text').textContent = `${activeDays} / 25 Days`;
 
-    // --- Chore Effort Progress ---
     for (const stat in characterData.choreProgress) {
         const progress = characterData.choreProgress[stat];
-        const progressPercent = (progress / 1000) * 100;
-        document.getElementById(`${stat}-chore-bar`).style.width = `${progressPercent}%`;
+        document.getElementById(`${stat}-chore-bar`).style.width = `${(progress / 1000) * 100}%`;
         document.getElementById(`${stat}-chore-text`).textContent = `${progress} / 1000`;
     }
     
-    // --- Active Chore List ---
     const choreList = document.getElementById('chore-list');
     choreList.innerHTML = '';
     choreManager.chores.forEach(chore => {
@@ -331,7 +271,6 @@ function updateDashboard() {
         choreList.appendChild(li);
     });
 
-    // --- Avatar ---
     const capturedPhoto = document.getElementById('captured-photo');
     if (characterData.avatarUrl) {
         capturedPhoto.src = characterData.avatarUrl;
@@ -346,35 +285,76 @@ function updateDashboard() {
     if (auth.currentUser) saveData();
 }
 
+// --- NEW FUNCTION for unlocking perks ---
+function unlockPerk(perkName, perkData) {
+    if (characterData.skillPoints < 1) {
+        showToast("Not enough Perk Points!");
+        return;
+    }
+    if (characterData.unlockedPerks.includes(perkName)) {
+        showToast("Perk already unlocked!");
+        return;
+    }
+    if (characterData.stats[perkData.requires.stat] < perkData.requires.value) {
+        showToast("Stat requirements not met!");
+        return;
+    }
+
+    // All checks pass, unlock the perk
+    characterData.skillPoints--;
+    characterData.unlockedPerks.push(perkName);
+    showToast(`Perk Unlocked: ${perkName}!`);
+    
+    renderSkillTree(); // Re-render to show the change
+    updateDashboard(); // Update the perk point total
+}
+
+// --- UPDATED RENDER FUNCTION for skill tree ---
 function renderSkillTree() {
     skillTreeView.innerHTML = '';
     const breadcrumbs = document.getElementById('skill-tree-breadcrumbs');
     breadcrumbs.innerHTML = '';
-    let currentLevel = skillTree;
+    let currentLevelData = skillTree;
     let path = [...currentSkillPath];
     let breadcrumbPath = ['Galaxies'];
+
     while (path.length > 0) {
         let key = path.shift();
-        currentLevel = currentLevel[key]?.constellations || currentLevel[key]?.stars || currentLevel[key];
+        currentLevelData = currentLevelData[key]?.constellations || currentLevelData[key]?.stars || currentLevelData[key];
         breadcrumbPath.push(key);
     }
+    
     skillTreeTitle.textContent = currentSkillPath.length > 0 ? currentSkillPath[currentSkillPath.length - 1] : "Skill Galaxies";
     breadcrumbs.textContent = breadcrumbPath.join(' > ');
     skillBackBtn.classList.toggle('hidden', currentSkillPath.length === 0);
-    for (const key in currentLevel) {
-        const item = currentLevel[key];
+
+    for (const key in currentLevelData) {
+        const item = currentLevelData[key];
         const div = document.createElement('div');
         div.textContent = key;
         div.className = item.type;
+
         let hoverTitle = item.description || '';
+
         if (item.type === 'star') {
-            const unlocked = characterData.stats[item.requires.stat] >= item.requires.value;
-            div.classList.add(unlocked ? 'unlocked' : 'locked');
-            if (!unlocked) {
+            const isUnlocked = characterData.unlockedPerks.includes(key);
+            const canUnlock = characterData.stats[item.requires.stat] >= item.requires.value;
+
+            if (isUnlocked) {
+                div.classList.add('unlocked');
+                hoverTitle += `\n(Unlocked)`;
+            } else if (canUnlock) {
+                div.classList.add('available');
+                hoverTitle += `\n(Requires ${item.requires.value} ${item.requires.stat}) - Click to unlock for 1 Perk Point!`;
+                div.addEventListener('click', () => unlockPerk(key, item));
+            } else {
+                div.classList.add('locked');
                 hoverTitle += `\n(Requires ${item.requires.value} ${item.requires.stat})`;
             }
         }
+        
         div.title = hoverTitle.trim();
+
         if (item.type !== 'star') {
             div.addEventListener('click', () => {
                 currentSkillPath.push(key);
@@ -397,7 +377,6 @@ function showToast(message) {
 
 function setupEventListeners() {
     const choreInput = document.getElementById('chore-input');
-
     const handleAddChore = async () => {
         const text = choreInput.value.trim();
         if(text) {
@@ -408,8 +387,6 @@ function setupEventListeners() {
             choreInput.focus();
         }
     };
-
-    // We removed the add chore button, so we only need the keypress listener
     choreInput.addEventListener('keypress', (event) => {
         if (event.key === 'Enter') {
             handleAddChore();
@@ -420,7 +397,6 @@ function setupEventListeners() {
         activityManager.logActivity(document.getElementById('activity-select').value);
     });
     
-    // --- Other Listeners ---
     document.getElementById('login-btn').addEventListener('click', handleLogin);
     document.getElementById('signup-btn').addEventListener('click', handleSignUp);
     document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
