@@ -30,7 +30,6 @@ const skillBackBtn = document.getElementById('skill-back-btn');
 // --- Global Data Variables ---
 let characterData = {};
 let gameManager = {};
-let currentSkillPath = [];
 
 // --- Manager Logic ---
 const levelManager = {
@@ -345,7 +344,8 @@ function unlockPerk(perkName, perkData) {
     characterData.unlockedPerks.push(perkName);
     showToast(`Perk Unlocked: ${perkName}!`);
     
-    renderSkillTree();
+    // The sketch will automatically re-render in its draw loop.
+    // We just need to update the main dashboard.
     updateDashboard();
 }
 
@@ -356,9 +356,14 @@ function renderSkillTree() {
 }
 
 function openSkillsModal() { 
-    currentSkillPath = [];
     skillsModal.classList.remove('hidden');
-    // We no longer call the old render function here.
+}
+
+// Helper function for the sketch to update the main UI
+function updateSkillTreeUI(title, breadcrumbs, showBack) {
+    skillTreeTitle.textContent = title;
+    document.getElementById('skill-tree-breadcrumbs').textContent = breadcrumbs.join(' > ');
+    skillBackBtn.classList.toggle('hidden', !showBack);
 }
 
 function showToast(message) { 
@@ -367,7 +372,6 @@ function showToast(message) {
 
 function setupEventListeners() {
     const choreInput = document.getElementById('chore-input');
-
     const handleAddChore = async () => {
         const text = choreInput.value.trim();
         if(text) {
@@ -378,7 +382,6 @@ function setupEventListeners() {
             choreInput.focus();
         }
     };
-
     choreInput.addEventListener('keypress', (event) => {
         if (event.key === 'Enter') {
             handleAddChore();
@@ -397,8 +400,11 @@ function setupEventListeners() {
     });
     document.getElementById('codex-logout-btn').addEventListener('click', handleLogout);
     document.getElementById('close-skills-btn').addEventListener('click', () => document.getElementById('skills-modal').classList.add('hidden'));
+    
     skillBackBtn.addEventListener('click', () => {
-        // This logic will need to be moved to the p5.js sketch
+        if (myp5) {
+            myp5.goBack();
+        }
     });
     document.getElementById('scan-face-btn').addEventListener('click', handleFaceScan);
 }
@@ -426,4 +432,5 @@ document.getElementById('login-btn').addEventListener('click', handleLogin);
 document.getElementById('signup-btn').addEventListener('click', handleSignUp);
 document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
 
-new p5(sketch);
+// We store the p5 instance in a variable to control it from our main code
+let myp5 = new p5(sketch);
