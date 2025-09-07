@@ -13,7 +13,6 @@ function sketch(p) {
       p.background(45, 52, 54); 
       
       for (const galaxy of galaxies) {
-        // Change cursor to a pointer if mouse is over a galaxy
         let distance = p.dist(p.mouseX, p.mouseY, galaxy.x, galaxy.y);
         if (distance < galaxy.size / 2) {
             p.cursor(p.HAND);
@@ -21,7 +20,6 @@ function sketch(p) {
             p.cursor(p.ARROW);
         }
 
-        // --- Drawing logic (same as before) ---
         p.noStroke();
         p.fill(240, 147, 43, 50);
         p.ellipse(galaxy.x, galaxy.y, galaxy.size + 20);
@@ -40,14 +38,11 @@ function sketch(p) {
       }
     };
 
-    // --- NEW FUNCTION to handle mouse clicks ---
     p.mousePressed = function() {
         for (const galaxy of galaxies) {
-            // Check if the click was inside this galaxy's circle
             let distance = p.dist(p.mouseX, p.mouseY, galaxy.x, galaxy.y);
             if (distance < galaxy.size / 2) {
                 console.log(`Clicked on the ${galaxy.name} Galaxy!`);
-                // We will add the zoom logic here in the next step
             }
         }
     };
@@ -57,22 +52,15 @@ function sketch(p) {
         const numGalaxies = galaxyNames.length;
         const spacingX = p.width / 2;
         const spacingY = p.height / 2;
-
         const positions = [
             { x: spacingX * 0.5, y: spacingY * 0.5 },
             { x: spacingX * 1.5, y: spacingY * 0.5 },
             { x: spacingX * 0.5, y: spacingY * 1.5 },
             { x: spacingX * 1.5, y: spacingY * 1.5 },
         ];
-
         for (let i = 0; i < numGalaxies; i++) {
             const name = galaxyNames[i];
-            galaxies.push({
-                name: name,
-                x: positions[i].x,
-                y: positions[i].y,
-                size: 120
-            });
+            galaxies.push({ name: name, x: positions[i].x, y: positions[i].y, size: 120 });
         }
     }
 }

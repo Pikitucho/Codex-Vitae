@@ -350,13 +350,15 @@ function unlockPerk(perkName, perkData) {
 }
 
 function renderSkillTree() {
-    // This is a placeholder now, as p5.js will handle the rendering
+    // This function is now a placeholder.
+    // The p5.js sketch in 'skill-tree-sketch.js' handles all the drawing.
+    console.log("p5.js is handling the skill tree rendering.");
 }
 
 function openSkillsModal() { 
     currentSkillPath = [];
     skillsModal.classList.remove('hidden');
-    // We don't call renderSkillTree() here anymore
+    // We no longer call the old render function here.
 }
 
 function showToast(message) { 
