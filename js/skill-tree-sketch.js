@@ -39,10 +39,14 @@ function sketch(p) {
     };
 
     p.mousePressed = function() {
+        console.log("Canvas was clicked!"); // <-- ADD THIS TEST LINE
+
         for (const galaxy of galaxies) {
+            // Check if the click was inside this galaxy's circle
             let distance = p.dist(p.mouseX, p.mouseY, galaxy.x, galaxy.y);
             if (distance < galaxy.size / 2) {
                 console.log(`Clicked on the ${galaxy.name} Galaxy!`);
+                // We will add the zoom logic here in the next step
             }
         }
     };
