@@ -24,7 +24,6 @@ const storage = firebase.storage();
 const authScreen = document.getElementById('auth-screen');
 const appScreen = document.getElementById('app-screen');
 const skillsModal = document.getElementById('skills-modal');
-const skillTreeView = document.getElementById('skill-tree-view');
 const skillTreeTitle = document.getElementById('skill-tree-title');
 const skillBackBtn = document.getElementById('skill-back-btn');
 
@@ -134,7 +133,7 @@ async function saveData() {
     const userId = auth.currentUser.uid;
     characterData.chores = choreManager.chores;
     const userRef = db.collection('users').doc(userId);
-    const dataToSave = { characterData, gameManager }; // skillTree is static, not saved with user data
+    const dataToSave = { characterData, gameManager };
     await userRef.set(dataToSave, { merge: true });
     console.log("Data saved to Firestore!");
 }
@@ -351,64 +350,13 @@ function unlockPerk(perkName, perkData) {
 }
 
 function renderSkillTree() {
-    skillTreeView.innerHTML = '';
-    const breadcrumbs = document.getElementById('skill-tree-breadcrumbs');
-    breadcrumbs.innerHTML = '';
-    let currentLevelData = skillTree;
-    let path = [...currentSkillPath];
-    let breadcrumbPath = ['Galaxies'];
-
-    while (path.length > 0) {
-        let key = path.shift();
-        currentLevelData = currentLevelData[key]?.constellations || currentLevelData[key]?.stars || currentLevelData[key];
-        breadcrumbPath.push(key);
-    }
-    
-    skillTreeTitle.textContent = currentSkillPath.length > 0 ? currentSkillPath[currentSkillPath.length - 1] : "Skill Galaxies";
-    breadcrumbs.textContent = breadcrumbPath.join(' > ');
-    skillBackBtn.classList.toggle('hidden', currentSkillPath.length === 0);
-
-    for (const key in currentLevelData) {
-        const item = currentLevelData[key];
-        const div = document.createElement('div');
-        div.textContent = key;
-        div.className = item.type;
-
-        let hoverTitle = item.description || '';
-
-        if (item.type === 'star') {
-            const isUnlocked = characterData.unlockedPerks.includes(key);
-            const canUnlock = characterData.stats[item.requires.stat] >= item.requires.value;
-
-            if (isUnlocked) {
-                div.classList.add('unlocked');
-                hoverTitle += `\n(Unlocked)`;
-            } else if (canUnlock) {
-                div.classList.add('available');
-                hoverTitle += `\n(Requires ${item.requires.value} ${item.requires.stat}) - Click to unlock for 1 Perk Point!`;
-                div.addEventListener('click', () => unlockPerk(key, item));
-            } else {
-                div.classList.add('locked');
-                hoverTitle += `\n(Requires ${item.requires.value} ${item.requires.stat})`;
-            }
-        }
-        
-        div.title = hoverTitle.trim();
-
-        if (item.type !== 'star') {
-            div.addEventListener('click', () => {
-                currentSkillPath.push(key);
-                renderSkillTree();
-            });
-        }
-        skillTreeView.appendChild(div);
-    }
+    // This is a placeholder now, as p5.js will handle the rendering
 }
 
 function openSkillsModal() { 
     currentSkillPath = [];
     skillsModal.classList.remove('hidden');
-    renderSkillTree();
+    // We don't call renderSkillTree() here anymore
 }
 
 function showToast(message) { 
@@ -448,8 +396,7 @@ function setupEventListeners() {
     document.getElementById('codex-logout-btn').addEventListener('click', handleLogout);
     document.getElementById('close-skills-btn').addEventListener('click', () => document.getElementById('skills-modal').classList.add('hidden'));
     skillBackBtn.addEventListener('click', () => {
-        currentSkillPath.pop();
-        renderSkillTree();
+        // This logic will need to be moved to the p5.js sketch
     });
     document.getElementById('scan-face-btn').addEventListener('click', handleFaceScan);
 }
@@ -476,3 +423,5 @@ auth.onAuthStateChanged(async user => {
 document.getElementById('login-btn').addEventListener('click', handleLogin);
 document.getElementById('signup-btn').addEventListener('click', handleSignUp);
 document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
+
+new p5(sketch);

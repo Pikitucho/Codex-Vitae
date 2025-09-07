@@ -1,14 +1,14 @@
-/* --- "Arcane & Autumn" COLOR PALETTE --- */
+/* --- "Cozy Tech" COLOR PALETTE --- */
 :root {
-    --color-primary: #4834d4; /* Deep, magical indigo */
+    --color-primary: #4834d4; /* A deep, futuristic indigo */
     --color-primary-dark: #341f97;
-    --color-accent: #f0932b; /* Warm, golden amber */
-    --color-background-light: #f5f6fa; /* Soft, creamy off-white */
+    --color-accent: #f0932b; /* A warm, golden-orange glow */
+    --color-background-light: #f5f6fa; /* A very soft, clean off-white */
     --color-background-widget: #ffffff;
-    --color-text-dark: #2d3436; /* Dark, graphite text */
+    --color-text-dark: #2d3436; /* A dark slate gray, not pure black */
     --color-text-medium: #636e72;
     --color-border: #dfe6e9;
-    --color-success: #00b894; /* A rich teal for success */
+    --color-success: #00b894; /* A vibrant, techy teal */
 }
 
 /* --- GLOBAL STYLES --- */
@@ -71,9 +71,7 @@ h2 { color: var(--color-primary); }
     padding: 12px;
     border-radius: 8px;
     text-align: center;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.stat-card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 .stat-label { font-size: 0.85em; color: var(--color-text-medium); }
 .stat-value { font-size: 1.6em; font-weight: 700; color: var(--color-primary); }
 
@@ -87,14 +85,8 @@ input:focus, select:focus { border-color: var(--color-primary); outline: none; b
 button { background-color: var(--color-primary); color: white; border: none; cursor: pointer; font-weight: bold; transition: background-color 0.2s ease; }
 button:hover { background-color: var(--color-primary-dark); }
 
-/* --- ALIGNMENT & SPECIFIC INPUTS --- */
-#activity-log-section .input-group select { flex-grow: 1; }
 #add-chore-input-group input { flex-grow: 1; }
-#chore-list { list-style: none; padding: 0; margin-top: 15px; }
-.chore-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--color-border); }
-.chore-details { font-size: 0.8em; color: var(--color-text-medium); background-color: var(--color-background-light); padding: 2px 6px; border-radius: 4px; }
-.complete-chore-btn { background-color: var(--color-success); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-weight: bold; flex-shrink: 0; }
-.complete-chore-btn:hover { background-color: #009a7b; }
+#activity-log-section .input-group select { flex-grow: 1; }
 
 /* --- FACE SCAN & AVATAR --- */
 .avatar-display { position: relative; width: 150px; height: 150px; margin: 0 auto 15px auto; }
@@ -116,13 +108,7 @@ button:hover { background-color: var(--color-primary-dark); }
 #skills-modal .modal-content { background-color: var(--color-text-dark); }
 #skills-modal h2 { color: #fff; }
 #skill-tree-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-#skill-tree-view { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; align-items: center; min-height: 200px; border: 1px solid #4a5568; padding: 20px; border-radius: 8px; }
-.galaxy, .constellation, .star { border: 2px solid #4a5568; color: #f5f6fa; border-radius: 50%; display: flex; justify-content: center; align-items: center; text-align: center; cursor: pointer; transition: all 0.2s ease; }
-.galaxy { width: 120px; height: 120px; background-color: #4a5568; }
-.constellation { width: 100px; height: 100px; background-color: #4a5568; }
-.star { width: 70px; height: 70px; }
-.star.unlocked { background-color: var(--color-success); border-color: #009a7b; }
-.star.locked { background-color: #2d3436; color: #636e72; }
+#skill-tree-canvas-container { border: 1px solid #4a5568; border-radius: 8px; overflow: hidden; }
 
 /* --- PERK POINT & CHORE DISPLAYS --- */
 #perk-point-display h3 { margin: 0; text-align: left; }
@@ -134,13 +120,11 @@ button:hover { background-color: var(--color-primary-dark); }
 .chore-stat-label { font-weight: 600; font-size: 0.9em; }
 .chore-fragment-text { font-size: 0.8em; color: var(--color-text-medium); }
 
-
-/* --- SKILL TREE UNLOCK STATE --- */
-.star.available {
-    cursor: pointer;
-    border-color: var(--color-accent); /* Golden amber border */
-    box-shadow: 0 0 15px rgba(240, 147, 43, 0.7);
-}
-.star.available:hover {
-    transform: scale(1.1);
-}
+/* --- DYNAMIC CHORE LIST --- */
+#chore-list { list-style: none; padding: 0; margin-top: 15px; }
+.chore-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--color-border); }
+.chore-details { font-size: 0.8em; color: var(--color-text-medium); background-color: var(--color-background-light); padding: 2px 6px; border-radius: 4px; }
+.complete-chore-btn { background-color: var(--color-success); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-weight: bold; flex-shrink: 0; margin-left: 10px; }
+.complete-chore-btn:hover { background-color: #009a7b; }
+.star.available { cursor: pointer; border-color: var(--color-accent); box-shadow: 0 0 15px rgba(240, 147, 43, 0.7); }
+.star.available:hover { transform: scale(1.1); }
