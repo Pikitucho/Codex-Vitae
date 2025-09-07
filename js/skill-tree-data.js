@@ -1,45 +1,163 @@
 // js/skill-tree-data.js
+
 const skillTree = {
     'Mind': {
         type: 'galaxy',
         description: 'Skills of logic, learning, and creativity.',
         constellations: {
-            'Academics': { type: 'constellation', stars: { 'Active Learner': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 12 }, description: 'A passive bonus to all Stat Fragment gains from Intelligence-based chores.' }, 'Critical Thinker': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 15 }, description: 'Unlocks the ability to occasionally receive double fragments from a completed task.' }, 'Polymath': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 20 }, description: 'Reduces the stat requirements for all non-Intelligence perks by 1.' }, 'Bachelors Degree': { unlock_type: 'credential', type: 'star', requires: { proof: 'Document Upload' }, description: 'Submit a diploma for a Bachelors degree or higher.' } } },
-            'Creativity': { type: 'constellation', stars: { 'Doodler': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 11 }, description: 'A small, consistent bonus to Charisma fragment gains.' }, 'Storyteller': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 14 }, description: 'Improves outcomes in social interactions.' }, 'Published Work': { unlock_type: 'credential', type: 'star', requires: { proof: 'URL Link' }, description: 'Provide a link to a published creative work (book, article, portfolio).' } } },
-            'Logic & Strategy': { type: 'constellation', stars: { 'Problem Solver': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 15 }, description: 'Occasionally, a difficult task will award bonus fragments.' }, 'Strategic Planner': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 18 }, description: 'Setting and completing a Goal provides a bonus fragment reward.' }, 'Chess Master': { unlock_type: 'credential', type: 'star', requires: { proof: 'Skill Verification' }, description: 'Achieve a verified rating in a competitive strategy game.' } } },
-            'Memory': { type: 'constellation', stars: { 'Method of Loci': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 14 }, description: 'Improves recall, occasionally finding "lost" items in connected games.' }, 'Eidetic Memory': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 22 }, description: 'Perfect recall of details and conversations.' } } },
-            'Linguistics': { type: 'constellation', stars: { 'Bilingual': { unlock_type: 'credential', type: 'star', requires: { proof: 'Language Test' }, description: 'Pass a recognized test for fluency in a second language.' }, 'Polyglot': { unlock_type: 'credential', type: 'star', requires: { proof: 'Language Test' }, description: 'Pass a recognized test for fluency in three or more languages.' } } }
+            'Academics': { 
+                type: 'constellation', 
+                stars: { 
+                    'Active Learner': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 12 }, description: 'A passive bonus to all Stat Fragment gains from Intelligence-based chores.' }, 
+                    'Critical Thinker': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 15 }, description: 'Unlocks the ability to occasionally receive double fragments from a completed task.' },
+                    'Polymath': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 20 }, description: 'Reduces the stat requirements for all non-Intelligence perks by 1.' },
+                    'Bachelors Degree': { unlock_type: 'credential', type: 'star', requires: { proof: 'Document Upload' }, description: 'Submit a diploma for a Bachelors degree or higher.' }
+                } 
+            },
+            'Creativity': { 
+                type: 'constellation', 
+                stars: { 
+                    'Doodler': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 11 }, description: 'A small, consistent bonus to Charisma fragment gains.' }, 
+                    'Storyteller': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 14 }, description: 'Improves outcomes in social interactions.' },
+                    'Published Work': { unlock_type: 'credential', type: 'star', requires: { proof: 'URL Link' }, description: 'Provide a link to a published creative work (book, article, portfolio).' }
+                } 
+            },
+            'Logic & Strategy': {
+                type: 'constellation',
+                stars: {
+                    'Problem Solver': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 15 }, description: 'Occasionally, a difficult task will award bonus fragments.' },
+                    'Strategic Planner': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 18 }, description: 'Setting and completing a Goal provides a bonus fragment reward.' },
+                    'Chess Master': { unlock_type: 'credential', type: 'star', requires: { proof: 'Skill Verification' }, description: 'Achieve a verified rating in a competitive strategy game.' }
+                }
+            },
+            'Memory': {
+                type: 'constellation',
+                stars: {
+                    'Method of Loci': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 14 }, description: 'Improves recall, occasionally finding "lost" items in connected games.' },
+                    'Eidetic Memory': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 22 }, description: 'Perfect recall of details and conversations.' }
+                }
+            },
+            'Linguistics': {
+                type: 'constellation',
+                stars: {
+                    'Bilingual': { unlock_type: 'credential', type: 'star', requires: { proof: 'Language Test' }, description: 'Pass a recognized test for fluency in a second language.' },
+                    'Polyglot': { unlock_type: 'credential', type: 'star', requires: { proof: 'Language Test' }, description: 'Pass a recognized test for fluency in three or more languages.' }
+                }
+            }
         }
     },
     'Body': {
         type: 'galaxy',
         description: 'Skills of strength, endurance, and physical prowess.',
         constellations: {
-            'Fitness': { type: 'constellation', stars: { 'Basic Fitness': { unlock_type: 'perk', type: 'star', requires: { stat: 'strength', value: 12 }, description: 'Grants a small bonus to Constitution fragment gains.' }, 'Athlete': { unlock_type: 'perk', type: 'star', requires: { stat: 'strength', value: 18 }, description: 'Unlocks advanced physical activities in other connected games.' }, 'Run a Marathon': { unlock_type: 'credential', type: 'star', requires: { proof: 'Event Verification' }, description: 'Provide proof of completing a marathon or other major endurance event.' } } },
-            'Resilience': { type: 'constellation', stars: { 'Toughness': { unlock_type: 'perk', type: 'star', requires: { stat: 'constitution', value: 14 }, description: 'Monthly Milestone requires one less day to complete (24 instead of 25).' }, 'Iron Will': { unlock_type: 'perk', type: 'star', requires: { stat: 'constitution', value: 20 }, description: 'Provides a chance to maintain a weekly streak even if you miss one day.' } } },
-            'Craftsmanship': { type: 'constellation', stars: { 'Handyman': { unlock_type: 'perk', type: 'star', requires: { stat: 'dexterity', value: 12 }, description: 'Grants a small bonus to Dexterity fragment gains.' }, 'Artisan': { unlock_type: 'perk', type: 'star', requires: { stat: 'dexterity', value: 16 }, description: 'Unlocks the ability to craft higher quality items in connected games.' }, 'Masterwork': { unlock_type: 'credential', type: 'star', requires: { proof: 'Image Upload' }, description: 'Submit photos of a complex, hand-made project (e.g., furniture, clothing).' } } },
-            'Coordination': { type: 'constellation', stars: { 'Ambidextrous': { unlock_type: 'perk', type: 'star', requires: { stat: 'dexterity', value: 18 }, description: 'Removes off-hand penalties in connected games.' }, 'Sleight of Hand': { unlock_type: 'perk', type: 'star', requires: { stat: 'dexterity', value: 15 }, description: 'Increases chance of success on fine motor skill tasks.' }, 'Dancer': { unlock_type: 'credential', type: 'star', requires: { proof: 'Video Upload' }, description: 'Demonstrate proficiency in a recognized form of dance.' } } },
-            'Survival': { type: 'constellation', stars: { 'Forager': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 13 }, description: 'Ability to identify useful plants and materials.' }, 'First Aid Certified': { unlock_type: 'credential', type: 'star', requires: { proof: 'Certificate Upload' }, description: 'Upload a valid First Aid/CPR certification.' } } }
+            'Fitness': { 
+                type: 'constellation', 
+                stars: { 
+                    'Basic Fitness': { unlock_type: 'perk', type: 'star', requires: { stat: 'strength', value: 12 }, description: 'Grants a small bonus to Constitution fragment gains.' }, 
+                    'Athlete': { unlock_type: 'perk', type: 'star', requires: { stat: 'strength', value: 18 }, description: 'Unlocks advanced physical activities in other connected games.' },
+                    'Run a Marathon': { unlock_type: 'credential', type: 'star', requires: { proof: 'Event Verification' }, description: 'Provide proof of completing a marathon or other major endurance event.' }
+                } 
+            },
+            'Resilience': {
+                type: 'constellation',
+                stars: {
+                    'Toughness': { unlock_type: 'perk', type: 'star', requires: { stat: 'constitution', value: 14 }, description: 'Monthly Milestone requires one less day to complete (24 instead of 25).' },
+                    'Iron Will': { unlock_type: 'perk', type: 'star', requires: { stat: 'constitution', value: 20 }, description: 'Provides a chance to maintain a weekly streak even if you miss one day.' }
+                }
+            },
+            'Craftsmanship': {
+                type: 'constellation',
+                stars: {
+                    'Handyman': { unlock_type: 'perk', type: 'star', requires: { stat: 'dexterity', value: 12 }, description: 'Grants a small bonus to Dexterity fragment gains.' },
+                    'Artisan': { unlock_type: 'perk', type: 'star', requires: { stat: 'dexterity', value: 16 }, description: 'Unlocks the ability to craft higher quality items in connected games.' },
+                    'Masterwork': { unlock_type: 'credential', type: 'star', requires: { proof: 'Image Upload' }, description: 'Submit photos of a complex, hand-made project (e.g., furniture, clothing).' }
+                }
+            },
+            'Coordination': {
+                type: 'constellation',
+                stars: {
+                    'Ambidextrous': { unlock_type: 'perk', type: 'star', requires: { stat: 'dexterity', value: 18 }, description: 'Removes off-hand penalties in connected games.' },
+                    'Sleight of Hand': { unlock_type: 'perk', type: 'star', requires: { stat: 'dexterity', value: 15 }, description: 'Increases chance of success on fine motor skill tasks.' },
+                    'Dancer': { unlock_type: 'credential', type: 'star', requires: { proof: 'Video Upload' }, description: 'Demonstrate proficiency in a recognized form of dance.' }
+                }
+            },
+            'Survival': {
+                type: 'constellation',
+                stars: {
+                    'Forager': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 13 }, description: 'Ability to identify useful plants and materials.' },
+                    'First Aid Certified': { unlock_type: 'credential', type: 'star', requires: { proof: 'Certificate Upload' }, description: 'Upload a valid First Aid/CPR certification.' }
+                }
+            }
         }
     },
     'Soul': {
         type: 'galaxy',
         description: 'Skills of discipline, charisma, and inner strength.',
         constellations: {
-            'Discipline': { type: 'constellation', stars: { 'Early Riser': { unlock_type: 'perk', type: 'star', requires: { stat: 'constitution', value: 12 }, description: 'Gain bonus fragments for the first chore completed each day.' }, 'Focused Mind': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 15 }, description: 'Doubles the fragments gained from "Reflection" or "Study" chores.' }, 'Unwavering': { unlock_type: 'perk', type: 'star', requires: { stat: 'constitution', value: 18 }, description: 'High resistance to abandoning long-term goals.' } } },
-            'Leadership': { type: 'constellation', stars: { 'Persuasion': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 15 }, description: 'Unlocks new dialogue options in connected games.' }, 'Inspirational': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 20 }, description: 'Provides a small bonus to all fragment gains for your party in a connected game.' } } },
-            'Finance': { type: 'constellation', stars: { 'Budgeter': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 13 }, description: 'Unlocks a "Wealth" tracker on your main dashboard.' }, 'Investor': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 16 }, description: 'Unlocks passive "investment" activities that can be logged.' }, 'Debt-Free': { unlock_type: 'credential', type: 'star', requires: { proof: 'Verification' }, description: 'Achieve and verify a state of being free from non-mortgage debt.' } } },
-            'Mindfulness': { type: 'constellation', stars: { 'Meditator': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 14 }, description: 'Grants a small bonus to Wisdom fragment gains.' }, 'Patient': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 17 }, description: 'Reduces the chance of negative outcomes from rushed decisions.' } } },
-            'Artistry': { type: 'constellation', stars: { 'Musician': { unlock_type: 'credential', type: 'star', requires: { proof: 'Video Upload' }, description: 'Demonstrate proficiency with a musical instrument.' }, 'Painter': { unlock_type: 'credential', type: 'star', requires: { proof: 'Image Upload' }, description: 'Submit a portfolio of original artwork.' } } }
+            'Discipline': {
+                type: 'constellation',
+                stars: {
+                    'Early Riser': { unlock_type: 'perk', type: 'star', requires: { stat: 'constitution', value: 12 }, description: 'Gain bonus fragments for the first chore completed each day.' },
+                    'Focused Mind': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 15 }, description: 'Doubles the fragments gained from "Reflection" or "Study" chores.' },
+                    'Unwavering': { unlock_type: 'perk', type: 'star', requires: { stat: 'constitution', value: 18 }, description: 'High resistance to abandoning long-term goals.' }
+                }
+            },
+            'Leadership': {
+                type: 'constellation',
+                stars: {
+                    'Persuasion': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 15 }, description: 'Unlocks new dialogue options in connected games.' },
+                    'Inspirational': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 20 }, description: 'Provides a small bonus to all fragment gains for your party in a connected game.' }
+                }
+            },
+            'Finance': {
+                type: 'constellation',
+                stars: {
+                    'Budgeter': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 13 }, description: 'Unlocks a "Wealth" tracker on your main dashboard.' },
+                    'Investor': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 16 }, description: 'Unlocks passive "investment" activities that can be logged.' },
+                    'Debt-Free': { unlock_type: 'credential', type: 'star', requires: { proof: 'Verification' }, description: 'Achieve and verify a state of being free from non-mortgage debt.' }
+                }
+            },
+            'Mindfulness': {
+                type: 'constellation',
+                stars: {
+                    'Meditator': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 14 }, description: 'Grants a small bonus to Wisdom fragment gains.' },
+                    'Patient': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 17 }, description: 'Reduces the chance of negative outcomes from rushed decisions.' }
+                }
+            },
+            'Artistry': {
+                type: 'constellation',
+                stars: {
+                    'Musician': { unlock_type: 'credential', type: 'star', requires: { proof: 'Video Upload' }, description: 'Demonstrate proficiency with a musical instrument.' },
+                    'Painter': { unlock_type: 'credential', type: 'star', requires: { proof: 'Image Upload' }, description: 'Submit a portfolio of original artwork.' }
+                }
+            }
         }
     },
     'Community': {
         type: 'galaxy',
         description: 'Skills related to social structures, collaboration, and civic engagement.',
         constellations: {
-            'Collaboration': { type: 'constellation', stars: { 'Team Player': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 13 }, description: 'Improves efficiency of group tasks.' }, 'Project Manager': { unlock_type: 'credential', type: 'star', requires: { proof: 'Certificate Upload' }, description: 'Upload a PMP or similar project management certification.' } } },
-            'Civics': { type: 'constellation', stars: { 'Informed Voter': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 12 }, description: 'Demonstrate knowledge of local and national political systems.' }, 'Volunteer': { unlock_type: 'credential', type: 'star', requires: { proof: 'Hours Log' }, description: 'Log a significant number of verified volunteer hours.' } } },
-            'Mentorship': { type: 'constellation', stars: { 'Tutor': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 16 }, description: 'Unlocks the ability to help other users in a future update.' }, 'Mentor': { unlock_type: 'credential', type: 'star', requires: { proof: 'Testimonial' }, description: 'Receive a verified testimonial from a mentee.' } } }
+            'Collaboration': {
+                type: 'constellation',
+                stars: {
+                    'Team Player': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 13 }, description: 'Improves efficiency of group tasks.' },
+                    'Project Manager': { unlock_type: 'credential', type: 'star', requires: { proof: 'Certificate Upload' }, description: 'Upload a PMP or similar project management certification.' }
+                }
+            },
+            'Civics': {
+                type: 'constellation',
+                stars: {
+                    'Informed Voter': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 12 }, description: 'Demonstrate knowledge of local and national political systems.' },
+                    'Volunteer': { unlock_type: 'credential', type: 'star', requires: { proof: 'Hours Log' }, description: 'Log a significant number of verified volunteer hours.' }
+                }
+            },
+            'Mentorship': {
+                type: 'constellation',
+                stars: {
+                    'Tutor': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 16 }, description: 'Unlocks the ability to help other users in a future update.' },
+                    'Mentor': { unlock_type: 'credential', type: 'star', requires: { proof: 'Testimonial' }, description: 'Receive a verified testimonial from a mentee.' }
+                }
+            }
         }
     }
 };

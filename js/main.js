@@ -344,8 +344,6 @@ function unlockPerk(perkName, perkData) {
     characterData.unlockedPerks.push(perkName);
     showToast(`Perk Unlocked: ${perkName}!`);
     
-    // The sketch will automatically re-render in its draw loop.
-    // We just need to update the main dashboard.
     updateDashboard();
 }
 
@@ -359,7 +357,6 @@ function openSkillsModal() {
     skillsModal.classList.remove('hidden');
 }
 
-// Helper function for the sketch to update the main UI
 function updateSkillTreeUI(title, breadcrumbs, showBack) {
     skillTreeTitle.textContent = title;
     document.getElementById('skill-tree-breadcrumbs').textContent = breadcrumbs.join(' > ');

@@ -94,6 +94,7 @@ function sketch(p) {
         const constellationNames = Object.keys(constellationData);
         constellations = [];
         for (let i = 0; i < constellationNames.length; i++) {
+            // Simple horizontal layout for now
             constellations.push({ name: constellationNames[i], x: 80 + i * 120, y: p.height / 2, size: 100 });
         }
     }
