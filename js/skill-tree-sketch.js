@@ -10,36 +10,51 @@ function sketch(p) {
     };
   
     p.draw = function() {
-      // Set the background to our new dark slate color
       p.background(45, 52, 54); 
       
-      // Draw each galaxy
       for (const galaxy of galaxies) {
-        // Style for the warm, "cozy" glowing effect
+        // Change cursor to a pointer if mouse is over a galaxy
+        let distance = p.dist(p.mouseX, p.mouseY, galaxy.x, galaxy.y);
+        if (distance < galaxy.size / 2) {
+            p.cursor(p.HAND);
+        } else {
+            p.cursor(p.ARROW);
+        }
+
+        // --- Drawing logic (same as before) ---
         p.noStroke();
-        p.fill(240, 147, 43, 50); // Soft, transparent golden-orange glow
+        p.fill(240, 147, 43, 50);
         p.ellipse(galaxy.x, galaxy.y, galaxy.size + 20);
         p.ellipse(galaxy.x, galaxy.y, galaxy.size + 40);
 
-        // Style for the main galaxy circle
-        p.fill(72, 52, 212, 150); // Semi-transparent deep indigo
-        p.stroke(245, 246, 250); // Soft off-white border
+        p.fill(72, 52, 212, 150);
+        p.stroke(245, 246, 250);
         p.strokeWeight(2);
         p.ellipse(galaxy.x, galaxy.y, galaxy.size);
 
-        // Style for the text
         p.noStroke();
-        p.fill(245, 246, 250); // Soft off-white text
+        p.fill(245, 246, 250);
         p.textAlign(p.CENTER, p.CENTER);
         p.textSize(16);
         p.text(galaxy.name, galaxy.x, galaxy.y);
       }
     };
 
+    // --- NEW FUNCTION to handle mouse clicks ---
+    p.mousePressed = function() {
+        for (const galaxy of galaxies) {
+            // Check if the click was inside this galaxy's circle
+            let distance = p.dist(p.mouseX, p.mouseY, galaxy.x, galaxy.y);
+            if (distance < galaxy.size / 2) {
+                console.log(`Clicked on the ${galaxy.name} Galaxy!`);
+                // We will add the zoom logic here in the next step
+            }
+        }
+    };
+
     function prepareGalaxyData() {
         const galaxyNames = Object.keys(skillTree);
         const numGalaxies = galaxyNames.length;
-        // Adjust spacing for 4 galaxies in a 2x2 grid
         const spacingX = p.width / 2;
         const spacingY = p.height / 2;
 
@@ -56,7 +71,7 @@ function sketch(p) {
                 name: name,
                 x: positions[i].x,
                 y: positions[i].y,
-                size: 120 // Diameter of the circle
+                size: 120
             });
         }
     }
