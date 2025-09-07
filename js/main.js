@@ -372,6 +372,7 @@ function showToast(message) {
 
 function setupEventListeners() {
     const choreInput = document.getElementById('chore-input');
+
     const handleAddChore = async () => {
         const text = choreInput.value.trim();
         if(text) {
@@ -382,6 +383,7 @@ function setupEventListeners() {
             choreInput.focus();
         }
     };
+
     choreInput.addEventListener('keypress', (event) => {
         if (event.key === 'Enter') {
             handleAddChore();
