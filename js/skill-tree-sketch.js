@@ -4,7 +4,6 @@ function sketch(p) {
     // --- State Management ---
     let currentView = 'galaxies'; // Can be 'galaxies', 'constellations', or 'stars'
     let selectedGalaxy = null;
-    let selectedConstellation = null;
 
     // --- Data Holders ---
     let galaxies = [];
@@ -23,24 +22,27 @@ function sketch(p) {
 
       if (currentView === 'galaxies') {
         drawGalaxies();
-        updateUI("Skill Galaxies", ["Galaxies"], false);
+        updateSkillTreeUI("Skill Galaxies", ["Galaxies"], false);
       } else if (currentView === 'constellations') {
         drawConstellations();
-        updateUI(selectedGalaxy, ["Galaxies", selectedGalaxy], true);
+        updateSkillTreeUI(selectedGalaxy, ["Galaxies", selectedGalaxy], true);
       }
     };
 
     // --- Interaction ---
     p.mousePressed = function() {
+        if (p.mouseX < 0 || p.mouseX > p.width || p.mouseY < 0 || p.mouseY > p.height) {
+            return; // Ignore clicks outside the canvas
+        }
+
         if (currentView === 'galaxies') {
             for (const galaxy of galaxies) {
                 let distance = p.dist(p.mouseX, p.mouseY, galaxy.x, galaxy.y);
                 if (distance < galaxy.size / 2) {
-                    // --- Change the view state ---
                     currentView = 'constellations';
                     selectedGalaxy = galaxy.name;
-                    prepareConstellationData(); // Prepare the data for the new view
-                    break; // Stop checking once a galaxy is clicked
+                    prepareConstellationData();
+                    break;
                 }
             }
         }
@@ -79,7 +81,7 @@ function sketch(p) {
 
     // --- Data Preparation ---
     function prepareGalaxyData() {
-        galaxies = []; // Clear previous data
+        galaxies = [];
         const galaxyNames = Object.keys(skillTree);
         const positions = [ { x: p.width * 0.25, y: p.height * 0.25 }, { x: p.width * 0.75, y: p.height * 0.25 }, { x: p.width * 0.25, y: p.height * 0.75 }, { x: p.width * 0.75, y: p.height * 0.75 } ];
         for (let i = 0; i < galaxyNames.length; i++) {
@@ -88,16 +90,16 @@ function sketch(p) {
     }
 
     function prepareConstellationData() {
-        constellationData = skillTree[selectedGalaxy].constellations;
-        constellationNames = Object.keys(constellationData);
-        constellations = []; // Clear previous data
+        const constellationData = skillTree[selectedGalaxy].constellations;
+        const constellationNames = Object.keys(constellationData);
+        constellations = [];
         for (let i = 0; i < constellationNames.length; i++) {
             // Simple horizontal layout for now
             constellations.push({ name: constellationNames[i], x: 80 + i * 120, y: p.height / 2, size: 100 });
         }
     }
 
-    // --- Public functions to control the sketch from main.js ---
+    // --- Public function for the back button in main.js to call ---
     p.goBack = function() {
         if (currentView === 'constellations') {
             currentView = 'galaxies';
