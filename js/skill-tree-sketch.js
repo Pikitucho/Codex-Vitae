@@ -21,6 +21,7 @@ function sketch(p) {
     p.draw = function() {
       p.background(45, 52, 54); 
 
+      // State machine for drawing
       if (currentView === 'galaxies') {
         drawGalaxies();
         updateSkillTreeUI("Skill Galaxies", ["Galaxies"], false);
