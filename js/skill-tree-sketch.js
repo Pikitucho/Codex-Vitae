@@ -21,7 +21,6 @@ function sketch(p) {
     p.draw = function() {
       p.background(45, 52, 54); 
 
-      // State machine for drawing
       if (currentView === 'galaxies') {
         drawGalaxies();
         updateSkillTreeUI("Skill Galaxies", ["Galaxies"], false);
@@ -53,7 +52,14 @@ function sketch(p) {
                 if (p.dist(p.mouseX, p.mouseY, constellation.x, constellation.y) < constellation.size / 2) {
                     currentView = 'stars';
                     selectedConstellation = constellation.name;
-                    prepareStarData();
+                    p.prepareStarData(); // Use public function
+                    break;
+                }
+            }
+        } else if (currentView === 'stars') {
+            for (const star of stars) {
+                if (star.status === 'available' && p.dist(p.mouseX, p.mouseY, star.x, star.y) < star.size / 2) {
+                    unlockPerk(star.name, star.data); // Call the function in main.js
                     break;
                 }
             }
@@ -74,6 +80,15 @@ function sketch(p) {
     }
 
     function drawStars() {
+        // Draw connecting lines first to make it look like a constellation
+        p.stroke(245, 246, 250, 50); // Faint, off-white lines
+        p.strokeWeight(1);
+        for(let i = 0; i < stars.length; i++) {
+            let nextIndex = (i + 1) % stars.length; // Connect to the next star, wrapping around
+            p.line(stars[i].x, stars[i].y, stars[nextIndex].x, stars[nextIndex].y);
+        }
+
+        // Then draw the stars on top
         for (const star of stars) {
             drawCelestialBody(star.name, star.x, star.y, star.size, 'star', star.status);
         }
@@ -81,28 +96,36 @@ function sketch(p) {
 
     function drawCelestialBody(name, x, y, size, type, status = 'locked') {
         let distance = p.dist(p.mouseX, p.mouseY, x, y);
-        if (distance < size / 2) { p.cursor(p.HAND); } else { p.cursor(p.ARROW); }
+        
+        // Determine if the cursor should be a hand
+        let isClickable = (type !== 'star' || status === 'available');
+        if (isClickable && distance < size / 2) { 
+            p.cursor(p.HAND); 
+        } else { 
+            p.cursor(p.ARROW); 
+        }
         
         // Default styles
-        let glowColor = p.color(240, 147, 43, 50); // Accent color
-        let bodyColor = p.color(72, 52, 212, 150); // Primary color
-        let borderColor = p.color(245, 246, 250); // Off-white
+        let glowColor = p.color(240, 147, 43, 50);
+        let bodyColor = p.color(72, 52, 212, 150);
+        let borderColor = p.color(245, 246, 250);
 
         if (type === 'star') {
             if (status === 'unlocked') {
                 bodyColor = p.color(0, 184, 148, 200); // Success color
                 glowColor = p.color(0, 184, 148, 80);
             } else if (status === 'available') {
-                bodyColor = p.color(45, 52, 54);
+                bodyColor = p.color(45, 52, 54); // Dark background, so the border pops
             } else { // locked
                 bodyColor = p.color(45, 52, 54, 150);
-                glowColor = p.color(109, 76, 65, 50);
+                glowColor = p.color(109, 76, 65, 50); // Muted glow
             }
         }
         
         p.noStroke();
         p.fill(glowColor);
         p.ellipse(x, y, size + 15);
+
         p.fill(bodyColor);
         p.stroke(borderColor);
         p.strokeWeight(2);
@@ -113,6 +136,7 @@ function sketch(p) {
         }
 
         p.ellipse(x, y, size);
+
         p.noStroke();
         p.fill(borderColor);
         p.textAlign(p.CENTER, p.CENTER);
@@ -139,7 +163,7 @@ function sketch(p) {
         }
     }
 
-    function prepareStarData() {
+    p.prepareStarData = function() {
         const starData = skillTree[selectedGalaxy].constellations[selectedConstellation].stars;
         const starNames = Object.keys(starData);
         stars = [];
@@ -148,15 +172,13 @@ function sketch(p) {
             const data = starData[name];
             let status = 'locked';
 
-            // Determine star status
-            if (characterData.unlockedPerks.includes(name)) {
+            if (characterData.unlockedPerks && characterData.unlockedPerks.includes(name)) {
                 status = 'unlocked';
             } else if (data.unlock_type === 'perk' && characterData.stats[data.requires.stat] >= data.requires.value) {
                 status = 'available';
             }
             
-            // Simple circular layout for stars
-            const angle = p.TWO_PI / starNames.length * i;
+            const angle = p.TWO_PI / starNames.length * i - p.HALF_PI;
             const radius = 100;
             const x = p.width / 2 + radius * p.cos(angle);
             const y = p.height / 2 + radius * p.sin(angle);

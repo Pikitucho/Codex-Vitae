@@ -344,6 +344,11 @@ function unlockPerk(perkName, perkData) {
     characterData.unlockedPerks.push(perkName);
     showToast(`Perk Unlocked: ${perkName}!`);
     
+    // Tell the p5 sketch to refresh its star data
+    if (myp5) {
+        myp5.prepareStarData();
+    }
+    
     updateDashboard();
 }
 
