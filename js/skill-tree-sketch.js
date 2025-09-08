@@ -2,34 +2,38 @@
 
 function sketch(p) {
     // --- State Management ---
-    let currentView = 'galaxies'; // Can be 'galaxies', 'constellations', or 'stars'
+    let currentView = 'galaxies';
     let selectedGalaxy = null;
+    let selectedConstellation = null;
 
     // --- Data Holders ---
     let galaxies = [];
     let constellations = [];
+    let stars = [];
 
-    // --- Setup: Runs once when the sketch starts ---
     p.setup = function() {
       const canvas = p.createCanvas(340, 400);
       canvas.parent('skill-tree-canvas-container');
+      p.textFont('Segoe UI');
       prepareGalaxyData();
     };
   
-    // --- Draw: Runs continuously in a loop ---
     p.draw = function() {
       p.background(45, 52, 54); 
 
+      // State machine for drawing
       if (currentView === 'galaxies') {
         drawGalaxies();
         updateSkillTreeUI("Skill Galaxies", ["Galaxies"], false);
       } else if (currentView === 'constellations') {
         drawConstellations();
         updateSkillTreeUI(selectedGalaxy, ["Galaxies", selectedGalaxy], true);
+      } else if (currentView === 'stars') {
+        drawStars();
+        updateSkillTreeUI(selectedConstellation, ["Galaxies", selectedGalaxy, selectedConstellation], true);
       }
     };
 
-    // --- Interaction ---
     p.mousePressed = function() {
         if (p.mouseX < 0 || p.mouseX > p.width || p.mouseY < 0 || p.mouseY > p.height) {
             return; // Ignore clicks outside the canvas
@@ -37,11 +41,19 @@ function sketch(p) {
 
         if (currentView === 'galaxies') {
             for (const galaxy of galaxies) {
-                let distance = p.dist(p.mouseX, p.mouseY, galaxy.x, galaxy.y);
-                if (distance < galaxy.size / 2) {
+                if (p.dist(p.mouseX, p.mouseY, galaxy.x, galaxy.y) < galaxy.size / 2) {
                     currentView = 'constellations';
                     selectedGalaxy = galaxy.name;
                     prepareConstellationData();
+                    break;
+                }
+            }
+        } else if (currentView === 'constellations') {
+            for (const constellation of constellations) {
+                if (p.dist(p.mouseX, p.mouseY, constellation.x, constellation.y) < constellation.size / 2) {
+                    currentView = 'stars';
+                    selectedConstellation = constellation.name;
+                    prepareStarData();
                     break;
                 }
             }
@@ -51,32 +63,61 @@ function sketch(p) {
     // --- Drawing Functions ---
     function drawGalaxies() {
         for (const galaxy of galaxies) {
-            drawCelestialBody(galaxy);
+            drawCelestialBody(galaxy.name, galaxy.x, galaxy.y, galaxy.size, 'galaxy');
         }
     }
 
     function drawConstellations() {
         for (const constellation of constellations) {
-            drawCelestialBody(constellation);
+            drawCelestialBody(constellation.name, constellation.x, constellation.y, constellation.size, 'constellation');
         }
     }
 
-    function drawCelestialBody(body) {
-        let distance = p.dist(p.mouseX, p.mouseY, body.x, body.y);
-        if (distance < body.size / 2) { p.cursor(p.HAND); } else { p.cursor(p.ARROW); }
+    function drawStars() {
+        for (const star of stars) {
+            drawCelestialBody(star.name, star.x, star.y, star.size, 'star', star.status);
+        }
+    }
+
+    function drawCelestialBody(name, x, y, size, type, status = 'locked') {
+        let distance = p.dist(p.mouseX, p.mouseY, x, y);
+        if (distance < size / 2) { p.cursor(p.HAND); } else { p.cursor(p.ARROW); }
+        
+        // Default styles
+        let glowColor = p.color(240, 147, 43, 50); // Accent color
+        let bodyColor = p.color(72, 52, 212, 150); // Primary color
+        let borderColor = p.color(245, 246, 250); // Off-white
+
+        if (type === 'star') {
+            if (status === 'unlocked') {
+                bodyColor = p.color(0, 184, 148, 200); // Success color
+                glowColor = p.color(0, 184, 148, 80);
+            } else if (status === 'available') {
+                bodyColor = p.color(45, 52, 54);
+            } else { // locked
+                bodyColor = p.color(45, 52, 54, 150);
+                glowColor = p.color(109, 76, 65, 50);
+            }
+        }
         
         p.noStroke();
-        p.fill(240, 147, 43, 50); // Glow
-        p.ellipse(body.x, body.y, body.size + 15);
-        p.fill(72, 52, 212, 150); // Main Body
-        p.stroke(245, 246, 250);
+        p.fill(glowColor);
+        p.ellipse(x, y, size + 15);
+        p.fill(bodyColor);
+        p.stroke(borderColor);
         p.strokeWeight(2);
-        p.ellipse(body.x, body.y, body.size);
+
+        if (type === 'star' && status === 'available') {
+            p.stroke(240, 147, 43); // Accent color for border
+            p.strokeWeight(3);
+        }
+
+        p.ellipse(x, y, size);
         p.noStroke();
-        p.fill(245, 246, 250);
+        p.fill(borderColor);
         p.textAlign(p.CENTER, p.CENTER);
-        p.textSize(16);
-        p.text(body.name, body.x, body.y);
+        p.textSize(type === 'star' ? 12 : 16);
+        p.text(name, x, y);
     }
 
     // --- Data Preparation ---
@@ -94,16 +135,42 @@ function sketch(p) {
         const constellationNames = Object.keys(constellationData);
         constellations = [];
         for (let i = 0; i < constellationNames.length; i++) {
-            // Simple horizontal layout for now
             constellations.push({ name: constellationNames[i], x: 80 + i * 120, y: p.height / 2, size: 100 });
         }
     }
 
-    // --- Public function for the back button in main.js to call ---
+    function prepareStarData() {
+        const starData = skillTree[selectedGalaxy].constellations[selectedConstellation].stars;
+        const starNames = Object.keys(starData);
+        stars = [];
+        for (let i = 0; i < starNames.length; i++) {
+            const name = starNames[i];
+            const data = starData[name];
+            let status = 'locked';
+
+            // Determine star status
+            if (characterData.unlockedPerks.includes(name)) {
+                status = 'unlocked';
+            } else if (data.unlock_type === 'perk' && characterData.stats[data.requires.stat] >= data.requires.value) {
+                status = 'available';
+            }
+            
+            // Simple circular layout for stars
+            const angle = p.TWO_PI / starNames.length * i;
+            const radius = 100;
+            const x = p.width / 2 + radius * p.cos(angle);
+            const y = p.height / 2 + radius * p.sin(angle);
+
+            stars.push({ name: name, data: data, status: status, x: x, y: y, size: 80 });
+        }
+    }
+
+    // --- Public function for the back button ---
     p.goBack = function() {
-        if (currentView === 'constellations') {
+        if (currentView === 'stars') {
+            currentView = 'constellations';
+        } else if (currentView === 'constellations') {
             currentView = 'galaxies';
-            selectedGalaxy = null;
         }
     }
 }
