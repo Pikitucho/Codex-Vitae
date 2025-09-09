@@ -156,7 +156,7 @@ async function loadData(userId) {
 }
 
 // --- CORE FUNCTIONS ---
-// --- UPDATED: Real AI Function ---
+
 async function getAIChoreClassification(text) {
     try {
         const response = await fetch(`${BACKEND_SERVER_URL}/classify-chore`, {
