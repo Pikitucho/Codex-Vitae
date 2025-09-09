@@ -1,14 +1,17 @@
 {
-  "name": "codex-vitae-avatar-generator",
+  "name": "codex-vitae-backend",
   "version": "1.0.0",
+  "description": "Backend server for the Codex Vitae app.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "express": "^4.19.2",
+    "axios": "^1.6.8",
     "cors": "^2.8.5",
-    "google-auth-library": "^9.11.0",
-    "axios": "^1.7.2"
+    "express": "^4.19.2",
+    "google-auth-library": "^9.7.0"
   }
 }
