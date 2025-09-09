@@ -11,8 +11,9 @@ const firebaseConfig = {
     measurementId: "G-DVGVB274T3"
 };
 
-// --- BACKEND SERVER URL ---
-const AVATAR_GENERATION_URL = 'https://generate-avatar-393704011058.us-central1.run.app';
+// --- UPDATED: Server URL ---
+// This now points to the backend server you deployed.
+const BACKEND_SERVER_URL = 'https://codex-vitae-backend-1078038224886.us-central1.run.app';
 
 // --- Firebase Initialization ---
 firebase.initializeApp(firebaseConfig);
@@ -30,6 +31,7 @@ const skillBackBtn = document.getElementById('skill-back-btn');
 // --- Global Data Variables ---
 let characterData = {};
 let gameManager = {};
+let currentSkillPath = [];
 
 // --- Manager Logic ---
 const levelManager = {
@@ -154,26 +156,30 @@ async function loadData(userId) {
 }
 
 // --- CORE FUNCTIONS ---
+// --- UPDATED: Real AI Function ---
 async function getAIChoreClassification(text) {
-    console.log(`(Simulating AI classification for: "${text}")`);
-    await new Promise(resolve => setTimeout(resolve, 500)); 
-    const lowerCaseText = text.toLowerCase();
-    
-    let effort = 25; // Standard
-    if (lowerCaseText.includes('major') || lowerCaseText.includes('project') ||  lowerCaseText.includes('deep clean')) effort = 250;
-    if (lowerCaseText.includes('minor') || lowerCaseText.includes('quick')) effort = 10;
-    if (lowerCaseText.includes('trivial') || lowerCaseText.includes('brush teeth')) effort = 1;
-    if (lowerCaseText.includes('epic') || lowerCaseText.includes('marathon')) effort = 1000;
+    try {
+        const response = await fetch(`${BACKEND_SERVER_URL}/classify-chore`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ text: text })
+        });
 
-    if (lowerCaseText.includes('gym') || lowerCaseText.includes('lift') || lowerCaseText.includes('mow')) return { stat: 'strength', effort: effort };
-    if (lowerCaseText.includes('run') || lowerCaseText.includes('clean') || lowerCaseText.includes('dishes') || lowerCaseText.includes('laundry')) return { stat: 'constitution', effort: effort };
-    if (lowerCaseText.includes('read') || lowerCaseText.includes('study') || lowerCaseText.includes('budget') || lowerCaseText.includes('taxes')) return { stat: 'intelligence', effort: effort };
-    if (lowerCaseText.includes('meditate') || lowerCaseText.includes('plan') || lowerCaseText.includes('journal')) return { stat: 'wisdom', effort: effort };
-    if (lowerCaseText.includes('call') || lowerCaseText.includes('talk') || lowerCaseText.includes('meeting')) return { stat: 'charisma', effort: effort };
-    if (lowerCaseText.includes('practice') || lowerCaseText.includes('draw') || lowerCaseText.includes('build')) return { stat: 'dexterity', effort: effort };
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error: ${errorText}`);
+        }
 
-    const stats = ["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"];
-    return { stat: stats[Math.floor(Math.random() * stats.length)], effort: 10 };
+        const data = await response.json();
+        return data; // Should be { stat: "...", effort: ... }
+    } catch (error) {
+        console.error("AI classification failed:", error);
+        showToast("AI classification failed. Assigning a default chore.");
+        // Return a default value so the app doesn't crash
+        return { stat: 'constitution', effort: 10 };
+    }
 }
 
 function logMonthlyActivity() {
@@ -344,18 +350,10 @@ function unlockPerk(perkName, perkData) {
     characterData.unlockedPerks.push(perkName);
     showToast(`Perk Unlocked: ${perkName}!`);
     
-    // Tell the p5 sketch to refresh its star data
     if (myp5) {
         myp5.prepareStarData();
     }
-    
     updateDashboard();
-}
-
-function renderSkillTree() {
-    // This function is now a placeholder.
-    // The p5.js sketch in 'skill-tree-sketch.js' handles all the drawing.
-    console.log("p5.js is handling the skill tree rendering.");
 }
 
 function openSkillsModal() { 
@@ -436,5 +434,4 @@ document.getElementById('login-btn').addEventListener('click', handleLogin);
 document.getElementById('signup-btn').addEventListener('click', handleSignUp);
 document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
 
-// We store the p5 instance in a variable to control it from our main code
 let myp5 = new p5(sketch);
