@@ -1,70 +1,190 @@
-const functions = require("firebase-functions");
-const express = require("express");
-const cors = require("cors");
-const axios = require("axios");
-const { GoogleAuth } = require("google-auth-library");
+// js/skill-tree-sketch.js
 
-const app = express();
-// Automatically allow cross-origin requests
-app.use(cors({ origin: true }));
-app.use(express.json({ limit: "10mb" }));
+function sketch(p) {
+    // --- State Management ---
+    let currentView = 'galaxies';
+    let selectedGalaxy = null;
+    let selectedConstellation = null;
 
-// --- CONFIGURATION ---
-const PROJECT_ID = "codex-vitae-app";
-const LOCATION = "us-central1";
-const CLASSIFY_MODEL_ENDPOINT = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/gemini-1.0-pro:predict`;
+    // --- Data Holders ---
+    let galaxies = [];
+    let constellations = [];
+    let stars = [];
 
-// --- Chore Classification Endpoint ---
-app.post("/classify-chore", async (req, res) => {
-    if (!req.body.text) {
-        return res.status(400).send("Bad Request: No chore text provided.");
+    p.setup = function() {
+      const canvas = p.createCanvas(340, 400);
+      canvas.parent('skill-tree-canvas-container');
+      p.textFont('Segoe UI');
+      prepareGalaxyData();
+    };
+  
+    p.draw = function() {
+      p.background(45, 52, 54); 
+
+      if (currentView === 'galaxies') {
+        drawGalaxies();
+        updateSkillTreeUI("Skill Galaxies", ["Galaxies"], false);
+      } else if (currentView === 'constellations') {
+        drawConstellations();
+        updateSkillTreeUI(selectedGalaxy, ["Galaxies", selectedGalaxy], true);
+      } else if (currentView === 'stars') {
+        drawStars();
+        updateSkillTreeUI(selectedConstellation, ["Galaxies", selectedGalaxy, selectedConstellation], true);
+      }
+    };
+
+    p.mousePressed = function() {
+        if (p.mouseX < 0 || p.mouseX > p.width || p.mouseY < 0 || p.mouseY > p.height) {
+            return;
+        }
+
+        if (currentView === 'galaxies') {
+            for (const galaxy of galaxies) {
+                if (p.dist(p.mouseX, p.mouseY, galaxy.x, galaxy.y) < galaxy.size / 2) {
+                    currentView = 'constellations';
+                    selectedGalaxy = galaxy.name;
+                    prepareConstellationData();
+                    break;
+                }
+            }
+        } else if (currentView === 'constellations') {
+            for (const constellation of constellations) {
+                if (p.dist(p.mouseX, p.mouseY, constellation.x, constellation.y) < constellation.size / 2) {
+                    currentView = 'stars';
+                    selectedConstellation = constellation.name;
+                    p.prepareStarData();
+                    break;
+                }
+            }
+        } else if (currentView === 'stars') {
+            for (const star of stars) {
+                if (star.status === 'available' && p.dist(p.mouseX, p.mouseY, star.x, star.y) < star.size / 2) {
+                    unlockPerk(star.name, star.data);
+                    break;
+                }
+            }
+        }
+    };
+
+    function drawGalaxies() {
+        for (const galaxy of galaxies) {
+            drawCelestialBody(galaxy.name, galaxy.x, galaxy.y, galaxy.size, 'galaxy');
+        }
     }
-    const choreText = req.body.text;
 
-    try {
-        const auth = new GoogleAuth({ scopes: "https://www.googleapis.com/auth/cloud-platform" });
-        const client = await auth.getClient();
-        const accessToken = (await client.getAccessToken()).token;
+    function drawConstellations() {
+        for (const constellation of constellations) {
+            drawCelestialBody(constellation.name, constellation.x, constellation.y, constellation.size, 'constellation');
+        }
+    }
 
-        const prompt = `
-            You are a game designer for a life-gamification app. Classify the user's chore into a "Stat" and an "Effort Tier".
-            The "Stat" must be one of: Strength, Dexterity, Constitution, Intelligence, Wisdom, Charisma.
-            The "Effort Tier" must be one of: Trivial, Minor, Standard, Major, Epic.
-            Respond ONLY with a valid JSON object.
-            Examples:
-            Task: "Mow the lawn" -> Response: { "stat": "Strength", "tier": "Standard" }
-            Task: "Brush teeth" -> Response: { "stat": "Constitution", "tier": "Trivial" }
-            Now, classify this task.
-            Task: "${choreText}"
-            Response:
-        `;
+    function drawStars() {
+        p.stroke(245, 246, 250, 50);
+        p.strokeWeight(1);
+        for(let i = 0; i < stars.length; i++) {
+            let nextIndex = (i + 1) % stars.length;
+            p.line(stars[i].x, stars[i].y, stars[nextIndex].x, stars[nextIndex].y);
+        }
 
-        const requestBody = {
-            instances: [{ content: prompt }],
-            parameters: { temperature: 0.2, maxOutputTokens: 100, topP: 0.95, topK: 40 },
-        };
+        for (const star of stars) {
+            drawCelestialBody(star.name, star.x, star.y, star.size, 'star', star.status);
+        }
+    }
 
-        const response = await axios.post(CLASSIFY_MODEL_ENDPOINT, requestBody, {
-            headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-        });
+    function drawCelestialBody(name, x, y, size, type, status = 'locked') {
+        let distance = p.dist(p.mouseX, p.mouseY, x, y);
         
-        const aiResponseText = response.data.predictions[0].content;
-        const jsonResponse = JSON.parse(aiResponseText.match(/\{.*\}/s)[0]);
-        const { stat, tier }. = jsonResponse;
+        let isClickable = (type !== 'star' || status === 'available');
+        if (isClickable && distance < size / 2) { 
+            p.cursor(p.HAND); 
+        } else { 
+            p.cursor(p.ARROW); 
+        }
+        
+        let glowColor = p.color(240, 147, 43, 50);
+        let bodyColor = p.color(72, 52, 212, 150);
+        let borderColor = p.color(245, 246, 250);
 
-        const effortMap = { Trivial: 1, Minor: 10, Standard: 50, Major: 250, Epic: 1000 };
-        const effortValue = effortMap[tier] || 50;
+        if (type === 'star') {
+            if (status === 'unlocked') {
+                bodyColor = p.color(0, 184, 148, 200);
+                glowColor = p.color(0, 184, 148, 80);
+            } else if (status === 'available') {
+                bodyColor = p.color(45, 52, 54);
+            } else {
+                bodyColor = p.color(45, 52, 54, 150);
+                glowColor = p.color(109, 76, 65, 50);
+            }
+        }
+        
+        p.noStroke();
+        p.fill(glowColor);
+        p.ellipse(x, y, size + 15);
+        p.fill(bodyColor);
+        p.stroke(borderColor);
+        p.strokeWeight(2);
 
-        res.status(200).json({
-            stat: stat.toLowerCase(),
-            effort: effortValue,
-        });
+        if (type === 'star' && status === 'available') {
+            p.stroke(240, 147, 43);
+            p.strokeWeight(3);
+        }
 
-    } catch (error) {
-        console.error("ERROR:", error.response ? error.response.data : error.message);
-        res.status(500).send(`Error processing chore: ${error.message}`);
+        p.ellipse(x, y, size);
+        p.noStroke();
+        p.fill(borderColor);
+        p.textAlign(p.CENTER, p.CENTER);
+        p.textSize(type === 'star' ? 12 : 16);
+        p.text(name, x, y);
     }
-});
 
-// Expose the Express API as a single Cloud Function named "api"
-exports.api = functions.https.onRequest(app);
+    function prepareGalaxyData() {
+        galaxies = [];
+        const galaxyNames = Object.keys(skillTree);
+        const positions = [ { x: p.width * 0.25, y: p.height * 0.25 }, { x: p.width * 0.75, y: p.height * 0.25 }, { x: p.width * 0.25, y: p.height * 0.75 }, { x: p.width * 0.75, y: p.height * 0.75 } ];
+        for (let i = 0; i < galaxyNames.length; i++) {
+            galaxies.push({ name: galaxyNames[i], x: positions[i].x, y: positions[i].y, size: 120 });
+        }
+    }
+
+    function prepareConstellationData() {
+        const constellationData = skillTree[selectedGalaxy].constellations;
+        const constellationNames = Object.keys(constellationData);
+        constellations = [];
+        for (let i = 0; i < constellationNames.length; i++) {
+            constellations.push({ name: constellationNames[i], x: 80 + i * 120, y: p.height / 2, size: 100 });
+        }
+    }
+
+    p.prepareStarData = function() {
+        if (!skillTree[selectedGalaxy] || !skillTree[selectedGalaxy].constellations[selectedConstellation]) return;
+        const starData = skillTree[selectedGalaxy].constellations[selectedConstellation].stars;
+        const starNames = Object.keys(starData);
+        stars = [];
+        for (let i = 0; i < starNames.length; i++) {
+            const name = starNames[i];
+            const data = starData[name];
+            let status = 'locked';
+
+            if (characterData.unlockedPerks && characterData.unlockedPerks.includes(name)) {
+                status = 'unlocked';
+            } else if (data.unlock_type === 'perk' && characterData.stats && characterData.stats[data.requires.stat] >= data.requires.value) {
+                status = 'available';
+            }
+            
+            const angle = p.TWO_PI / starNames.length * i - p.HALF_PI;
+            const radius = 100;
+            const x = p.width / 2 + radius * p.cos(angle);
+            const y = p.height / 2 + radius * p.sin(angle);
+
+            stars.push({ name: name, data: data, status: status, x: x, y: y, size: 80 });
+        }
+    }
+
+    p.goBack = function() {
+        if (currentView === 'stars') {
+            currentView = 'constellations';
+        } else if (currentView === 'constellations') {
+            currentView = 'galaxies';
+        }
+    }
+}
