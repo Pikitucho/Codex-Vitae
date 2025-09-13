@@ -157,14 +157,13 @@ async function loadData(userId) {
 
 // --- CORE FUNCTIONS ---
 
+// --- AI Functions ---
 async function getAIChoreClassification(text) {
     try {
         const response = await fetch(`${BACKEND_SERVER_URL}/classify-chore`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ text: text })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
         });
 
         if (!response.ok) {
@@ -173,14 +172,14 @@ async function getAIChoreClassification(text) {
         }
 
         const data = await response.json();
-        return data; // Should be { stat: "...", effort: ... }
+        return data; // { stat, effort }
     } catch (error) {
         console.error("AI classification failed:", error);
         showToast("AI classification failed. Assigning a default chore.");
-        // Return a default value so the app doesn't crash
         return { stat: 'constitution', effort: 10 };
     }
 }
+
 
 function logMonthlyActivity() {
     if (!characterData.monthlyActivityLog) { characterData.monthlyActivityLog = []; }
@@ -221,14 +220,35 @@ function calculateStartingStats() {
     };
 }
 
-async function handleOnboarding(event) {
-    event.preventDefault();
-    calculateStartingStats();
-    gameManager.onboardingComplete = true;
-    await saveData();
-    document.getElementById('onboarding-modal').classList.add('hidden');
-    updateDashboard();
+async function handleFaceScan() {
+    const scanButton = document.getElementById('scan-face-btn');
+    scanButton.textContent = "Generating Avatar...";
+    scanButton.disabled = true;
+
+    try {
+        const response = await fetch(`${BACKEND_SERVER_URL}/generate-avatar`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                prompt: "futuristic RPG-style portrait of user",
+                userId: auth.currentUser.uid,
+            }),
+        });
+
+        if (!response.ok) throw new Error(await response.text());
+
+        const { imageUrl } = await response.json();
+        characterData.avatarUrl = imageUrl;
+        updateDashboard();
+    } catch (err) {
+        console.error("Avatar error:", err);
+        alert("Avatar generation failed. Try again later.");
+    } finally {
+        scanButton.textContent = "Rescan Face";
+        scanButton.disabled = false;
+    }
 }
+
 
 async function handleFaceScan() {
     const webcamFeed = document.getElementById('webcam-feed');
