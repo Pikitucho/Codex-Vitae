@@ -374,6 +374,9 @@ function showToast(message) {
 }
 
 function setupEventListeners() {
+    if (listenersInitialized) {
+        return;
+    }
     const choreInput = document.getElementById('chore-input');
 
     const handleAddChore = async () => {
@@ -410,8 +413,10 @@ function setupEventListeners() {
         if (myp5) {
             myp5.goBack();
         }
-    });
+     });
     document.getElementById('scan-face-btn').addEventListener('click', handleFaceScan);
+
+    listenersInitialized = true;
 }
 
 // --- APP INITIALIZATION & AUTH STATE LISTENER ---
@@ -439,3 +444,4 @@ document.getElementById('onboarding-form').addEventListener('submit', handleOnbo
 
 
 let myp5 = new p5(sketch);
+
