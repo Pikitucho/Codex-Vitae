@@ -221,36 +221,6 @@ function calculateStartingStats() {
 }
 
 async function handleFaceScan() {
-    const scanButton = document.getElementById('scan-face-btn');
-    scanButton.textContent = "Generating Avatar...";
-    scanButton.disabled = true;
-
-    try {
-        const response = await fetch(`${BACKEND_SERVER_URL}/generate-avatar`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                prompt: "futuristic RPG-style portrait of user",
-                userId: auth.currentUser.uid,
-            }),
-        });
-
-        if (!response.ok) throw new Error(await response.text());
-
-        const { imageUrl } = await response.json();
-        characterData.avatarUrl = imageUrl;
-        updateDashboard();
-    } catch (err) {
-        console.error("Avatar error:", err);
-        alert("Avatar generation failed. Try again later.");
-    } finally {
-        scanButton.textContent = "Rescan Face";
-        scanButton.disabled = false;
-    }
-}
-
-
-async function handleFaceScan() {
     const webcamFeed = document.getElementById('webcam-feed');
     const capturedPhoto = document.getElementById('captured-photo');
     const canvas = document.getElementById('photo-canvas');
@@ -263,38 +233,50 @@ async function handleFaceScan() {
             webcamFeed.classList.remove('hidden');
             capturedPhoto.classList.add('hidden');
             scanButton.textContent = 'Capture';
-            return;
         } catch (error) {
-            console.error("Webcam access error:", error);
+            console.error('Webcam access error:', error);
             alert("Could not access webcam. Please ensure you've given permission.");
-            return;
         }
+        return;
     }
 
     const context = canvas.getContext('2d');
     canvas.width = webcamFeed.videoWidth;
     canvas.height = webcamFeed.videoHeight;
     context.drawImage(webcamFeed, 0, 0, canvas.width, canvas.height);
+
     webcamFeed.srcObject.getTracks().forEach(track => track.stop());
     webcamFeed.srcObject = null;
-    scanButton.textContent = "Uploading...";
+
+    const imageBase64 = canvas.toDataURL('image/jpeg', 0.92);
+
+    scanButton.textContent = 'Generating Avatar...';
     scanButton.disabled = true;
 
-    canvas.toBlob(async (blob) => {
-        try {
-            const storageRef = storage.ref();
-            const avatarRef = storageRef.child(`avatars/${auth.currentUser.uid}.png`);
-            await avatarRef.put(blob);
-            characterData.avatarUrl = await avatarRef.getDownloadURL();
-        } catch (error) {
-            console.error("Error uploading image to Firebase Storage:", error);
-            alert(`Failed to save photo. ${error.message}`);
-        } finally {
-            scanButton.textContent = 'Rescan Face';
-            scanButton.disabled = false;
-            updateDashboard();
+    try {
+        const response = await fetch(`${BACKEND_SERVER_URL}/generate-avatar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                imageBase64,
+                prompt: 'Create a stylized RPG avatar that keeps the subject recognizable with heroic lighting.'
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(await response.text());
         }
-    }, 'image/png');
+
+        const { imageUrl } = await response.json();
+        characterData.avatarUrl = imageUrl;
+        updateDashboard();
+    } catch (error) {
+        console.error('Avatar generation failed:', error);
+        alert('Avatar generation failed. Try again later.');
+    } finally {
+        scanButton.textContent = 'Rescan Face';
+        scanButton.disabled = false;
+    }
 }
 
 function updateDashboard() {
