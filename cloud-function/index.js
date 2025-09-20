@@ -1,190 +1,151 @@
-// js/skill-tree-sketch.js
+const express = require('express');
+const cors = require('cors');
+const OpenAI = require('openai');
 
-function sketch(p) {
-    // --- State Management ---
-    let currentView = 'galaxies';
-    let selectedGalaxy = null;
-    let selectedConstellation = null;
+const PORT = process.env.PORT || 8080;
+const VALID_STATS = new Set([
+  'strength',
+  'dexterity',
+  'constitution',
+  'intelligence',
+  'wisdom',
+  'charisma'
+]);
 
-    // --- Data Holders ---
-    let galaxies = [];
-    let constellations = [];
-    let stars = [];
-
-    p.setup = function() {
-      const canvas = p.createCanvas(340, 400);
-      canvas.parent('skill-tree-canvas-container');
-      p.textFont('Segoe UI');
-      prepareGalaxyData();
-    };
-  
-    p.draw = function() {
-      p.background(45, 52, 54); 
-
-      if (currentView === 'galaxies') {
-        drawGalaxies();
-        updateSkillTreeUI("Skill Galaxies", ["Galaxies"], false);
-      } else if (currentView === 'constellations') {
-        drawConstellations();
-        updateSkillTreeUI(selectedGalaxy, ["Galaxies", selectedGalaxy], true);
-      } else if (currentView === 'stars') {
-        drawStars();
-        updateSkillTreeUI(selectedConstellation, ["Galaxies", selectedGalaxy, selectedConstellation], true);
-      }
-    };
-
-    p.mousePressed = function() {
-        if (p.mouseX < 0 || p.mouseX > p.width || p.mouseY < 0 || p.mouseY > p.height) {
-            return;
-        }
-
-        if (currentView === 'galaxies') {
-            for (const galaxy of galaxies) {
-                if (p.dist(p.mouseX, p.mouseY, galaxy.x, galaxy.y) < galaxy.size / 2) {
-                    currentView = 'constellations';
-                    selectedGalaxy = galaxy.name;
-                    prepareConstellationData();
-                    break;
-                }
-            }
-        } else if (currentView === 'constellations') {
-            for (const constellation of constellations) {
-                if (p.dist(p.mouseX, p.mouseY, constellation.x, constellation.y) < constellation.size / 2) {
-                    currentView = 'stars';
-                    selectedConstellation = constellation.name;
-                    p.prepareStarData();
-                    break;
-                }
-            }
-        } else if (currentView === 'stars') {
-            for (const star of stars) {
-                if (star.status === 'available' && p.dist(p.mouseX, p.mouseY, star.x, star.y) < star.size / 2) {
-                    unlockPerk(star.name, star.data);
-                    break;
-                }
-            }
-        }
-    };
-
-    function drawGalaxies() {
-        for (const galaxy of galaxies) {
-            drawCelestialBody(galaxy.name, galaxy.x, galaxy.y, galaxy.size, 'galaxy');
-        }
-    }
-
-    function drawConstellations() {
-        for (const constellation of constellations) {
-            drawCelestialBody(constellation.name, constellation.x, constellation.y, constellation.size, 'constellation');
-        }
-    }
-
-    function drawStars() {
-        p.stroke(245, 246, 250, 50);
-        p.strokeWeight(1);
-        for(let i = 0; i < stars.length; i++) {
-            let nextIndex = (i + 1) % stars.length;
-            p.line(stars[i].x, stars[i].y, stars[nextIndex].x, stars[nextIndex].y);
-        }
-
-        for (const star of stars) {
-            drawCelestialBody(star.name, star.x, star.y, star.size, 'star', star.status);
-        }
-    }
-
-    function drawCelestialBody(name, x, y, size, type, status = 'locked') {
-        let distance = p.dist(p.mouseX, p.mouseY, x, y);
-        
-        let isClickable = (type !== 'star' || status === 'available');
-        if (isClickable && distance < size / 2) { 
-            p.cursor(p.HAND); 
-        } else { 
-            p.cursor(p.ARROW); 
-        }
-        
-        let glowColor = p.color(240, 147, 43, 50);
-        let bodyColor = p.color(72, 52, 212, 150);
-        let borderColor = p.color(245, 246, 250);
-
-        if (type === 'star') {
-            if (status === 'unlocked') {
-                bodyColor = p.color(0, 184, 148, 200);
-                glowColor = p.color(0, 184, 148, 80);
-            } else if (status === 'available') {
-                bodyColor = p.color(45, 52, 54);
-            } else {
-                bodyColor = p.color(45, 52, 54, 150);
-                glowColor = p.color(109, 76, 65, 50);
-            }
-        }
-        
-        p.noStroke();
-        p.fill(glowColor);
-        p.ellipse(x, y, size + 15);
-        p.fill(bodyColor);
-        p.stroke(borderColor);
-        p.strokeWeight(2);
-
-        if (type === 'star' && status === 'available') {
-            p.stroke(240, 147, 43);
-            p.strokeWeight(3);
-        }
-
-        p.ellipse(x, y, size);
-        p.noStroke();
-        p.fill(borderColor);
-        p.textAlign(p.CENTER, p.CENTER);
-        p.textSize(type === 'star' ? 12 : 16);
-        p.text(name, x, y);
-    }
-
-    function prepareGalaxyData() {
-        galaxies = [];
-        const galaxyNames = Object.keys(skillTree);
-        const positions = [ { x: p.width * 0.25, y: p.height * 0.25 }, { x: p.width * 0.75, y: p.height * 0.25 }, { x: p.width * 0.25, y: p.height * 0.75 }, { x: p.width * 0.75, y: p.height * 0.75 } ];
-        for (let i = 0; i < galaxyNames.length; i++) {
-            galaxies.push({ name: galaxyNames[i], x: positions[i].x, y: positions[i].y, size: 120 });
-        }
-    }
-
-    function prepareConstellationData() {
-        const constellationData = skillTree[selectedGalaxy].constellations;
-        const constellationNames = Object.keys(constellationData);
-        constellations = [];
-        for (let i = 0; i < constellationNames.length; i++) {
-            constellations.push({ name: constellationNames[i], x: 80 + i * 120, y: p.height / 2, size: 100 });
-        }
-    }
-
-    p.prepareStarData = function() {
-        if (!skillTree[selectedGalaxy] || !skillTree[selectedGalaxy].constellations[selectedConstellation]) return;
-        const starData = skillTree[selectedGalaxy].constellations[selectedConstellation].stars;
-        const starNames = Object.keys(starData);
-        stars = [];
-        for (let i = 0; i < starNames.length; i++) {
-            const name = starNames[i];
-            const data = starData[name];
-            let status = 'locked';
-
-            if (characterData.unlockedPerks && characterData.unlockedPerks.includes(name)) {
-                status = 'unlocked';
-            } else if (data.unlock_type === 'perk' && characterData.stats && characterData.stats[data.requires.stat] >= data.requires.value) {
-                status = 'available';
-            }
-            
-            const angle = p.TWO_PI / starNames.length * i - p.HALF_PI;
-            const radius = 100;
-            const x = p.width / 2 + radius * p.cos(angle);
-            const y = p.height / 2 + radius * p.sin(angle);
-
-            stars.push({ name: name, data: data, status: status, x: x, y: y, size: 80 });
-        }
-    }
-
-    p.goBack = function() {
-        if (currentView === 'stars') {
-            currentView = 'constellations';
-        } else if (currentView === 'constellations') {
-            currentView = 'galaxies';
-        }
-    }
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error('OPENAI_API_KEY must be set before starting the Codex Vitae backend.');
 }
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+const app = express();
+app.use(cors());
+app.use(express.json({ limit: '15mb' }));
+
+app.get('/healthz', (req, res) => {
+  res.json({ ok: true });
+});
+
+app.post('/classify-chore', async (req, res) => {
+  try {
+    const text = (req.body?.text || '').trim();
+    if (!text) {
+      return res.status(400).json({ error: 'text is required' });
+    }
+
+    const completion = await openai.responses.create({
+      model: process.env.OPENAI_TEXT_MODEL || 'gpt-4o-mini',
+      temperature: 0.2,
+      max_output_tokens: 200,
+      input: [
+        {
+          role: 'system',
+          content: [
+            {
+              type: 'text',
+              text:
+                'You are a game systems assistant. Classify the supplied household chore into one of the following stats: strength, dexterity, constitution, intelligence, wisdom, or charisma. Respond ONLY with JSON shaped exactly as {"stat": "<stat>", "effort": <integer between 1 and 100>}.'
+            }
+          ]
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text }]
+        }
+      ]
+    });
+
+    const raw = (completion.output_text || '').trim();
+    if (!raw) {
+      throw new Error('Model response did not contain text.');
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (match) {
+        parsed = JSON.parse(match[0]);
+      }
+    }
+
+    if (!parsed) {
+      throw new Error(`Unable to parse model response: ${raw}`);
+    }
+
+    let stat = String(parsed.stat || '').toLowerCase();
+    if (!VALID_STATS.has(stat)) {
+      stat = 'constitution';
+    }
+
+    let effort = Number(parsed.effort);
+    if (!Number.isFinite(effort)) {
+      effort = 10;
+    } else {
+      effort = Math.max(1, Math.min(100, Math.round(effort)));
+    }
+
+    res.json({ stat, effort });
+  } catch (error) {
+    console.error('classify-chore error', error);
+    res.status(502).json({ error: 'Classification failed.' });
+  }
+});
+
+app.post('/generate-avatar', async (req, res) => {
+  try {
+    const imageBase64 = req.body?.imageBase64;
+    const prompt =
+      req.body?.prompt ||
+      'Create a stylized RPG portrait of this person. Preserve facial features, add heroic sci-fi lighting, and paint in a semi-realistic digital art style.';
+
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'imageBase64 is required.' });
+    }
+
+    const sanitizedImage = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+    const response = await openai.responses.create({
+      model: process.env.OPENAI_AVATAR_MODEL || 'gpt-4o-mini',
+      input: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: prompt
+            },
+            {
+              type: 'input_image',
+              image_base64: sanitizedImage
+            }
+          ]
+        }
+      ]
+    });
+
+    const imagePart = (response.output || [])
+      .flatMap(item => item.content || [])
+      .find(part => part.type === 'output_image');
+
+    if (!imagePart?.image_base64) {
+      throw new Error('Model response did not include an image.');
+    }
+
+    res.json({ imageUrl: `data:image/png;base64,${imagePart.image_base64}` });
+  } catch (error) {
+    console.error('generate-avatar error', error);
+    res.status(502).json({ error: 'Avatar generation failed.' });
+  }
+});
+
+app.use((err, req, res, next) => {
+  console.error('Unhandled error', err);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
+
+app.listen(PORT, () => {
+  console.log(`Codex Vitae backend listening on port ${PORT}`);
+});
