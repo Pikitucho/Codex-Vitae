@@ -32,6 +32,7 @@ const skillBackBtn = document.getElementById('skill-back-btn');
 let characterData = {};
 let gameManager = {};
 let currentSkillPath = [];
+let listenersInitialized = false;
 
 // --- Manager Logic ---
 const levelManager = {
@@ -435,5 +436,6 @@ auth.onAuthStateChanged(async user => {
 document.getElementById('login-btn').addEventListener('click', handleLogin);
 document.getElementById('signup-btn').addEventListener('click', handleSignUp);
 document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
+
 
 let myp5 = new p5(sketch);
