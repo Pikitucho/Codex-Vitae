@@ -207,8 +207,8 @@ function calculateStartingStats() {
     const exerciseValue = parseInt(document.getElementById('exercise-freq').value);
     const studyValue = parseInt(document.getElementById('study-habit').value);
     characterData = {
-        level: 1, 
-        statProgress: 0, 
+        level: 1,
+        statProgress: 0,
         statsToNextLevel: 10,
         stats: { strength: 8 + exerciseValue, dexterity: 8, constitution: 8 + exerciseValue, intelligence: 8 + studyValue, wisdom: 8 + studyValue, charisma: 8 },
         choreProgress: { strength: 0, dexterity: 0, constitution: 0, intelligence: 0, wisdom: 0, charisma: 0 },
@@ -217,8 +217,26 @@ function calculateStartingStats() {
         unlockedPerks: [],
         monthlyActivityLog: [],
         activityLogMonth: new Date().getFullYear() + '-' + (new Date().getMonth() + 1),
-        monthlyPerkClaimed: false
+        monthlyPerkClaimed: false,
+        chores: []
     };
+}
+
+async function handleOnboarding(event) {
+    event.preventDefault();
+
+    calculateStartingStats();
+    choreManager.chores = [];
+    document.getElementById('onboarding-modal').classList.add('hidden');
+
+    updateDashboard();
+
+    try {
+        await saveData();
+    } catch (error) {
+        console.error('Failed to save character data after onboarding:', error);
+        showToast('There was a problem saving your character. Please try again.');
+    }
 }
 
 async function handleFaceScan() {
