@@ -44,6 +44,7 @@ let characterData = {};
 let gameManager = {};
 let currentSkillPath = [];
 let listenersInitialized = false;
+let lastAuthAction = null;
 
 // --- Manager Logic ---
 const levelManager = {
@@ -130,16 +131,21 @@ let choreManager = {
 function handleSignUp() {
     const email = document.getElementById('email-input').value;
     const password = document.getElementById('password-input').value;
+    lastAuthAction = 'signup';
     auth.createUserWithEmailAndPassword(email, password).catch(error => alert(error.message));
 }
 
 function handleLogin() {
     const email = document.getElementById('email-input').value;
     const password = document.getElementById('password-input').value;
+    lastAuthAction = 'login';
     auth.signInWithEmailAndPassword(email, password).catch(error => alert(error.message));
 }
 
-function handleLogout() { auth.signOut(); }
+function handleLogout() {
+    lastAuthAction = null;
+    auth.signOut();
+}
 
 async function saveData() {
     if (!auth.currentUser) return;
@@ -152,19 +158,73 @@ async function saveData() {
 }
 
 async function loadData(userId) {
-    const userRef = db.collection('users').doc(userId);
-    const doc = await userRef.get();
-    if (doc.exists) {
-        const loadedData = doc.data();
-        characterData = loadedData.characterData;
-        gameManager = loadedData.gameManager;
-        choreManager.chores = characterData.chores || [];
-        if (characterData.avatarUrl) {
-            document.getElementById('captured-photo').src = characterData.avatarUrl;
+    try {
+        const userRef = db.collection('users').doc(userId);
+        const doc = await userRef.get();
+
+        if (!doc.exists) {
+            characterData = {};
+            gameManager = {};
+            choreManager.chores = [];
+            return false;
         }
+
+        const loadedData = doc.data() || {};
+        const loadedCharacterData = loadedData.characterData;
+
+        if (!loadedCharacterData || !loadedCharacterData.stats) {
+            characterData = {};
+            gameManager = {};
+            choreManager.chores = [];
+            return false;
+        }
+
+        if (loadedCharacterData.onboardingComplete === false) {
+            characterData = {};
+            gameManager = {};
+            choreManager.chores = [];
+            return false;
+        }
+
+        characterData = {
+            ...loadedCharacterData,
+            level: loadedCharacterData.level || 1,
+            statProgress: loadedCharacterData.statProgress || 0,
+            statsToNextLevel: loadedCharacterData.statsToNextLevel || 10,
+            skillPoints: loadedCharacterData.skillPoints || 0,
+            unlockedPerks: loadedCharacterData.unlockedPerks || [],
+            monthlyActivityLog: loadedCharacterData.monthlyActivityLog || [],
+            activityLogMonth: loadedCharacterData.activityLogMonth || (new Date().getFullYear() + '-' + (new Date().getMonth() + 1)),
+            monthlyPerkClaimed: loadedCharacterData.monthlyPerkClaimed || false,
+            choreProgress: {
+                strength: loadedCharacterData.choreProgress?.strength || 0,
+                dexterity: loadedCharacterData.choreProgress?.dexterity || 0,
+                constitution: loadedCharacterData.choreProgress?.constitution || 0,
+                intelligence: loadedCharacterData.choreProgress?.intelligence || 0,
+                wisdom: loadedCharacterData.choreProgress?.wisdom || 0,
+                charisma: loadedCharacterData.choreProgress?.charisma || 0
+            },
+            chores: loadedCharacterData.chores || [],
+            onboardingComplete: true
+        };
+
+        gameManager = loadedData.gameManager || {};
+        choreManager.chores = characterData.chores;
+
+        const capturedPhoto = document.getElementById('captured-photo');
+        if (characterData.avatarUrl) {
+            capturedPhoto.src = characterData.avatarUrl;
+            capturedPhoto.classList.remove('hidden');
+        } else {
+            capturedPhoto.src = '';
+            capturedPhoto.classList.add('hidden');
+        }
+
         return true;
+    } catch (error) {
+        console.error('Failed to load character data:', error);
+        return false;
     }
-    return false;
 }
 
 // --- CORE FUNCTIONS ---
@@ -227,9 +287,15 @@ function calculateStartingStats() {
         skillPoints: 0,
         unlockedPerks: [],
         monthlyActivityLog: [],
+        activityLogMonth: now.getFullYear() + '-' + (now.getMonth() + 1),
+        monthlyPerkClaimed: false,
+        chores: [],
+        onboardingComplete: true
+
         activityLogMonth: new Date().getFullYear() + '-' + (new Date().getMonth() + 1),
         monthlyPerkClaimed: false,
         chores: []
+
     };
 }
 
@@ -452,18 +518,28 @@ function setupEventListeners() {
 auth.onAuthStateChanged(async user => {
     if (user) {
         const hasData = await loadData(user.uid);
+        const isFirstSignIn = user.metadata && user.metadata.creationTime === user.metadata.lastSignInTime;
+        const shouldShowOnboarding = !hasData && (isFirstSignIn || lastAuthAction !== 'login');
+        const onboardingModal = document.getElementById('onboarding-modal');
         authScreen.classList.add('hidden');
         appScreen.classList.remove('hidden');
         if (hasData) {
+            onboardingModal.classList.add('hidden');
             updateDashboard();
+        } else if (shouldShowOnboarding) {
+            onboardingModal.classList.remove('hidden');
         } else {
-            document.getElementById('onboarding-modal').classList.remove('hidden');
+            onboardingModal.classList.add('hidden');
         }
         setupEventListeners();
+        lastAuthAction = null;
     } else {
         authScreen.classList.remove('hidden');
         appScreen.classList.add('hidden');
+        document.getElementById('onboarding-modal').classList.add('hidden');
         characterData = {};
+        choreManager.chores = [];
+        lastAuthAction = null;
     }
 });
 
