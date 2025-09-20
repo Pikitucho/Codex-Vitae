@@ -1,19 +1,30 @@
 // js/main.js
 
 // --- CONFIGURATION ---
-const firebaseConfig = {
-    apiKey: "AIzaSyDqCT_iOBToHDR7sRQnH_mUmwN5V_RXj58",
-    authDomain: "codex-vitae-app.firebaseapp.com",
-    projectId: "codex-vitae-app",
-    storageBucket: "codex-vitae-app.firebasestorage.app",
-    messagingSenderId: "1078038224886",
-    appId: "1:1078038224886:web:19a322f88fc529307371d7",
-    measurementId: "G-DVGVB274T3"
-};
+// Sensitive configuration values are now injected via config.js which
+// should define window.__CODEX_CONFIG__.
+const codexConfig = window.__CODEX_CONFIG__;
 
-// --- UPDATED: Server URL ---
-// This now points to the backend server you deployed.
-const BACKEND_SERVER_URL = 'https://codex-vitae-backend-1078038224886.us-central1.run.app';
+if (!codexConfig || typeof codexConfig !== 'object') {
+    throw new Error(
+        'Codex Vitae configuration is missing. Define window.__CODEX_CONFIG__ in config.js.'
+    );
+}
+
+const firebaseConfig = codexConfig.firebaseConfig;
+const BACKEND_SERVER_URL = codexConfig.backendUrl;
+
+if (!firebaseConfig || typeof firebaseConfig !== 'object') {
+    throw new Error(
+        'Firebase configuration is missing. Ensure config.js exports firebaseConfig.'
+    );
+}
+
+if (typeof BACKEND_SERVER_URL !== 'string' || BACKEND_SERVER_URL.trim().length === 0) {
+    throw new Error(
+        'Backend server URL is missing. Ensure config.js exports backendUrl.'
+    );
+}
 
 // --- Firebase Initialization ---
 firebase.initializeApp(firebaseConfig);

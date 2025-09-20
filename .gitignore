@@ -1,1 +1,3 @@
 config.js
+node_modules/
+cloud-function/node_modules/
