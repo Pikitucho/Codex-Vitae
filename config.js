@@ -1,6 +1,6 @@
 window.__CODEX_CONFIG__ = {
   firebaseConfig: {
-    apiKey: "AIzaSyCptJc0B7RoPRhRl_umumuSV_RJX8",
+    apiKey: "AIzaSyDqCT_iOBToHDR7sRQnH_mUmwN5V_RXj58",
     authDomain: "codex-vitae-app.firebaseapp.com",
     projectId: "codex-vitae-app",
     storageBucket: "codex-vitae-app.appspot.com",
