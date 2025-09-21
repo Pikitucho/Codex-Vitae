@@ -3,9 +3,31 @@
 // --- CONFIGURATION ---
 // Sensitive configuration values are now injected via config.js which
 // should define window.__CODEX_CONFIG__.
+function displayConfigurationError(message, details) {
+    const authScreenElement = document.getElementById('auth-screen');
+    if (!authScreenElement) {
+        return;
+    }
+
+    const extraDetails = details
+        ? `<p class="config-error-details">${details}</p>`
+        : '';
+
+    authScreenElement.innerHTML = `
+        <h1>Codex Vitae</h1>
+        <p class="config-error-message">${message}</p>
+        ${extraDetails}
+        <p>Please copy <code>config.example.js</code> to <code>config.js</code> and fill in your Firebase project values.</p>
+    `;
+}
+
 const codexConfig = window.__CODEX_CONFIG__;
 
 if (!codexConfig || typeof codexConfig !== 'object') {
+    displayConfigurationError(
+        'Codex Vitae configuration is missing.',
+        'Define <code>window.__CODEX_CONFIG__</code> in config.js before loading the app.'
+    );
     throw new Error(
         'Codex Vitae configuration is missing. Define window.__CODEX_CONFIG__ in config.js.'
     );
@@ -15,12 +37,20 @@ const firebaseConfig = codexConfig.firebaseConfig;
 const BACKEND_SERVER_URL = codexConfig.backendUrl;
 
 if (!firebaseConfig || typeof firebaseConfig !== 'object') {
+    displayConfigurationError(
+        'Firebase configuration is missing or invalid.',
+        'Ensure config.js assigns your Firebase project credentials to <code>firebaseConfig</code>.'
+    );
     throw new Error(
         'Firebase configuration is missing. Ensure config.js exports firebaseConfig.'
     );
 }
 
 if (typeof BACKEND_SERVER_URL !== 'string' || BACKEND_SERVER_URL.trim().length === 0) {
+    displayConfigurationError(
+        'Backend server URL is missing.',
+        'Set the <code>backendUrl</code> value in config.js so Codex Vitae can reach your AI services.'
+    );
     throw new Error(
         'Backend server URL is missing. Ensure config.js exports backendUrl.'
     );

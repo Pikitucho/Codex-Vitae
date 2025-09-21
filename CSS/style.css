@@ -87,6 +87,16 @@ p {
     border: 1px solid rgba(255, 255, 255, 0.65);
 }
 
+.config-error-message {
+    color: #b00020;
+    font-weight: 700;
+}
+
+.config-error-details {
+    color: var(--color-text-medium);
+    margin-bottom: 12px;
+}
+
 #auth-screen button {
     margin-top: 5px;
 }
