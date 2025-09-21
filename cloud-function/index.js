@@ -13,9 +13,17 @@ const VALID_STATS = new Set([
   'charisma'
 ]);
 
-const PROJECT_ID = process.env.VERTEX_PROJECT_ID;
+const PROJECT_ID =
+  process.env.VERTEX_PROJECT_ID ||
+  process.env.GOOGLE_CLOUD_PROJECT ||
+  process.env.GCLOUD_PROJECT ||
+  '';
+const MISSING_PROJECT_MESSAGE =
+  'Vertex project ID is not configured. Set VERTEX_PROJECT_ID or ensure GOOGLE_CLOUD_PROJECT/GCLOUD_PROJECT is available.';
 if (!PROJECT_ID) {
-  throw new Error('VERTEX_PROJECT_ID must be set before starting the Codex Vitae backend.');
+  console.warn(
+    'Codex Vitae backend started without a Vertex AI project ID. Set the VERTEX_PROJECT_ID environment variable or rely on GOOGLE_CLOUD_PROJECT/GCLOUD_PROJECT when running on Google Cloud.'
+  );
 }
 
 const LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
@@ -45,6 +53,9 @@ async function getAccessToken() {
 }
 
 async function callVertex(model, body) {
+  if (!PROJECT_ID) {
+    throw new Error(MISSING_PROJECT_MESSAGE);
+  }
   const url = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${model}:generateContent`;
   const token = await getAccessToken();
   const { data } = await axios.post(url, body, {
@@ -61,11 +72,27 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '15mb' }));
 
+function ensureProjectConfigured(res) {
+  if (PROJECT_ID) {
+    return true;
+  }
+  res.status(500).json({ error: MISSING_PROJECT_MESSAGE });
+  return false;
+}
+
 app.get('/healthz', (req, res) => {
-  res.json({ ok: true });
+  const configured = Boolean(PROJECT_ID);
+  res.json({
+    ok: true,
+    vertexProjectConfigured: configured,
+    ...(configured ? {} : { message: MISSING_PROJECT_MESSAGE })
+  });
 });
 
 app.post('/classify-chore', async (req, res) => {
+  if (!ensureProjectConfigured(res)) {
+    return;
+  }
   try {
     const text = (req.body?.text || '').trim();
     if (!text) {
@@ -132,12 +159,19 @@ app.post('/classify-chore', async (req, res) => {
 
     res.json({ stat, effort });
   } catch (error) {
-    console.error('classify-chore error', error);
-    res.status(502).json({ error: 'Classification failed.' });
+    if (error?.message === MISSING_PROJECT_MESSAGE) {
+      res.status(500).json({ error: MISSING_PROJECT_MESSAGE });
+    } else {
+      console.error('classify-chore error', error);
+      res.status(502).json({ error: 'Classification failed.' });
+    }
   }
 });
 
 app.post('/generate-avatar', async (req, res) => {
+  if (!ensureProjectConfigured(res)) {
+    return;
+  }
   try {
     const imageBase64 = req.body?.imageBase64;
     const prompt =
@@ -182,8 +216,12 @@ app.post('/generate-avatar', async (req, res) => {
 
     res.json({ imageUrl: `data:${generatedMime};base64,${generatedImage}` });
   } catch (error) {
-    console.error('generate-avatar error', error);
-    res.status(502).json({ error: 'Avatar generation failed.' });
+    if (error?.message === MISSING_PROJECT_MESSAGE) {
+      res.status(500).json({ error: MISSING_PROJECT_MESSAGE });
+    } else {
+      console.error('generate-avatar error', error);
+      res.status(502).json({ error: 'Avatar generation failed.' });
+    }
   }
 });
 
