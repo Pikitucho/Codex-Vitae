@@ -30,7 +30,16 @@ if (typeof BACKEND_SERVER_URL !== 'string' || BACKEND_SERVER_URL.trim().length =
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-const storage = firebase.storage();
+let storage = null;
+if (firebaseConfig.storageBucket && typeof firebaseConfig.storageBucket === 'string' && firebaseConfig.storageBucket.trim()) {
+    try {
+        storage = firebase.storage();
+    } catch (error) {
+        console.warn('Firebase Storage could not be initialized:', error);
+    }
+} else {
+    console.warn('Skipping Firebase Storage initialization because no storageBucket was provided in config.js');
+}
 
 // --- Get references to HTML elements ---
 const authScreen = document.getElementById('auth-screen');
@@ -277,25 +286,35 @@ function logMonthlyActivity() {
 function calculateStartingStats() {
     const exerciseValue = parseInt(document.getElementById('exercise-freq').value);
     const studyValue = parseInt(document.getElementById('study-habit').value);
+    const now = new Date();
     characterData = {
         level: 1,
         statProgress: 0,
         statsToNextLevel: 10,
-        stats: { strength: 8 + exerciseValue, dexterity: 8, constitution: 8 + exerciseValue, intelligence: 8 + studyValue, wisdom: 8 + studyValue, charisma: 8 },
-        choreProgress: { strength: 0, dexterity: 0, constitution: 0, intelligence: 0, wisdom: 0, charisma: 0 },
+        stats: {
+            strength: 8 + exerciseValue,
+            dexterity: 8,
+            constitution: 8 + exerciseValue,
+            intelligence: 8 + studyValue,
+            wisdom: 8 + studyValue,
+            charisma: 8
+        },
+        choreProgress: {
+            strength: 0,
+            dexterity: 0,
+            constitution: 0,
+            intelligence: 0,
+            wisdom: 0,
+            charisma: 0
+        },
         avatarUrl: '',
         skillPoints: 0,
         unlockedPerks: [],
         monthlyActivityLog: [],
-        activityLogMonth: now.getFullYear() + '-' + (now.getMonth() + 1),
+        activityLogMonth: `${now.getFullYear()}-${now.getMonth() + 1}`,
         monthlyPerkClaimed: false,
         chores: [],
         onboardingComplete: true
-
-        activityLogMonth: new Date().getFullYear() + '-' + (new Date().getMonth() + 1),
-        monthlyPerkClaimed: false,
-        chores: []
-
     };
 }
 
