@@ -30,7 +30,16 @@ if (typeof BACKEND_SERVER_URL !== 'string' || BACKEND_SERVER_URL.trim().length =
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-const storage = firebase.storage();
+let storage = null;
+if (firebaseConfig.storageBucket && typeof firebaseConfig.storageBucket === 'string' && firebaseConfig.storageBucket.trim()) {
+    try {
+        storage = firebase.storage();
+    } catch (error) {
+        console.warn('Firebase Storage could not be initialized:', error);
+    }
+} else {
+    console.warn('Skipping Firebase Storage initialization because no storageBucket was provided in config.js');
+}
 
 // --- Get references to HTML elements ---
 const authScreen = document.getElementById('auth-screen');
