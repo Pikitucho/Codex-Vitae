@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-const OpenAI = require('openai');
+const axios = require('axios');
+const { GoogleAuth } = require('google-auth-library');
 
 const PORT = process.env.PORT || 8080;
 const VALID_STATS = new Set([
@@ -12,13 +13,49 @@ const VALID_STATS = new Set([
   'charisma'
 ]);
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error('OPENAI_API_KEY must be set before starting the Codex Vitae backend.');
+const PROJECT_ID = process.env.VERTEX_PROJECT_ID;
+if (!PROJECT_ID) {
+  throw new Error('VERTEX_PROJECT_ID must be set before starting the Codex Vitae backend.');
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+const LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
+const TEXT_MODEL = process.env.VERTEX_TEXT_MODEL || 'gemini-1.0-pro';
+const IMAGE_MODEL = process.env.VERTEX_IMAGE_MODEL || 'imagegeneration@002';
+
+const googleAuth = new GoogleAuth({
+  scopes: ['https://www.googleapis.com/auth/cloud-platform']
 });
+let authClientPromise;
+
+async function getAuthClient() {
+  if (!authClientPromise) {
+    authClientPromise = googleAuth.getClient();
+  }
+  return authClientPromise;
+}
+
+async function getAccessToken() {
+  const client = await getAuthClient();
+  const accessToken = await client.getAccessToken();
+  const token = typeof accessToken === 'string' ? accessToken : accessToken?.token;
+  if (!token) {
+    throw new Error('Unable to acquire access token for Vertex AI.');
+  }
+  return token;
+}
+
+async function callVertex(model, body) {
+  const url = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${model}:generateContent`;
+  const token = await getAccessToken();
+  const { data } = await axios.post(url, body, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    timeout: 60000
+  });
+  return data;
+}
 
 const app = express();
 app.use(cors());
@@ -35,29 +72,34 @@ app.post('/classify-chore', async (req, res) => {
       return res.status(400).json({ error: 'text is required' });
     }
 
-    const completion = await openai.responses.create({
-      model: process.env.OPENAI_TEXT_MODEL || 'gpt-4o-mini',
-      temperature: 0.2,
-      max_output_tokens: 200,
-      input: [
-        {
-          role: 'system',
-          content: [
-            {
-              type: 'text',
-              text:
-                'You are a game systems assistant. Classify the supplied household chore into one of the following stats: strength, dexterity, constitution, intelligence, wisdom, or charisma. Respond ONLY with JSON shaped exactly as {"stat": "<stat>", "effort": <integer between 1 and 100>}.'
-            }
-          ]
-        },
+    const response = await callVertex(TEXT_MODEL, {
+      system_instruction: {
+        role: 'system',
+        parts: [
+          {
+            text:
+              'You are a game systems assistant. Classify the supplied household chore into one of the following stats: strength, dexterity, constitution, intelligence, wisdom, or charisma. Respond ONLY with JSON shaped exactly as {"stat": "<stat>", "effort": <integer between 1 and 100>}.'
+          }
+        ]
+      },
+      contents: [
         {
           role: 'user',
-          content: [{ type: 'text', text }]
+          parts: [{ text }]
         }
-      ]
+      ],
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 200
+      }
     });
 
-    const raw = (completion.output_text || '').trim();
+    const candidate = response?.candidates?.[0];
+    const raw = (candidate?.content?.parts || [])
+      .map(part => part.text || '')
+      .join('')
+      .trim();
+
     if (!raw) {
       throw new Error('Model response did not contain text.');
     }
@@ -106,35 +148,39 @@ app.post('/generate-avatar', async (req, res) => {
       return res.status(400).json({ error: 'imageBase64 is required.' });
     }
 
-    const sanitizedImage = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-    const response = await openai.responses.create({
-      model: process.env.OPENAI_AVATAR_MODEL || 'gpt-4o-mini',
-      input: [
+    const mimeMatch = imageBase64.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,/);
+    const mimeType = mimeMatch?.[1] || 'image/png';
+    const sanitizedImage = imageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
+
+    const response = await callVertex(IMAGE_MODEL, {
+      contents: [
         {
           role: 'user',
-          content: [
+          parts: [
+            { text: prompt },
             {
-              type: 'input_text',
-              text: prompt
-            },
-            {
-              type: 'input_image',
-              image_base64: sanitizedImage
+              inline_data: {
+                mime_type: mimeType,
+                data: sanitizedImage
+              }
             }
           ]
         }
       ]
     });
 
-    const imagePart = (response.output || [])
-      .flatMap(item => item.content || [])
-      .find(part => part.type === 'output_image');
+    const imagePart = (response?.candidates || [])
+      .flatMap(candidate => candidate?.content?.parts || [])
+      .find(part => part.inline_data?.data);
 
-    if (!imagePart?.image_base64) {
+    const generatedImage = imagePart?.inline_data?.data;
+    const generatedMime = imagePart?.inline_data?.mime_type || 'image/png';
+
+    if (!generatedImage) {
       throw new Error('Model response did not include an image.');
     }
 
-    res.json({ imageUrl: `data:image/png;base64,${imagePart.image_base64}` });
+    res.json({ imageUrl: `data:${generatedMime};base64,${generatedImage}` });
   } catch (error) {
     console.error('generate-avatar error', error);
     res.status(502).json({ error: 'Avatar generation failed.' });
