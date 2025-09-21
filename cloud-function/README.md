@@ -20,6 +20,9 @@ Set `VERTEX_PROJECT_ID` explicitly when running locally. When the service runs o
 
 ## Optional configuration
 
+- `GOOGLE_APPLICATION_CREDENTIALS`: Path to a service account JSON key file. The variable is optional, but when you set it, the file
+  must exist. Google-managed environments such as Cloud Shell, Cloud Run, and Cloud Functions automatically supply application
+  default credentials, so you can leave this variable unset there.
 - `VERTEX_LOCATION` (defaults to `us-central1`)
 - `VERTEX_TEXT_MODEL` (defaults to `gemini-1.0-pro`)
 - `VERTEX_IMAGE_MODEL` (defaults to `imagegeneration@002`)
@@ -42,7 +45,7 @@ node index.js
 
 Alternatively, you can export the variables in your shell or load them via a tool like [direnv](https://direnv.net/).
 
-The backend authenticates using the default Google credentials available to the process. When running locally you typically supply a service account key file:
+The backend authenticates using the default Google credentials available to the process. When running locally you typically supply a service account key file. Export the environment variable and make sure it points to a real file:
 
 ```bash
 export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/gcloud/my-service-account.json"
@@ -56,4 +59,4 @@ When deploying to Google-managed environments (Cloud Run, Cloud Functions, etc.)
 
 Configure any non-default values for `VERTEX_LOCATION`, `VERTEX_TEXT_MODEL`, or `VERTEX_IMAGE_MODEL` as additional environment variables in your deployment settings.
 
-The `/healthz` endpoint always responds with HTTP 200 and includes a `vertexProjectConfigured` flag so you can verify that the Vertex project ID was discovered correctly.
+The `/healthz` endpoint reports `ok: true` when the configuration is valid. If the Vertex project ID is missing or the credential file path is invalid, the endpoint responds with HTTP 500 and includes a descriptive message alongside `vertexProjectConfigured` and `credentialFileValid` flags to highlight the problem.
