@@ -1,62 +1,63 @@
 # Constellation Skill Tree Overview
 
-## Concept: A Living Map of Your Journey
-Codex Vitae’s Constellation Skill Tree is a telescope-like "living resume" that turns every real-world milestone into a star you can light. Instead of a flat menu, players explore a vast-yet-cozy universe framed by four pillar galaxies—**Mind, Body, Soul, Community**—and gradually illuminate constellations that narrate their personal and professional growth. Each completed star becomes a permanent testament to effort, while the unlit portions of the sky tease future aspirations.
+## Concept: A Living Map, Not a Menu
+Codex Vitae’s Constellation Skill Tree is the heart of the experience—a telescope-like **living resume** that turns every real-world milestone into a permanent star. Instead of a static checklist, users explore a cozy-yet-vast universe framed by four pillar galaxies—**Mind, Body, Soul, Community**—and gradually illuminate constellations that chronicle their personal and professional growth. Each lit star is a testament to effort; each unlit pathway teases future aspirations.
+
+The guiding philosophy is to present your life as a map rather than a menu. Galaxies remain intentionally limited so they stay meaningful, constellations adopt aspirational identities (e.g., “The Scholar,” “The Certified Public Accountant”), and stars represent individual milestones that collectively paint the bigger picture of who you are becoming.
 
 ## Telescope Experience
-The final UX is built as a layered telescope interface that always zooms smoothly between contexts.
+The final UX is staged as an immersive telescope journey that always zooms smoothly between layers so orientation never feels jarring.
 
-1. **Galaxy View (Overview)**  
-   A minimalist deep-space backdrop shows the four glowing galaxies, each pulsing with a distinct hue. Hover reveals the name and a short description; clicking begins the zoom-in journey.
+1. **Galaxy View – The Overview**  
+   A minimalist deep-space backdrop features four stylized galaxies, each pulsing with a distinct hue against soft nebulae. Hovering reveals the name and a concise description; clicking initiates the telescope zoom toward that pillar.
 
-2. **Constellation View (Path Explorer)**  
-   The camera travels through space into the selected galaxy and shifts to a rich, galaxy-specific nebula with a **horizontal, pannable belt** of constellations. Dragging lets users "travel" through paths, while a persistent search bar can jump anywhere in the universe. When a search result lives in another galaxy, the UI gracefully zooms out and then back in to the destination, keeping the telescope metaphor intact.
+2. **Constellation View – The Path Explorer**  
+   The camera travels forward into the selected galaxy and shifts to a **pannable, horizontal star map** bathed in a rich, galaxy-specific nebula. Users drag to “travel” among many constellations, each rendered with faint connecting lines and elegant typography. A persistent, minimalist search box can jump anywhere in the universe—if the destination lives in another galaxy, the UI gracefully zooms out and then back in so the user witnesses the trip.
 
-3. **Star View (Journey Unfolding)**  
-   Selecting a constellation centers its pattern and reveals its Milestone Stars and Apex Star. Soft connecting lines illustrate intended progression. Star states communicate readiness:
-   - **Locked** – Dimmed, requirements not yet met.
-   - **Available** – Rimmed with the warm accent hue when stat thresholds are met and perk points can be spent.
-   - **Unlocked** – Vibrant teal glow indicating the star is permanently active.
+3. **Star View – The Journey Unfolding**  
+   Selecting a constellation centers its pattern and reveals the individual stars. Soft lines connect Milestone Stars leading toward a brighter Apex Star that crowns the journey. Star states communicate readiness at a glance:
+   - **Locked** – Dimmed and grayed out when requirements are unmet.
+   - **Available** – Rimmed with the warm golden-orange accent when stats satisfy prerequisites and a perk point can be spent.
+   - **Unlocked** – Glowing with vibrant techy teal to indicate the achievement is permanently active.
 
-4. **Detail View (Proof of Achievement)**  
-   Clicking a star opens a translucent modal with bespoke generative art, the star name, narrative copy, requirements, and actions. Support perks surface unlock buttons; credential stars outline the proof that will eventually be submitted (upload, integrations, testimony, etc.).
+4. **Detail View – Proof of Achievement**  
+   Clicking a star opens a translucent modal overlay that pairs bespoke, generative art (unique to every star) with narrative copy, requirements, and calls to action. Support perks surface an “Unlock for 1 Perk Point” button, while credential stars outline the proof that will eventually be supplied—document uploads, third-party integrations, AI validation, peer testimony, and more.
 
-## Architectural Hierarchy
-- **Galaxy** – One of the four life pillars, intentionally few to stay meaningful and distinct.
-- **Constellation** – A major life journey or career path with an aspirational identity (e.g., "The Scholar").
-- **Star** – A specific milestone. Milestone Stars build toward the finale; the Apex Star crowns the path.
+## Design Pillars & Data Architecture
+- **Galaxy → Constellation → Star** defines the hierarchy. Galaxies embody the four pillars of life, constellations frame major journeys with aspirational titles, and stars break those journeys into meaningful milestones. Apex Stars represent the culminating achievement.
+- The entire telescope is **data-driven**. Records live in `js/skill-tree-data.js`, and `js/skill-tree-sketch.js` reads them with p5.js to render the interactive map. Growing the universe—from a “season one” set of flagship constellations to the long-term goal of cataloging every job and skill—primarily means enriching the data file rather than altering rendering code or CSS.
+- Each constellation’s layout, lore, and art direction can evolve simply by updating its data entry, keeping the interface scalable while staying cozy and approachable.
 
-The hierarchy is fully data-driven inside `js/skill-tree-data.js`. Rendering logic in `js/skill-tree-sketch.js` reads this dataset to draw the telescope with p5.js. Scaling the universe—whether a handful of flagship constellations or the long-term aim of "all jobs and skills"—primarily means enriching the data file rather than altering rendering code.
+## Star Typology & Unlock Flow
+Two complementary star types keep the system both game-like and authentic:
+- **Support Perks** – These stars exchange stat thresholds (Intelligence, Vitality, etc.) and scarce perk points for in-app boosts such as increased fragment gain. Translation of these perks into partner games happens downstream—Codex Vitae merely records the unlock.
+- **Credential Skills** – These represent significant, real-world accomplishments (e.g., degrees, certifications). Stats and perk points cannot bypass them; they unlock only when the required proof is provided. Until verification tools exist, they act as inspirational placeholders with clear guidance on the evidence users will eventually submit.
 
-## Star Types & Unlock Logic
-- **Support Perks** – Gated by stats (Intelligence, Vitality, etc.) and perk points. Once unlocked they grant in-app bonuses such as improved fragment gain. Translation of these perks into external games is handled by each individual partner experience, not by the tree itself.
-- **Credential Skills** – Represent real-world achievements that require verification. Stats and perk points cannot bypass them; instead they will eventually collect proof such as document uploads, API checks, media evidence, or community endorsements.
-
-All unlocked stars are permanent—skills do not expire. A future atrophy system may dim long-unused skills, but design work on that mechanic is still pending.
+All unlocked stars are **permanent**—skills do not expire. A future atrophy system may dim long-unused stars, but that mechanic is still exploratory and requires additional design.
 
 ## Verification Roadmap
-The current app does not yet process proofs, so credential stars act as inspirational placeholders. Planned phases include:
-1. Guided journaling notes / "mark as achieved" for immediate reflection.
-2. Document uploads and image/video evidence.
-3. Third-party integrations (fitness trackers, education platforms, etc.).
-4. AI-assisted validation and community testimony workflows.
+Credential verification will roll out in stages to keep the experience cozy while acknowledging long-term needs:
+1. Guided journaling notes / “mark as achieved” acknowledgements for immediate reflection.
+2. Document and media uploads for formal achievements or creative showcases.
+3. Third-party API connections (education, fitness, finance, etc.) for automated checks.
+4. AI-assisted validation and community testimony to add nuance and social trust.
 
 ## Search & Navigation Nuances
-- Search is universal across galaxies; selecting a result performs the appropriate zoom-out and zoom-in sequence so the user always understands where they are traveling.
-- Dragging remains the primary method of exploring constellation belts, reinforcing the feeling of piloting a telescope through a vast sky while keeping the interface cozy and approachable.
+- Search operates across the entire universe. Choosing a result automatically zooms out of the current context and back into the target galaxy/constellation so users always see the journey.
+- Dragging remains the primary means of exploring constellation belts, reinforcing the feeling of piloting a telescope through a vast sky without overwhelming users with UI chrome.
 
 ## Integration Outlook
-Constellation data will synchronize with the Codex Vitae Gateway API in tiers. Early tiers share completion summaries; later tiers let partner games or apps interpret unlocked stars into bespoke bonuses. The skill tree therefore anchors a growing ecosystem without dictating how each integration manifests rewards.
+Constellation data will sync to the Codex Vitae Gateway API in escalating tiers. Early integrations broadcast completion summaries; later stages let partner games interpret unlocked stars into bespoke bonuses (e.g., unlocking recipes, dialogue options, or stat boosts). The tree itself stays agnostic—Codex Vitae is the **passport**, and partner worlds decide how to honor each stamp.
 
 ## Known Gaps & Next Steps
-- **Verification tooling** – Proof submission, moderation, and automation remain unimplemented.
-- **Atrophy mechanic** – Conceptual only; requires future design and data hooks.
-- **AI assistance** – Current AI guidance is unreliable and slated for later improvement.
-- **Content expansion** – Additional constellations, narrative copy, and art briefs must be authored within the data files to keep the universe feeling both cozy and immense.
+- **Verification tooling** – Proof submission, moderation, and automation remain future work.
+- **Atrophy mechanic** – Conceptual only; needs rules and visual language before implementation.
+- **AI assistance** – Current guidance is unreliable and scheduled for later refinement.
+- **Content expansion** – More constellations, narrative copy, and art briefs are required to keep the universe feeling both cozy and immense.
 
 ## Open Questions
-- How many flagship constellations should each galaxy showcase in the near term before we scale to bulk additions?
+- How many flagship constellations should each galaxy showcase before ramping into bulk additions?
 - Which verification methods must be prioritized for the first credential rollout versus deferred to later phases?
-- What level of in-app narrative or lore should accompany each star at launch to balance clarity and warmth?
-- Do we want event-based constellations or seasonal appearances, and how should they be visually distinguished if introduced?
-- What signals or UI should indicate long-term plans for the atrophy system before it exists mechanically?
+- What level of in-app narrative or lore should accompany each star to balance clarity and warmth?
+- Do we want event-based or seasonal constellations, and how should they be visually distinguished if introduced?
+- What signals or UI should foreshadow the future atrophy system before it exists mechanically?
