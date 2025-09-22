@@ -23,6 +23,7 @@
     const GALAXY_RADIUS = 360;
     const CONSTELLATION_RADIUS = 140;
     const STAR_SYSTEM_RADIUS = 48;
+    const STAR_ORBIT_RADIUS = 18;
 
     const LABEL_DEFAULTS = {
         fontSize: 48,
@@ -73,6 +74,48 @@
         sprite.scale.set(baseScale * aspect, baseScale, 1);
         sprite.renderOrder = 2;
         return sprite;
+    }
+
+    const skillTreeUtils = global.SkillTreeUtils || {};
+
+    const getConstellationStarSystems = typeof skillTreeUtils.getConstellationStarSystems === 'function'
+        ? (constellationData, constellationName) => skillTreeUtils.getConstellationStarSystems(constellationData, constellationName)
+        : (constellationData) => (constellationData && typeof constellationData.starSystems === 'object' ? constellationData.starSystems : {});
+
+    const findStarInConstellation = typeof skillTreeUtils.findStarInConstellation === 'function'
+        ? (constellationData, starName, constellationName) => skillTreeUtils.findStarInConstellation(constellationData, starName, constellationName)
+        : (constellationData, starName) => {
+            if (!constellationData || typeof starName !== 'string') {
+                return null;
+            }
+            if (constellationData.stars && Object.prototype.hasOwnProperty.call(constellationData.stars, starName)) {
+                return {
+                    starData: constellationData.stars[starName],
+                    starSystemName: null,
+                    starSystem: null
+                };
+            }
+            return null;
+        };
+
+    function createRadialPosition(index, total, radius, verticalAmplitude = 0) {
+        const safeTotal = Math.max(total || 0, 1);
+        const angle = (index % safeTotal) / safeTotal * Math.PI * 2;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        const y = verticalAmplitude ? Math.sin(angle * 2) * verticalAmplitude : 0;
+        return { x, y, z };
+    }
+
+    function toVector3(position, fallback = { x: 0, y: 0, z: 0 }) {
+        const base = position && typeof position === 'object' ? position : {};
+        const safeFallback = fallback && typeof fallback === 'object' ? fallback : { x: 0, y: 0, z: 0 };
+        const toFinite = (value, defaultValue) => (Number.isFinite(value) ? value : defaultValue);
+        return {
+            x: toFinite(base.x, toFinite(safeFallback.x, 0)),
+            y: toFinite(base.y, toFinite(safeFallback.y, 0)),
+            z: toFinite(base.z, toFinite(safeFallback.z, 0))
+        };
     }
 
     function lerpVectors(start, end, t) {
@@ -170,9 +213,21 @@
                     return;
                 }
                 const [galaxyName, constellationName, starName] = parts;
-                const starData = skillTree?.[galaxyName]?.constellations?.[constellationName]?.stars?.[starName];
-                const status = this.resolveStarStatus(starName, starData, galaxyName, constellationName) || 'locked';
+                const constellationData = skillTree?.[galaxyName]?.constellations?.[constellationName];
+                const starInfo = findStarInConstellation(constellationData, starName, constellationName);
+                const starData = starInfo?.starData;
+                const status = this.resolveStarStatus(
+                    starName,
+                    starData,
+                    galaxyName,
+                    constellationName,
+                    starInfo?.starSystemName
+                ) || 'locked';
                 mesh.userData.status = status;
+                mesh.userData.data = starData;
+                if (starInfo && Object.prototype.hasOwnProperty.call(starInfo, 'starSystemName')) {
+                    mesh.userData.starSystem = starInfo.starSystemName || null;
+                }
                 this._applyStarMaterial(mesh, status);
             });
             this.render();
@@ -296,13 +351,17 @@
 
             galaxyNames.forEach((galaxyName, index) => {
                 const galaxyData = skillTree[galaxyName] || {};
-                const angle = (index / galaxyNames.length) * Math.PI * 2;
-                const x = Math.cos(angle) * GALAXY_RADIUS;
-                const z = Math.sin(angle) * GALAXY_RADIUS;
+                const fallbackGalaxyPosition = createRadialPosition(
+                    index,
+                    galaxyNames.length,
+                    GALAXY_RADIUS,
+                    0
+                );
+                const galaxyPosition = toVector3(galaxyData.position, fallbackGalaxyPosition);
 
                 const group = new THREE.Group();
                 group.name = `galaxy-${galaxyName}`;
-                group.position.set(x, 0, z);
+                group.position.set(galaxyPosition.x, galaxyPosition.y, galaxyPosition.z);
 
                 const mesh = new THREE.Mesh(
                     new THREE.SphereGeometry(28, 48, 48),
@@ -351,13 +410,20 @@
 
                 constellationNames.forEach((constellationName, cIndex) => {
                     const constellationData = constellations[constellationName] || {};
-                    const cAngle = (cIndex / Math.max(constellationNames.length, 1)) * Math.PI * 2;
+                    const fallbackConstellationPosition = createRadialPosition(
+                        cIndex,
+                        constellationNames.length,
+                        CONSTELLATION_RADIUS,
+                        14
+                    );
+                    const constellationPosition = toVector3(constellationData.position, fallbackConstellationPosition);
+
                     const cGroup = new THREE.Group();
                     cGroup.name = `constellation-${constellationName}`;
                     cGroup.position.set(
-                        Math.cos(cAngle) * CONSTELLATION_RADIUS,
-                        Math.sin(cAngle * 2) * 14,
-                        Math.sin(cAngle) * CONSTELLATION_RADIUS
+                        constellationPosition.x,
+                        constellationPosition.y,
+                        constellationPosition.z
                     );
 
                     const cMesh = new THREE.Mesh(
@@ -390,15 +456,49 @@
 
                     orbitGroup.add(cGroup);
 
-                    const starEntries = Object.entries(constellationData.stars || {});
-                    starEntries.forEach(([starName, starData], sIndex) => {
-                        const sAngle = (sIndex / Math.max(starEntries.length, 1)) * Math.PI * 2;
+                    const starSystems = getConstellationStarSystems(constellationData, constellationName);
+                    const starSystemEntries = Object.entries(starSystems);
+                    let systemGroups = [];
+
+                    if (starSystemEntries.length > 0) {
+                        systemGroups = starSystemEntries.map(([systemName, systemData]) => ({
+                            systemName,
+                            systemData: systemData && typeof systemData === 'object' ? systemData : {},
+                            stars: Object.entries(systemData && typeof systemData.stars === 'object' ? systemData.stars : {}).map(
+                                ([starName, starData]) => ({ starName, starData: starData || {} })
+                            )
+                        }));
+                    } else {
+                        const legacyStars = Object.entries(constellationData.stars || {});
+                        systemGroups = legacyStars.map(([starName, starData]) => ({
+                            systemName: starName,
+                            systemData: null,
+                            stars: [{ starName, starData: starData || {} }]
+                        }));
+                    }
+
+                    const validSystemGroups = systemGroups.filter(group => Array.isArray(group.stars) && group.stars.length > 0);
+                    if (!validSystemGroups.length) {
+                        return;
+                    }
+
+                    validSystemGroups.forEach((systemInfo, sIndex) => {
+                        const { systemName, systemData, stars } = systemInfo;
+                        const fallbackSystemPosition = createRadialPosition(
+                            sIndex,
+                            validSystemGroups.length,
+                            STAR_SYSTEM_RADIUS,
+                            12
+                        );
+                        const systemPosition = toVector3(systemData?.position, fallbackSystemPosition);
+
                         const systemGroup = new THREE.Group();
-                        systemGroup.name = `system-${starName}`;
+                        const systemLabelName = systemName || `system-${sIndex}`;
+                        systemGroup.name = `system-${constellationName}-${systemLabelName}`;
                         systemGroup.position.set(
-                            Math.cos(sAngle) * STAR_SYSTEM_RADIUS,
-                            Math.sin(sAngle) * 12,
-                            Math.sin(sAngle) * STAR_SYSTEM_RADIUS
+                            systemPosition.x,
+                            systemPosition.y,
+                            systemPosition.z
                         );
 
                         const orbit = new THREE.Mesh(
@@ -413,38 +513,63 @@
                         orbit.rotation.x = Math.PI / 2;
                         systemGroup.add(orbit);
 
-                        const starMesh = new THREE.Mesh(
-                            new THREE.SphereGeometry(6, 24, 24),
-                            new THREE.MeshStandardMaterial({
-                                color: 0xffffff,
-                                emissive: 0x111111,
-                                emissiveIntensity: 0.4,
-                                roughness: 0.25,
-                                metalness: 0.2
-                            })
-                        );
-                        const status = this.resolveStarStatus(starName, starData, galaxyName, constellationName) || 'locked';
-                        starMesh.userData = {
-                            type: 'star',
-                            galaxy: galaxyName,
-                            constellation: constellationName,
-                            star: starName,
-                            data: starData,
-                            status
-                        };
-                        starMesh.userData.originalScale = starMesh.scale.clone();
-                        this._applyStarMaterial(starMesh, status);
-                        systemGroup.add(starMesh);
-                        this.pickableObjects.push(starMesh);
+                        const totalStars = Math.max(stars.length, 1);
+                        stars.forEach(({ starName, starData }, starIndex) => {
+                            const fallbackStarPosition = createRadialPosition(
+                                starIndex,
+                                totalStars,
+                                STAR_ORBIT_RADIUS,
+                                6
+                            );
+                            const starPosition = toVector3(starData?.position, fallbackStarPosition);
 
-                        const starLabel = createLabelSprite(starName, { scale: 0.4 });
-                        starLabel.position.set(0, 18, 0);
-                        systemGroup.add(starLabel);
+                            const starMesh = new THREE.Mesh(
+                                new THREE.SphereGeometry(6, 24, 24),
+                                new THREE.MeshStandardMaterial({
+                                    color: 0xffffff,
+                                    emissive: 0x111111,
+                                    emissiveIntensity: 0.4,
+                                    roughness: 0.25,
+                                    metalness: 0.2
+                                })
+                            );
+                            starMesh.position.set(starPosition.x, starPosition.y, starPosition.z);
+                            const status = this.resolveStarStatus(
+                                starName,
+                                starData,
+                                galaxyName,
+                                constellationName,
+                                systemName
+                            ) || 'locked';
+                            starMesh.userData = {
+                                type: 'star',
+                                galaxy: galaxyName,
+                                constellation: constellationName,
+                                star: starName,
+                                starSystem: systemName || null,
+                                data: starData,
+                                status
+                            };
+                            starMesh.userData.originalScale = starMesh.scale.clone();
+                            this._applyStarMaterial(starMesh, status);
+                            systemGroup.add(starMesh);
+                            this.pickableObjects.push(starMesh);
+
+                            const starLabel = createLabelSprite(starName, { scale: 0.4 });
+                            starLabel.position.set(starPosition.x, starPosition.y + 18, starPosition.z);
+                            systemGroup.add(starLabel);
+
+                            const starKey = `${galaxyName}|${constellationName}|${starName}`;
+                            this.starMeshMap.set(starKey, starMesh);
+                        });
+
+                        if (systemName && stars.length > 1) {
+                            const systemLabel = createLabelSprite(systemName, { scale: 0.35 });
+                            systemLabel.position.set(0, 26, 0);
+                            systemGroup.add(systemLabel);
+                        }
 
                         starOrbit.add(systemGroup);
-
-                        const starKey = `${galaxyName}|${constellationName}|${starName}`;
-                        this.starMeshMap.set(starKey, starMesh);
                     });
 
                     const constellationKey = `${galaxyName}|${constellationName}`;
@@ -645,13 +770,14 @@
                 this._applyScaledSize(object, hoverMultiplier * baseMultiplier);
                 this.container.style.cursor = 'pointer';
                 if (this.onHoverStar && object.userData.type === 'star') {
-                    const { star, galaxy, constellation, data, status } = object.userData;
+                    const { star, galaxy, constellation, data, status, starSystem } = object.userData;
                     this.onHoverStar({
                         name: star,
                         galaxy,
                         constellation,
                         data,
-                        status
+                        status,
+                        starSystem: starSystem || null
                     });
                 }
             } else {
@@ -694,7 +820,8 @@
                         galaxy: data.galaxy,
                         constellation: data.constellation,
                         data: data.data,
-                        status: data.status
+                        status: data.status,
+                        starSystem: data.starSystem || null
                     };
                     this.onSelectStar(starInfo);
                 }

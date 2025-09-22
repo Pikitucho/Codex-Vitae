@@ -81,6 +81,41 @@ const skillTreePanControls = document.getElementById('skill-tree-pan-controls');
 const skillPanLeftBtn = document.getElementById('skill-pan-left');
 const skillPanRightBtn = document.getElementById('skill-pan-right');
 
+const skillTreeUtils = window.SkillTreeUtils || {};
+const getConstellationStarsMap = typeof skillTreeUtils.getConstellationStarsMap === 'function'
+    ? (constellationData, constellationName) => skillTreeUtils.getConstellationStarsMap(constellationData, constellationName)
+    : (constellationData) => {
+        if (!constellationData || typeof constellationData !== 'object') {
+            return {};
+        }
+
+        if (constellationData.starSystems && typeof constellationData.starSystems === 'object') {
+            const aggregated = {};
+            for (const system of Object.values(constellationData.starSystems)) {
+                if (!system || typeof system !== 'object') {
+                    continue;
+                }
+                const stars = system.stars && typeof system.stars === 'object' ? system.stars : {};
+                for (const [starName, starData] of Object.entries(stars)) {
+                    aggregated[starName] = starData;
+                }
+            }
+            return aggregated;
+        }
+
+        return { ...(constellationData.stars || {}) };
+    };
+
+const hasConstellationStar = typeof skillTreeUtils.hasConstellationStar === 'function'
+    ? (constellationData, starName, constellationName) => skillTreeUtils.hasConstellationStar(constellationData, starName, constellationName)
+    : (constellationData, starName) => {
+        if (typeof starName !== 'string') {
+            return false;
+        }
+        const stars = getConstellationStarsMap(constellationData);
+        return Object.prototype.hasOwnProperty.call(stars, starName);
+    };
+
 function createStarDetailController() {
     const panel = document.getElementById('star-detail-panel');
     const titleEl = document.getElementById('star-detail-title');
@@ -131,6 +166,9 @@ function createStarDetailController() {
         }
         if (star?.constellation) {
             parts.push(star.constellation);
+        }
+        if (star?.starSystem) {
+            parts.push(star.starSystem);
         }
         return parts.join(' • ');
     };
@@ -919,7 +957,7 @@ function isValidSkillPath(path) {
     }
 
     const starName = path.star;
-    return typeof starName === 'string' && !!constellationData.stars?.[starName];
+    return typeof starName === 'string' && hasConstellationStar(constellationData, starName, constellationName);
 }
 
 function syncSkillSearchInputWithTarget(target = characterData?.skillSearchTarget) {
@@ -1099,8 +1137,8 @@ function findSkillTreePath(query) {
             return result;
         }
 
-        const stars = constellations[constellationMatch.name]?.stars || {};
-        const starMatch = pickBestMatch(Object.keys(stars), segments[2]);
+        const starMap = getConstellationStarsMap(constellations[constellationMatch.name], constellationMatch.name);
+        const starMatch = pickBestMatch(Object.keys(starMap), segments[2]);
         if (!starMatch) {
             return null;
         }
@@ -1168,7 +1206,7 @@ function findSkillTreePath(query) {
                 });
             }
 
-            const starEntries = Object.keys(constellationData.stars || {});
+            const starEntries = Object.keys(getConstellationStarsMap(constellationData, constellationName));
             for (const starName of starEntries) {
                 const starNormalized = starName.toLowerCase();
                 if (starNormalized === normalized) {

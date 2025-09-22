@@ -1,47 +1,363 @@
 // js/skill-tree-data.js
 
-const skillTree = {
+const DEFAULT_LAYOUT = {
+    galaxies: { radius: 360, vertical: 48 },
+    constellations: { radius: 140, vertical: 26 },
+    starSystems: { radius: 60, vertical: 18 },
+    stars: { radius: 22, vertical: 10 }
+};
+
+function createCircularPosition(index, total, radius, verticalAmplitude = 0) {
+    const safeTotal = Math.max(total || 0, 1);
+    const angle = (index % safeTotal) / safeTotal * Math.PI * 2;
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
+    const y = verticalAmplitude ? Math.sin(angle * 2) * verticalAmplitude : 0;
+    return { x, y, z };
+}
+
+function toFiniteNumber(value, fallback) {
+    return Number.isFinite(value) ? value : fallback;
+}
+
+function ensureVector3(position, fallback = { x: 0, y: 0, z: 0 }) {
+    const base = position && typeof position === 'object' ? position : {};
+    const safeFallback = fallback && typeof fallback === 'object' ? fallback : { x: 0, y: 0, z: 0 };
+    return {
+        x: toFiniteNumber(base.x, toFiniteNumber(safeFallback.x, 0)),
+        y: toFiniteNumber(base.y, toFiniteNumber(safeFallback.y, 0)),
+        z: toFiniteNumber(base.z, toFiniteNumber(safeFallback.z, 0))
+    };
+}
+
+function applyPosition(entity, fallback) {
+    if (!entity || typeof entity !== 'object') {
+        return ensureVector3(null, fallback);
+    }
+    entity.position = ensureVector3(entity.position, fallback);
+    return entity.position;
+}
+
+function migrateConstellation(constellationName, source) {
+    const base = source && typeof source === 'object' ? { ...source } : {};
+    const existingStarSystems = base.starSystems && typeof base.starSystems === 'object'
+        ? base.starSystems
+        : null;
+
+    if (existingStarSystems) {
+        const clonedSystems = {};
+        for (const [systemName, systemData] of Object.entries(existingStarSystems)) {
+            const normalizedSystem = systemData && typeof systemData === 'object' ? { ...systemData } : {};
+            normalizedSystem.stars = normalizedSystem.stars && typeof normalizedSystem.stars === 'object'
+                ? { ...normalizedSystem.stars }
+                : {};
+            clonedSystems[systemName] = normalizedSystem;
+        }
+        base.starSystems = clonedSystems;
+    } else {
+        const stars = base.stars && typeof base.stars === 'object' ? base.stars : {};
+        const hasStars = Object.keys(stars).length > 0;
+        if (hasStars) {
+            const systemName = `${constellationName || 'Constellation'} Prime`;
+            base.starSystems = {
+                [systemName]: {
+                    type: 'starSystem',
+                    stars: { ...stars }
+                }
+            };
+        } else {
+            base.starSystems = {};
+        }
+    }
+
+    delete base.stars;
+    return base;
+}
+
+function normalizeSkillTreeStructure(tree, options = {}) {
+    const { clone = false } = options;
+    const source = tree && typeof tree === 'object' ? tree : {};
+    const root = clone ? JSON.parse(JSON.stringify(source)) : source;
+
+    const galaxyEntries = Object.entries(root);
+    galaxyEntries.forEach(([galaxyName, galaxyData], gIndex) => {
+        const normalizedGalaxy = galaxyData && typeof galaxyData === 'object' ? { ...galaxyData } : {};
+        normalizedGalaxy.type = normalizedGalaxy.type || 'galaxy';
+        applyPosition(
+            normalizedGalaxy,
+            createCircularPosition(gIndex, galaxyEntries.length, DEFAULT_LAYOUT.galaxies.radius, DEFAULT_LAYOUT.galaxies.vertical)
+        );
+
+        const rawConstellations = normalizedGalaxy.constellations && typeof normalizedGalaxy.constellations === 'object'
+            ? normalizedGalaxy.constellations
+            : {};
+        const constellationEntries = Object.entries(rawConstellations);
+        const normalizedConstellations = {};
+
+        constellationEntries.forEach(([constellationName, rawConstellation], cIndex) => {
+            const migratedConstellation = migrateConstellation(constellationName, rawConstellation);
+            migratedConstellation.type = migratedConstellation.type || 'constellation';
+            applyPosition(
+                migratedConstellation,
+                createCircularPosition(cIndex, constellationEntries.length, DEFAULT_LAYOUT.constellations.radius, DEFAULT_LAYOUT.constellations.vertical)
+            );
+
+            const rawStarSystems = migratedConstellation.starSystems && typeof migratedConstellation.starSystems === 'object'
+                ? migratedConstellation.starSystems
+                : {};
+            const systemEntries = Object.entries(rawStarSystems);
+            const normalizedStarSystems = {};
+
+            systemEntries.forEach(([systemName, rawSystem], sIndex) => {
+                const systemData = rawSystem && typeof rawSystem === 'object' ? { ...rawSystem } : {};
+                systemData.type = systemData.type || 'starSystem';
+                applyPosition(
+                    systemData,
+                    createCircularPosition(sIndex, systemEntries.length, DEFAULT_LAYOUT.starSystems.radius, DEFAULT_LAYOUT.starSystems.vertical)
+                );
+
+                const rawStars = systemData.stars && typeof systemData.stars === 'object' ? systemData.stars : {};
+                const starEntries = Object.entries(rawStars);
+                const normalizedStars = {};
+
+                starEntries.forEach(([starName, rawStar], starIndex) => {
+                    const starData = rawStar && typeof rawStar === 'object' ? { ...rawStar } : {};
+                    starData.type = starData.type || 'star';
+                    applyPosition(
+                        starData,
+                        createCircularPosition(starIndex, starEntries.length, DEFAULT_LAYOUT.stars.radius, DEFAULT_LAYOUT.stars.vertical)
+                    );
+                    normalizedStars[starName] = starData;
+                });
+
+                systemData.stars = normalizedStars;
+                normalizedStarSystems[systemName] = systemData;
+            });
+
+            migratedConstellation.starSystems = normalizedStarSystems;
+            normalizedConstellations[constellationName] = migratedConstellation;
+        });
+
+        normalizedGalaxy.constellations = normalizedConstellations;
+        root[galaxyName] = normalizedGalaxy;
+    });
+
+    return root;
+}
+
+function getConstellationStarSystems(constellationData, constellationName = '') {
+    if (!constellationData || typeof constellationData !== 'object') {
+        return {};
+    }
+
+    if (constellationData.starSystems && typeof constellationData.starSystems === 'object' && Object.keys(constellationData.starSystems).length > 0) {
+        return constellationData.starSystems;
+    }
+
+    if (constellationData.stars && typeof constellationData.stars === 'object') {
+        const systemName = `${constellationName || 'Constellation'} Prime`;
+        return {
+            [systemName]: {
+                type: 'starSystem',
+                stars: { ...constellationData.stars }
+            }
+        };
+    }
+
+    return {};
+}
+
+function buildStarMapFromSystems(starSystems) {
+    const map = {};
+    for (const systemData of Object.values(starSystems || {})) {
+        if (!systemData || typeof systemData !== 'object') {
+            continue;
+        }
+        const stars = systemData.stars && typeof systemData.stars === 'object' ? systemData.stars : {};
+        for (const [starName, starData] of Object.entries(stars)) {
+            map[starName] = starData;
+        }
+    }
+    return map;
+}
+
+function getConstellationStarsMap(constellationData, constellationName = '') {
+    if (!constellationData || typeof constellationData !== 'object') {
+        return {};
+    }
+
+    const starSystems = getConstellationStarSystems(constellationData, constellationName);
+    if (Object.keys(starSystems).length > 0) {
+        return buildStarMapFromSystems(starSystems);
+    }
+
+    if (constellationData.stars && typeof constellationData.stars === 'object') {
+        return { ...constellationData.stars };
+    }
+
+    return {};
+}
+
+function getConstellationStarEntries(constellationData, constellationName = '') {
+    if (!constellationData || typeof constellationData !== 'object') {
+        return [];
+    }
+
+    const starSystems = getConstellationStarSystems(constellationData, constellationName);
+    const entries = [];
+
+    if (Object.keys(starSystems).length > 0) {
+        for (const [systemName, systemData] of Object.entries(starSystems)) {
+            const stars = systemData && typeof systemData.stars === 'object' ? systemData.stars : {};
+            for (const [starName, starData] of Object.entries(stars)) {
+                entries.push({
+                    starSystemName: systemName,
+                    starSystem: systemData,
+                    starName,
+                    starData
+                });
+            }
+        }
+        return entries;
+    }
+
+    if (constellationData.stars && typeof constellationData.stars === 'object') {
+        for (const [starName, starData] of Object.entries(constellationData.stars)) {
+            entries.push({
+                starSystemName: null,
+                starSystem: null,
+                starName,
+                starData
+            });
+        }
+    }
+
+    return entries;
+}
+
+function hasConstellationStar(constellationData, starName, constellationName = '') {
+    if (typeof starName !== 'string' || !starName) {
+        return false;
+    }
+
+    const stars = getConstellationStarsMap(constellationData, constellationName);
+    return Object.prototype.hasOwnProperty.call(stars, starName);
+}
+
+function findStarInConstellation(constellationData, starName, constellationName = '') {
+    if (!constellationData || typeof starName !== 'string' || !starName) {
+        return null;
+    }
+
+    const starSystems = getConstellationStarSystems(constellationData, constellationName);
+    for (const [systemName, systemData] of Object.entries(starSystems)) {
+        const stars = systemData && typeof systemData.stars === 'object' ? systemData.stars : {};
+        if (Object.prototype.hasOwnProperty.call(stars, starName)) {
+            return {
+                starData: stars[starName],
+                starSystemName: systemName,
+                starSystem: systemData
+            };
+        }
+    }
+
+    if (constellationData.stars && Object.prototype.hasOwnProperty.call(constellationData.stars, starName)) {
+        return {
+            starData: constellationData.stars[starName],
+            starSystemName: null,
+            starSystem: null
+        };
+    }
+
+    return null;
+}
+
+function migrateConstellationToStarSystems(constellationName, constellationData, options = {}) {
+    const { clone = true } = options;
+    const wrapper = {
+        __temp__: {
+            type: 'galaxy',
+            constellations: {
+                [constellationName]: constellationData
+            }
+        }
+    };
+
+    const normalized = normalizeSkillTreeStructure(wrapper, { clone });
+    const migrated = normalized.__temp__ && normalized.__temp__.constellations
+        ? normalized.__temp__.constellations[constellationName]
+        : { type: 'constellation', starSystems: {} };
+
+    return migrated;
+}
+
+const rawSkillTree = {
     'Mind': {
         type: 'galaxy',
         description: 'Skills of logic, learning, and creativity.',
         constellations: {
-            'Academics': { 
-                type: 'constellation', 
-                stars: { 
-                    'Active Learner': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 12 }, description: 'A passive bonus to all Stat Fragment gains from Intelligence-based chores.' }, 
-                    'Critical Thinker': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 15 }, description: 'Unlocks the ability to occasionally receive double fragments from a completed task.' },
-                    'Polymath': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 20 }, description: 'Reduces the stat requirements for all non-Intelligence perks by 1.' },
-                    'Bachelors Degree': { unlock_type: 'credential', type: 'star', requires: { proof: 'Document Upload' }, description: 'Submit a diploma for a Bachelors degree or higher.' }
-                } 
+            'Academics': {
+                type: 'constellation',
+                starSystems: {
+                    'Academics Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Active Learner': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 12 }, description: 'A passive bonus to all Stat Fragment gains from Intelligence-based chores.' },
+                            'Critical Thinker': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 15 }, description: 'Unlocks the ability to occasionally receive double fragments from a completed task.' },
+                            'Polymath': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 20 }, description: 'Reduces the stat requirements for all non-Intelligence perks by 1.' },
+                            'Bachelors Degree': { unlock_type: 'credential', type: 'star', requires: { proof: 'Document Upload' }, description: 'Submit a diploma for a Bachelors degree or higher.' }
+                        }
+                    }
+                }
             },
-            'Creativity': { 
-                type: 'constellation', 
-                stars: { 
-                    'Doodler': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 11 }, description: 'A small, consistent bonus to Charisma fragment gains.' }, 
-                    'Storyteller': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 14 }, description: 'Improves outcomes in social interactions.' },
-                    'Published Work': { unlock_type: 'credential', type: 'star', requires: { proof: 'URL Link' }, description: 'Provide a link to a published creative work (book, article, portfolio).' }
-                } 
+            'Creativity': {
+                type: 'constellation',
+                starSystems: {
+                    'Creativity Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Doodler': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 11 }, description: 'A small, consistent bonus to Charisma fragment gains.' },
+                            'Storyteller': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 14 }, description: 'Improves outcomes in social interactions.' },
+                            'Published Work': { unlock_type: 'credential', type: 'star', requires: { proof: 'URL Link' }, description: 'Provide a link to a published creative work (book, article, portfolio).' }
+                        }
+                    }
+                }
             },
             'Logic & Strategy': {
                 type: 'constellation',
-                stars: {
-                    'Problem Solver': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 15 }, description: 'Occasionally, a difficult task will award bonus fragments.' },
-                    'Strategic Planner': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 18 }, description: 'Setting and completing a Goal provides a bonus fragment reward.' },
-                    'Chess Master': { unlock_type: 'credential', type: 'star', requires: { proof: 'Skill Verification' }, description: 'Achieve a verified rating in a competitive strategy game.' }
+                starSystems: {
+                    'Logic & Strategy Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Problem Solver': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 15 }, description: 'Occasionally, a difficult task will award bonus fragments.' },
+                            'Strategic Planner': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 18 }, description: 'Setting and completing a Goal provides a bonus fragment reward.' },
+                            'Chess Master': { unlock_type: 'credential', type: 'star', requires: { proof: 'Skill Verification' }, description: 'Achieve a verified rating in a competitive strategy game.' }
+                        }
+                    }
                 }
             },
             'Memory': {
                 type: 'constellation',
-                stars: {
-                    'Method of Loci': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 14 }, description: 'Improves recall, occasionally finding "lost" items in connected games.' },
-                    'Eidetic Memory': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 22 }, description: 'Perfect recall of details and conversations.' }
+                starSystems: {
+                    'Memory Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Method of Loci': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 14 }, description: 'Improves recall, occasionally finding "lost" items in connected games.' },
+                            'Eidetic Memory': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 22 }, description: 'Perfect recall of details and conversations.' }
+                        }
+                    }
                 }
             },
             'Linguistics': {
                 type: 'constellation',
-                stars: {
-                    'Bilingual': { unlock_type: 'credential', type: 'star', requires: { proof: 'Language Test' }, description: 'Pass a recognized test for fluency in a second language.' },
-                    'Polyglot': { unlock_type: 'credential', type: 'star', requires: { proof: 'Language Test' }, description: 'Pass a recognized test for fluency in three or more languages.' }
+                starSystems: {
+                    'Linguistics Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Bilingual': { unlock_type: 'credential', type: 'star', requires: { proof: 'Language Test' }, description: 'Pass a recognized test for fluency in a second language.' },
+                            'Polyglot': { unlock_type: 'credential', type: 'star', requires: { proof: 'Language Test' }, description: 'Pass a recognized test for fluency in three or more languages.' }
+                        }
+                    }
                 }
             }
         }
@@ -50,42 +366,67 @@ const skillTree = {
         type: 'galaxy',
         description: 'Skills of strength, endurance, and physical prowess.',
         constellations: {
-            'Fitness': { 
-                type: 'constellation', 
-                stars: { 
-                    'Basic Fitness': { unlock_type: 'perk', type: 'star', requires: { stat: 'strength', value: 12 }, description: 'Grants a small bonus to Constitution fragment gains.' }, 
-                    'Athlete': { unlock_type: 'perk', type: 'star', requires: { stat: 'strength', value: 18 }, description: 'Unlocks advanced physical activities in other connected games.' },
-                    'Run a Marathon': { unlock_type: 'credential', type: 'star', requires: { proof: 'Event Verification' }, description: 'Provide proof of completing a marathon or other major endurance event.' }
-                } 
+            'Fitness': {
+                type: 'constellation',
+                starSystems: {
+                    'Fitness Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Basic Fitness': { unlock_type: 'perk', type: 'star', requires: { stat: 'strength', value: 12 }, description: 'Grants a small bonus to Constitution fragment gains.' },
+                            'Athlete': { unlock_type: 'perk', type: 'star', requires: { stat: 'strength', value: 18 }, description: 'Unlocks advanced physical activities in other connected games.' },
+                            'Run a Marathon': { unlock_type: 'credential', type: 'star', requires: { proof: 'Event Verification' }, description: 'Provide proof of completing a marathon or other major endurance event.' }
+                        }
+                    }
+                }
             },
             'Resilience': {
                 type: 'constellation',
-                stars: {
-                    'Toughness': { unlock_type: 'perk', type: 'star', requires: { stat: 'constitution', value: 14 }, description: 'Monthly Milestone requires one less day to complete (24 instead of 25).' },
-                    'Iron Will': { unlock_type: 'perk', type: 'star', requires: { stat: 'constitution', value: 20 }, description: 'Provides a chance to maintain a weekly streak even if you miss one day.' }
+                starSystems: {
+                    'Resilience Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Toughness': { unlock_type: 'perk', type: 'star', requires: { stat: 'constitution', value: 14 }, description: 'Monthly Milestone requires one less day to complete (24 instead of 25).' },
+                            'Iron Will': { unlock_type: 'perk', type: 'star', requires: { stat: 'constitution', value: 20 }, description: 'Provides a chance to maintain a weekly streak even if you miss one day.' }
+                        }
+                    }
                 }
             },
             'Craftsmanship': {
                 type: 'constellation',
-                stars: {
-                    'Handyman': { unlock_type: 'perk', type: 'star', requires: { stat: 'dexterity', value: 12 }, description: 'Grants a small bonus to Dexterity fragment gains.' },
-                    'Artisan': { unlock_type: 'perk', type: 'star', requires: { stat: 'dexterity', value: 16 }, description: 'Unlocks the ability to craft higher quality items in connected games.' },
-                    'Masterwork': { unlock_type: 'credential', type: 'star', requires: { proof: 'Image Upload' }, description: 'Submit photos of a complex, hand-made project (e.g., furniture, clothing).' }
+                starSystems: {
+                    'Craftsmanship Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Handyman': { unlock_type: 'perk', type: 'star', requires: { stat: 'dexterity', value: 12 }, description: 'Grants a small bonus to Dexterity fragment gains.' },
+                            'Artisan': { unlock_type: 'perk', type: 'star', requires: { stat: 'dexterity', value: 16 }, description: 'Unlocks the ability to craft higher quality items in connected games.' },
+                            'Masterwork': { unlock_type: 'credential', type: 'star', requires: { proof: 'Image Upload' }, description: 'Submit photos of a complex, hand-made project (e.g., furniture, clothing).' }
+                        }
+                    }
                 }
             },
             'Coordination': {
                 type: 'constellation',
-                stars: {
-                    'Ambidextrous': { unlock_type: 'perk', type: 'star', requires: { stat: 'dexterity', value: 18 }, description: 'Removes off-hand penalties in connected games.' },
-                    'Sleight of Hand': { unlock_type: 'perk', type: 'star', requires: { stat: 'dexterity', value: 15 }, description: 'Increases chance of success on fine motor skill tasks.' },
-                    'Dancer': { unlock_type: 'credential', type: 'star', requires: { proof: 'Video Upload' }, description: 'Demonstrate proficiency in a recognized form of dance.' }
+                starSystems: {
+                    'Coordination Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Ambidextrous': { unlock_type: 'perk', type: 'star', requires: { stat: 'dexterity', value: 18 }, description: 'Removes off-hand penalties in connected games.' },
+                            'Sleight of Hand': { unlock_type: 'perk', type: 'star', requires: { stat: 'dexterity', value: 15 }, description: 'Increases chance of success on fine motor skill tasks.' },
+                            'Dancer': { unlock_type: 'credential', type: 'star', requires: { proof: 'Video Upload' }, description: 'Demonstrate proficiency in a recognized form of dance.' }
+                        }
+                    }
                 }
             },
             'Survival': {
                 type: 'constellation',
-                stars: {
-                    'Forager': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 13 }, description: 'Ability to identify useful plants and materials.' },
-                    'First Aid Certified': { unlock_type: 'credential', type: 'star', requires: { proof: 'Certificate Upload' }, description: 'Upload a valid First Aid/CPR certification.' }
+                starSystems: {
+                    'Survival Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Forager': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 13 }, description: 'Ability to identify useful plants and materials.' },
+                            'First Aid Certified': { unlock_type: 'credential', type: 'star', requires: { proof: 'Certificate Upload' }, description: 'Upload a valid First Aid/CPR certification.' }
+                        }
+                    }
                 }
             }
         }
@@ -96,39 +437,64 @@ const skillTree = {
         constellations: {
             'Discipline': {
                 type: 'constellation',
-                stars: {
-                    'Early Riser': { unlock_type: 'perk', type: 'star', requires: { stat: 'constitution', value: 12 }, description: 'Gain bonus fragments for the first chore completed each day.' },
-                    'Focused Mind': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 15 }, description: 'Doubles the fragments gained from "Reflection" or "Study" chores.' },
-                    'Unwavering': { unlock_type: 'perk', type: 'star', requires: { stat: 'constitution', value: 18 }, description: 'High resistance to abandoning long-term goals.' }
+                starSystems: {
+                    'Discipline Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Early Riser': { unlock_type: 'perk', type: 'star', requires: { stat: 'constitution', value: 12 }, description: 'Gain bonus fragments for the first chore completed each day.' },
+                            'Focused Mind': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 15 }, description: 'Doubles the fragments gained from "Reflection" or "Study" chores.' },
+                            'Unwavering': { unlock_type: 'perk', type: 'star', requires: { stat: 'constitution', value: 18 }, description: 'High resistance to abandoning long-term goals.' }
+                        }
+                    }
                 }
             },
             'Leadership': {
                 type: 'constellation',
-                stars: {
-                    'Persuasion': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 15 }, description: 'Unlocks new dialogue options in connected games.' },
-                    'Inspirational': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 20 }, description: 'Provides a small bonus to all fragment gains for your party in a connected game.' }
+                starSystems: {
+                    'Leadership Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Persuasion': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 15 }, description: 'Unlocks new dialogue options in connected games.' },
+                            'Inspirational': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 20 }, description: 'Provides a small bonus to all fragment gains for your party in a connected game.' }
+                        }
+                    }
                 }
             },
             'Finance': {
                 type: 'constellation',
-                stars: {
-                    'Budgeter': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 13 }, description: 'Unlocks a "Wealth" tracker on your main dashboard.' },
-                    'Investor': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 16 }, description: 'Unlocks passive "investment" activities that can be logged.' },
-                    'Debt-Free': { unlock_type: 'credential', type: 'star', requires: { proof: 'Verification' }, description: 'Achieve and verify a state of being free from non-mortgage debt.' }
+                starSystems: {
+                    'Finance Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Budgeter': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 13 }, description: 'Unlocks a "Wealth" tracker on your main dashboard.' },
+                            'Investor': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 16 }, description: 'Unlocks passive "investment" activities that can be logged.' },
+                            'Debt-Free': { unlock_type: 'credential', type: 'star', requires: { proof: 'Verification' }, description: 'Achieve and verify a state of being free from non-mortgage debt.' }
+                        }
+                    }
                 }
             },
             'Mindfulness': {
                 type: 'constellation',
-                stars: {
-                    'Meditator': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 14 }, description: 'Grants a small bonus to Wisdom fragment gains.' },
-                    'Patient': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 17 }, description: 'Reduces the chance of negative outcomes from rushed decisions.' }
+                starSystems: {
+                    'Mindfulness Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Meditator': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 14 }, description: 'Grants a small bonus to Wisdom fragment gains.' },
+                            'Patient': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 17 }, description: 'Reduces the chance of negative outcomes from rushed decisions.' }
+                        }
+                    }
                 }
             },
             'Artistry': {
                 type: 'constellation',
-                stars: {
-                    'Musician': { unlock_type: 'credential', type: 'star', requires: { proof: 'Video Upload' }, description: 'Demonstrate proficiency with a musical instrument.' },
-                    'Painter': { unlock_type: 'credential', type: 'star', requires: { proof: 'Image Upload' }, description: 'Submit a portfolio of original artwork.' }
+                starSystems: {
+                    'Artistry Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Musician': { unlock_type: 'credential', type: 'star', requires: { proof: 'Video Upload' }, description: 'Demonstrate proficiency with a musical instrument.' },
+                            'Painter': { unlock_type: 'credential', type: 'star', requires: { proof: 'Image Upload' }, description: 'Submit a portfolio of original artwork.' }
+                        }
+                    }
                 }
             }
         }
@@ -139,27 +505,59 @@ const skillTree = {
         constellations: {
             'Collaboration': {
                 type: 'constellation',
-                stars: {
-                    'Team Player': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 13 }, description: 'Improves efficiency of group tasks.' },
-                    'Project Manager': { unlock_type: 'credential', type: 'star', requires: { proof: 'Certificate Upload' }, description: 'Upload a PMP or similar project management certification.' }
+                starSystems: {
+                    'Collaboration Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Team Player': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 13 }, description: 'Improves efficiency of group tasks.' },
+                            'Project Manager': { unlock_type: 'credential', type: 'star', requires: { proof: 'Certificate Upload' }, description: 'Upload a PMP or similar project management certification.' }
+                        }
+                    }
                 }
             },
             'Civics': {
                 type: 'constellation',
-                stars: {
-                    'Informed Voter': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 12 }, description: 'Demonstrate knowledge of local and national political systems.' },
-                    'Volunteer': { unlock_type: 'credential', type: 'star', requires: { proof: 'Hours Log' }, description: 'Log a significant number of verified volunteer hours.' }
+                starSystems: {
+                    'Civics Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Informed Voter': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 12 }, description: 'Demonstrate knowledge of local and national political systems.' },
+                            'Volunteer': { unlock_type: 'credential', type: 'star', requires: { proof: 'Hours Log' }, description: 'Log a significant number of verified volunteer hours.' }
+                        }
+                    }
                 }
             },
             'Mentorship': {
                 type: 'constellation',
-                stars: {
-                    'Tutor': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 16 }, description: 'Unlocks the ability to help other users in a future update.' },
-                    'Mentor': { unlock_type: 'credential', type: 'star', requires: { proof: 'Testimonial' }, description: 'Receive a verified testimonial from a mentee.' }
+                starSystems: {
+                    'Mentorship Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Tutor': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 16 }, description: 'Unlocks the ability to help other users in a future update.' },
+                            'Mentor': { unlock_type: 'credential', type: 'star', requires: { proof: 'Testimonial' }, description: 'Receive a verified testimonial from a mentee.' }
+                        }
+                    }
                 }
             }
         }
     }
 };
 
-window.skillTree ??= skillTree;
+const skillTree = normalizeSkillTreeStructure(rawSkillTree);
+
+if (window.skillTree && typeof window.skillTree === 'object') {
+    window.skillTree = normalizeSkillTreeStructure(window.skillTree);
+} else {
+    window.skillTree = skillTree;
+}
+
+window.SkillTreeUtils = Object.assign({}, window.SkillTreeUtils, {
+    normalizeSkillTreeStructure,
+    migrateLegacySkillTree: (legacyTree, options = {}) => normalizeSkillTreeStructure(legacyTree, { ...options, clone: true }),
+    migrateConstellationToStarSystems,
+    getConstellationStarSystems,
+    getConstellationStarsMap,
+    getConstellationStarEntries,
+    hasConstellationStar,
+    findStarInConstellation
+});
