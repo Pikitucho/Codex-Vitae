@@ -37,7 +37,7 @@ const firebaseConfig = codexConfig.firebaseConfig;
 const BACKEND_SERVER_URL =
     typeof codexConfig.backendUrl === 'string' ? codexConfig.backendUrl.trim() : '';
 const AI_FEATURES_AVAILABLE = BACKEND_SERVER_URL.length > 0;
-const AVATAR_PLACEHOLDER_SRC = 'assets/avatars/ghibli-placeholder.svg';
+const AVATAR_PLACEHOLDER_SRC = 'assets/avatars/heroic-white-male-placeholder.svg';
 
 if (!firebaseConfig || typeof firebaseConfig !== 'object') {
     displayConfigurationError(
@@ -81,6 +81,22 @@ const skillSearchInput = document.getElementById('skill-search-input');
 const skillTreePanControls = document.getElementById('skill-tree-pan-controls');
 const skillPanLeftBtn = document.getElementById('skill-pan-left');
 const skillPanRightBtn = document.getElementById('skill-pan-right');
+
+function updateCapturedPhotoElement(element, imageSrc) {
+    if (!element) {
+        return;
+    }
+
+    const trimmedSrc = typeof imageSrc === 'string' ? imageSrc.trim() : '';
+    const resolvedSrc = trimmedSrc && trimmedSrc !== AVATAR_PLACEHOLDER_SRC
+        ? trimmedSrc
+        : AVATAR_PLACEHOLDER_SRC;
+
+    element.src = resolvedSrc;
+    const isPlaceholder = resolvedSrc === AVATAR_PLACEHOLDER_SRC;
+    element.classList.toggle('avatar-placeholder', isPlaceholder);
+    element.classList.remove('hidden');
+}
 
 const skillTreeUtils = window.SkillTreeUtils || {};
 const resolveConstellationStarsMap = typeof skillTreeUtils.getConstellationStarsMap === 'function'
@@ -665,10 +681,7 @@ async function loadData(userId) {
         const capturedPhoto = document.getElementById('captured-photo');
         const webcamFeed = document.getElementById('webcam-feed');
         const scanButton = document.getElementById('scan-face-btn');
-        if (capturedPhoto) {
-            capturedPhoto.src = characterData.avatarUrl || AVATAR_PLACEHOLDER_SRC;
-            capturedPhoto.classList.remove('hidden');
-        }
+        updateCapturedPhotoElement(capturedPhoto, characterData.avatarUrl);
         if (webcamFeed) {
             webcamFeed.classList.add('hidden');
         }
@@ -891,12 +904,7 @@ async function handleFaceScan() {
             webcamFeed.classList.add('hidden');
             webcamFeed.srcObject = null;
         }
-        if (capturedPhoto) {
-            if (!characterData.avatarUrl) {
-                capturedPhoto.src = AVATAR_PLACEHOLDER_SRC;
-            }
-            capturedPhoto.classList.remove('hidden');
-        }
+        updateCapturedPhotoElement(capturedPhoto, characterData.avatarUrl);
         if (scanButton) {
             scanButton.textContent = characterData.avatarUrl ? 'Update Avatar' : 'Scan Your Face & Body';
             scanButton.disabled = false;
@@ -948,14 +956,7 @@ function updateDashboard() {
     const capturedPhoto = document.getElementById('captured-photo');
     const webcamFeed = document.getElementById('webcam-feed');
     const scanButton = document.getElementById('scan-face-btn');
-    if (capturedPhoto) {
-        if (characterData.avatarUrl) {
-            capturedPhoto.src = characterData.avatarUrl;
-        } else {
-            capturedPhoto.src = AVATAR_PLACEHOLDER_SRC;
-        }
-        capturedPhoto.classList.remove('hidden');
-    }
+    updateCapturedPhotoElement(capturedPhoto, characterData.avatarUrl);
     if (webcamFeed) {
         webcamFeed.classList.add('hidden');
     }

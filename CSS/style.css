@@ -382,6 +382,14 @@ button:active {
     height: 100%;
     position: relative;
     transform: none;
+    padding: 0;
+}
+
+#captured-photo.avatar-placeholder {
+    object-fit: contain;
+    padding: 6%;
+    background: transparent;
+    object-position: bottom center;
 }
 
 /* --- MODALS --- */

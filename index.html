@@ -32,6 +32,26 @@
         <div class="avatar-hero">
             <div class="avatar-display">
                 <video id="webcam-feed" class="avatar-circle hidden" autoplay playsinline></video>
+                <img id="captured-photo" class="avatar-circle avatar-placeholder" src="assets/avatars/heroic-white-male-placeholder.svg" alt="Your Avatar">
+            </div>
+            <canvas id="photo-canvas" class="hidden"></canvas>
+        </div>
+    <div id="app-screen" class="hidden">
+        <h2>Welcome to Your Codex</h2>
+
+        <div id="level-xp-display" class="widget">
+            <div class="flex-between">
+                <p>Level <span id="level-value">1</span></p>
+                <p id="xp-text">0 / 10 Stats</p>
+            </div>
+            <div class="progress-bar-container">
+                <div id="xp-bar" class="progress-bar"></div>
+            </div>
+        </div>
+
+        <div class="avatar-hero">
+            <div class="avatar-display">
+                <video id="webcam-feed" class="avatar-circle hidden" autoplay playsinline></video>
                 <img id="captured-photo" class="avatar-circle" src="assets/avatars/ghibli-placeholder.svg" alt="Your Avatar">
             </div>
             <canvas id="photo-canvas" class="hidden"></canvas>
