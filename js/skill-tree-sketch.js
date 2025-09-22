@@ -10,6 +10,8 @@ function sketch(p) {
     let galaxies = [];
     let constellations = [];
     let stars = [];
+    let navigationToken = 0;
+    let pendingNavigationTimeouts = [];
 
     p.setup = function() {
       const canvas = p.createCanvas(340, 400);
@@ -216,18 +218,31 @@ function sketch(p) {
 
         const starData = constellation.stars;
         const starNames = Object.keys(starData);
+        const unlockedPerks = Array.isArray(characterData?.unlockedPerks)
+            ? characterData.unlockedPerks
+            : [];
+        const stats = characterData?.stats || {};
+
         stars = [];
         for (let i = 0; i < starNames.length; i++) {
             const name = starNames[i];
             const data = starData[name];
             let status = 'locked';
 
-            if (characterData.unlockedPerks && characterData.unlockedPerks.includes(name)) {
+            if (unlockedPerks.includes(name)) {
                 status = 'unlocked';
-            } else if (data.unlock_type === 'perk' && characterData.stats[data.requires.stat] >= data.requires.value) {
-                status = 'available';
+            } else if (data.unlock_type === 'perk') {
+                const requiredStat = data.requires?.stat;
+                const requiredValue = data.requires?.value;
+                const statValue = requiredStat && typeof stats[requiredStat] === 'number'
+                    ? stats[requiredStat]
+                    : null;
+
+                if (statValue !== null && typeof requiredValue === 'number' && statValue >= requiredValue) {
+                    status = 'available';
+                }
             }
-            
+
             const angle = p.TWO_PI / starNames.length * i - p.HALF_PI;
             const radius = 100;
             const x = p.width / 2 + radius * p.cos(angle);
@@ -237,11 +252,22 @@ function sketch(p) {
         }
     }
 
+    function resetNavigationQueue() {
+        if (pendingNavigationTimeouts.length > 0) {
+            for (const timeoutId of pendingNavigationTimeouts) {
+                clearTimeout(timeoutId);
+            }
+            pendingNavigationTimeouts = [];
+        }
+    }
+
     // --- Public function for the back button ---
     p.navigateToPath = function(path) {
         if (!path || !path.galaxy || !skillTree[path.galaxy]) {
             return;
         }
+
+        resetNavigationQueue();
 
         const wantsConstellation = !!path.constellation;
         const wantsStar = path.type === 'star' && !!path.star;
@@ -252,9 +278,13 @@ function sketch(p) {
 
         const steps = [];
         const stepDelay = 240;
+        const currentToken = ++navigationToken;
 
         const scheduleStep = (fn) => {
             steps.push(() => {
+                if (currentToken !== navigationToken) {
+                    return;
+                }
                 fn();
                 if (typeof p.redraw === 'function') {
                     p.redraw();
@@ -286,6 +316,7 @@ function sketch(p) {
                 currentView = 'constellations';
                 if (selectedGalaxy !== path.galaxy) {
                     selectedGalaxy = path.galaxy;
+                    selectedConstellation = null;
                 }
                 prepareConstellationData();
             });
@@ -314,14 +345,17 @@ function sketch(p) {
             return;
         }
 
-        let accumulatedDelay = 0;
-        steps.forEach(step => {
-            setTimeout(step, accumulatedDelay);
-            accumulatedDelay += stepDelay;
-        });
+        steps[0]();
+
+        for (let i = 1; i < steps.length; i++) {
+            const timeoutId = setTimeout(steps[i], i * stepDelay);
+            pendingNavigationTimeouts.push(timeoutId);
+        }
     };
 
     p.goBack = function() {
+        resetNavigationQueue();
+        navigationToken++;
         if (currentView === 'stars') {
             currentView = 'constellations';
         } else if (currentView === 'constellations') {

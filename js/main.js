@@ -526,56 +526,203 @@ function findSkillTreePath(query) {
         return null;
     }
 
-    const normalized = query.trim().toLowerCase();
+    const rawQuery = query.trim();
+    const normalized = rawQuery.toLowerCase();
     if (!normalized) {
         return null;
     }
 
-    let starResult = null;
-    let constellationResult = null;
-    let galaxyResult = null;
+    const hasHierarchyDelimiters = /(?:->|>|\/)/.test(rawQuery);
+
+    const pickBestMatch = (names, segment) => {
+        const exactMatches = [];
+        const partialMatches = [];
+        const normalizedSegment = segment.toLowerCase();
+
+        for (const name of names) {
+            const normalizedName = name.toLowerCase();
+            if (normalizedName === normalizedSegment) {
+                exactMatches.push(name);
+            } else if (normalizedName.includes(normalizedSegment)) {
+                partialMatches.push(name);
+            }
+        }
+
+        if (exactMatches.length > 0) {
+            return { name: exactMatches[0], matchQuality: 'exact' };
+        }
+        if (partialMatches.length > 0) {
+            return { name: partialMatches[0], matchQuality: 'partial' };
+        }
+        return null;
+    };
+
+    const tryResolveHierarchicalQuery = () => {
+        if (!hasHierarchyDelimiters) {
+            return null;
+        }
+
+        const segments = rawQuery
+            .split(/(?:->|>|\/)/)
+            .map(segment => segment.trim())
+            .filter(Boolean);
+
+        if (segments.length <= 1) {
+            return null;
+        }
+
+        const galaxyMatch = pickBestMatch(Object.keys(skillTree), segments[0]);
+        if (!galaxyMatch) {
+            return null;
+        }
+
+        const result = {
+            type: 'galaxy',
+            galaxy: galaxyMatch.name,
+            label: galaxyMatch.name,
+            matchQuality: galaxyMatch.matchQuality
+        };
+
+        if (segments.length === 1) {
+            return result;
+        }
+
+        const constellations = skillTree[galaxyMatch.name]?.constellations || {};
+        const constellationMatch = pickBestMatch(Object.keys(constellations), segments[1]);
+        if (!constellationMatch) {
+            return null;
+        }
+
+        result.type = 'constellation';
+        result.constellation = constellationMatch.name;
+        result.label = constellationMatch.name;
+        if (result.matchQuality === 'exact' && constellationMatch.matchQuality === 'partial') {
+            result.matchQuality = 'partial';
+        }
+
+        if (segments.length === 2) {
+            return result;
+        }
+
+        const stars = constellations[constellationMatch.name]?.stars || {};
+        const starMatch = pickBestMatch(Object.keys(stars), segments[2]);
+        if (!starMatch) {
+            return null;
+        }
+
+        result.type = 'star';
+        result.star = starMatch.name;
+        result.label = starMatch.name;
+        if (result.matchQuality === 'exact' && starMatch.matchQuality === 'partial') {
+            result.matchQuality = 'partial';
+        }
+
+        return result;
+    };
+
+    const hierarchicalResult = tryResolveHierarchicalQuery();
+    if (hierarchicalResult) {
+        return hierarchicalResult;
+    }
+
+    const matches = {
+        starExact: [],
+        starPartial: [],
+        constellationExact: [],
+        constellationPartial: [],
+        galaxyExact: [],
+        galaxyPartial: []
+    };
 
     for (const [galaxyName, galaxyData] of Object.entries(skillTree)) {
-        if (!galaxyResult && galaxyName.toLowerCase().includes(normalized)) {
-            galaxyResult = { type: 'galaxy', galaxy: galaxyName, label: galaxyName };
+        const galaxyNormalized = galaxyName.toLowerCase();
+        if (galaxyNormalized === normalized) {
+            matches.galaxyExact.push({
+                type: 'galaxy',
+                galaxy: galaxyName,
+                label: galaxyName,
+                matchQuality: 'exact'
+            });
+        } else if (galaxyNormalized.includes(normalized)) {
+            matches.galaxyPartial.push({
+                type: 'galaxy',
+                galaxy: galaxyName,
+                label: galaxyName,
+                matchQuality: 'partial'
+            });
         }
 
         const constellationEntries = Object.entries(galaxyData.constellations || {});
         for (const [constellationName, constellationData] of constellationEntries) {
-            if (!constellationResult && constellationName.toLowerCase().includes(normalized)) {
-                constellationResult = {
+            const constellationNormalized = constellationName.toLowerCase();
+            if (constellationNormalized === normalized) {
+                matches.constellationExact.push({
                     type: 'constellation',
                     galaxy: galaxyName,
                     constellation: constellationName,
-                    label: constellationName
-                };
+                    label: constellationName,
+                    matchQuality: 'exact'
+                });
+            } else if (constellationNormalized.includes(normalized)) {
+                matches.constellationPartial.push({
+                    type: 'constellation',
+                    galaxy: galaxyName,
+                    constellation: constellationName,
+                    label: constellationName,
+                    matchQuality: 'partial'
+                });
             }
 
             const starEntries = Object.keys(constellationData.stars || {});
             for (const starName of starEntries) {
-                if (starName.toLowerCase().includes(normalized)) {
-                    if (!starResult) {
-                        starResult = {
-                            type: 'star',
-                            galaxy: galaxyName,
-                            constellation: constellationName,
-                            star: starName,
-                            label: starName
-                        };
-                    }
+                const starNormalized = starName.toLowerCase();
+                if (starNormalized === normalized) {
+                    matches.starExact.push({
+                        type: 'star',
+                        galaxy: galaxyName,
+                        constellation: constellationName,
+                        star: starName,
+                        label: starName,
+                        matchQuality: 'exact'
+                    });
+                } else if (starNormalized.includes(normalized)) {
+                    matches.starPartial.push({
+                        type: 'star',
+                        galaxy: galaxyName,
+                        constellation: constellationName,
+                        star: starName,
+                        label: starName,
+                        matchQuality: 'partial'
+                    });
                 }
             }
         }
     }
 
-    return starResult || constellationResult || galaxyResult;
+    const priorityOrder = [
+        matches.starExact,
+        matches.constellationExact,
+        matches.galaxyExact,
+        matches.starPartial,
+        matches.constellationPartial,
+        matches.galaxyPartial
+    ];
+
+    for (const bucket of priorityOrder) {
+        if (bucket.length > 0) {
+            return bucket[0];
+        }
+    }
+
+    return null;
 }
 
 function requestSkillPath(path) {
     if (!path || !myp5 || typeof myp5.navigateToPath !== 'function') {
-        return;
+        return false;
     }
     myp5.navigateToPath(path);
+    return true;
 }
 
 window.requestSkillPath = requestSkillPath;
@@ -648,6 +795,7 @@ function setupEventListeners() {
                 if (auth.currentUser) {
                     saveData();
                 }
+                skillSearchInput.removeAttribute('title');
                 toggleSearchFocus(false);
                 return;
             }
@@ -656,6 +804,7 @@ function setupEventListeners() {
 
             if (!result) {
                 showToast('No matching skill found.');
+                skillSearchInput.removeAttribute('title');
                 return;
             }
 
@@ -665,17 +814,33 @@ function setupEventListeners() {
                 timestamp: Date.now()
             };
 
+            const navigationStarted = requestSkillPath(target);
+            if (!navigationStarted) {
+                showToast('Unable to navigate to the selected result.');
+                return;
+            }
+
+            if (result.matchQuality === 'partial') {
+                skillSearchInput.setAttribute('title', `Showing closest match: ${target.label}`);
+            } else {
+                skillSearchInput.removeAttribute('title');
+            }
+
             characterData.skillSearchTarget = target;
             if (auth.currentUser) {
                 saveData();
             }
 
-            requestSkillPath(target);
             skillSearchInput.blur();
         });
 
         skillSearchInput.addEventListener('focus', () => toggleSearchFocus(true));
         skillSearchInput.addEventListener('blur', () => toggleSearchFocus(false));
+        skillSearchInput.addEventListener('input', () => {
+            if (skillSearchInput.title) {
+                skillSearchInput.removeAttribute('title');
+            }
+        });
     }
     document.getElementById('scan-face-btn').addEventListener('click', handleFaceScan);
 
