@@ -79,7 +79,7 @@ function sketch(p) {
                 if (p.dist(p.mouseX, p.mouseY, constellation.x, constellation.y) < constellation.size / 2) {
                     currentView = 'stars';
                     selectedConstellation = constellation.name;
-                    p.prepareStarData(); // Use public function
+                    p.prepareStarData();
                     break;
                 }
             }
@@ -112,7 +112,6 @@ function sketch(p) {
     }
 
     function drawConstellations() {
-        applyConstellationOffset();
         for (const constellation of constellations) {
             drawCelestialBody(constellation.name, constellation.x, constellation.y, constellation.size, 'constellation');
         }
@@ -257,19 +256,21 @@ function sketch(p) {
         }
 
         const previousOffset = constellationOffsetX;
-        constellationOffsetX = newOffset;
-        applyConstellationOffset();
-        if (forceRedraw || constellationOffsetX !== previousOffset) {
+        const clampedOffset = clampOffsetValue(newOffset);
+
+        if (!forceRedraw && clampedOffset === previousOffset) {
+            return;
+        }
+
+        constellationOffsetX = clampedOffset;
+        updateConstellationPositions();
+
+        if (forceRedraw || clampedOffset !== previousOffset) {
             p.redraw();
         }
     }
 
-    function applyConstellationOffset() {
-        if (!constellations.length) {
-            return;
-        }
-
-        constellationOffsetX = clampOffsetValue(constellationOffsetX);
+    function updateConstellationPositions() {
         for (const constellation of constellations) {
             constellation.x = constellation.baseX + constellationOffsetX;
         }
@@ -298,10 +299,16 @@ function sketch(p) {
         const minBaseX = Math.min(...basePositions);
         const maxBaseX = Math.max(...basePositions);
 
-        constellationOffsetBounds = {
-            min: -CONSTELLATION_VISIBLE_MARGIN - maxBaseX,
-            max: p.width + CONSTELLATION_VISIBLE_MARGIN - minBaseX
-        };
+        const margin = Math.max(0, CONSTELLATION_VISIBLE_MARGIN);
+        const minOffset = -maxBaseX + margin;
+        const maxOffset = p.width - minBaseX - margin;
+
+        if (minOffset > maxOffset) {
+            const centeredOffset = (minOffset + maxOffset) / 2;
+            constellationOffsetBounds = { min: centeredOffset, max: centeredOffset };
+        } else {
+            constellationOffsetBounds = { min: minOffset, max: maxOffset };
+        }
     }
 
     function isMouseInsideCanvas() {
