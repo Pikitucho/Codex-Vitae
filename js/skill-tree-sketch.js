@@ -27,14 +27,125 @@ function sketch(p) {
     const DRAG_ACTIVATION_THRESHOLD = 4;
     const WHEEL_PAN_MULTIPLIER = 0.5;
     const STAR_RING_RADIUS = 100;
+    const MIN_CANVAS_WIDTH = 320;
+    const MIN_CANVAS_HEIGHT = 320;
+
+    function calculateCanvasDimensions() {
+        const container = typeof document !== 'undefined'
+            ? document.getElementById('skill-tree-canvas-container')
+            : null;
+        const viewportWidth = typeof window !== 'undefined' && typeof window.innerWidth === 'number'
+            ? window.innerWidth
+            : MIN_CANVAS_WIDTH;
+        const viewportHeight = typeof window !== 'undefined' && typeof window.innerHeight === 'number'
+            ? window.innerHeight
+            : MIN_CANVAS_HEIGHT;
+        const fallbackWidth = Math.max(Math.floor(viewportWidth * 0.8), MIN_CANVAS_WIDTH);
+        const fallbackHeight = Math.max(Math.floor(viewportHeight * 0.7), MIN_CANVAS_HEIGHT);
+
+        if (container) {
+            const rect = container.getBoundingClientRect();
+            let width = Math.floor(rect.width);
+            let height = Math.floor(rect.height);
+
+            if (!width || !height) {
+                width = Math.max(width, Math.floor(container.clientWidth));
+                height = Math.max(height, Math.floor(container.clientHeight));
+            }
+
+            if ((!width || !height) && container.parentElement) {
+                const parentRect = container.parentElement.getBoundingClientRect();
+                width = width || Math.floor(parentRect.width);
+                height = height || Math.floor(parentRect.height);
+            }
+
+            if (width > 0 && height > 0) {
+                return {
+                    width: Math.max(width, MIN_CANVAS_WIDTH),
+                    height: Math.max(height, MIN_CANVAS_HEIGHT)
+                };
+            }
+        }
+
+        return {
+            width: fallbackWidth,
+            height: fallbackHeight
+        };
+    }
+
+    function resizeCanvasToContainer() {
+        const dimensions = calculateCanvasDimensions();
+        const newWidth = Math.max(1, Math.round(dimensions.width));
+        const newHeight = Math.max(1, Math.round(dimensions.height));
+
+        if (newWidth !== p.width || newHeight !== p.height) {
+            p.resizeCanvas(newWidth, newHeight);
+            return true;
+        }
+
+        return false;
+    }
+
+    function recalculateLayoutAfterResize() {
+        const activeGalaxy = selectedGalaxy && window.skillTree?.[selectedGalaxy];
+        const previousConstellation = selectedConstellation;
+        const previousOffset = constellationOffsetX;
+        const wasStarView = currentView === 'stars';
+
+        prepareGalaxyData();
+
+        if (!activeGalaxy) {
+            if (currentView !== 'galaxies') {
+                currentView = 'galaxies';
+            }
+            selectedGalaxy = null;
+            selectedConstellation = null;
+            constellations = [];
+            stars = [];
+            p.redraw();
+            return;
+        }
+
+        prepareConstellationData();
+
+        if (previousConstellation && constellations.some(constellation => constellation.name === previousConstellation)) {
+            selectedConstellation = previousConstellation;
+        }
+
+        if (constellations.length) {
+            setConstellationOffset(previousOffset, true);
+        }
+
+        if (wasStarView) {
+            if (selectedConstellation) {
+                p.prepareStarData();
+            } else {
+                currentView = 'constellations';
+                p.redraw();
+            }
+        } else {
+            p.redraw();
+        }
+    }
 
     p.setup = function() {
-        const canvas = p.createCanvas(340, 400);
+        const { width, height } = calculateCanvasDimensions();
+        const canvas = p.createCanvas(width, height);
         canvas.parent('skill-tree-canvas-container');
         p.textFont('Segoe UI');
         p.noLoop();
         prepareGalaxyData();
         p.redraw();
+    };
+
+    p.windowResized = function() {
+        resizeCanvasToContainer();
+        recalculateLayoutAfterResize();
+    };
+
+    p.handleResize = function() {
+        resizeCanvasToContainer();
+        recalculateLayoutAfterResize();
     };
 
     p.draw = function() {
