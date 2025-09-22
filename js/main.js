@@ -77,6 +77,11 @@ const appScreen = document.getElementById('app-screen');
 const skillsModal = document.getElementById('skills-modal');
 const skillTreeTitle = document.getElementById('skill-tree-title');
 const skillBackBtn = document.getElementById('skill-back-btn');
+const starDetailController = createStarDetailController();
+
+window.handleStarSelection = function(star) {
+    starDetailController.show(star);
+};
 
 // --- Global Data Variables ---
 let characterData = {};
@@ -84,6 +89,7 @@ let gameManager = {};
 let currentSkillPath = [];
 let listenersInitialized = false;
 let lastAuthAction = null;
+let myp5 = null;
 
 // --- Manager Logic ---
 const levelManager = {
@@ -232,6 +238,7 @@ async function loadData(userId) {
             statsToNextLevel: loadedCharacterData.statsToNextLevel || 10,
             skillPoints: loadedCharacterData.skillPoints || 0,
             unlockedPerks: loadedCharacterData.unlockedPerks || [],
+            verifiedCredentials: loadedCharacterData.verifiedCredentials || [],
             monthlyActivityLog: loadedCharacterData.monthlyActivityLog || [],
             activityLogMonth: loadedCharacterData.activityLogMonth || (new Date().getFullYear() + '-' + (new Date().getMonth() + 1)),
             monthlyPerkClaimed: loadedCharacterData.monthlyPerkClaimed || false,
@@ -344,6 +351,7 @@ function calculateStartingStats() {
         activityLogMonth: `${now.getFullYear()}-${now.getMonth() + 1}`,
         monthlyPerkClaimed: false,
         chores: [],
+        verifiedCredentials: [],
         onboardingComplete: true
     };
 }
@@ -480,30 +488,50 @@ function updateDashboard() {
 }
 
 function unlockPerk(perkName, perkData) {
-    if (characterData.skillPoints < 1) {
-        showToast("Not enough Perk Points!");
-        return;
+    if (!characterData || !perkData) {
+        return false;
     }
+
+    if (!Array.isArray(characterData.unlockedPerks)) {
+        characterData.unlockedPerks = [];
+    }
+
     if (characterData.unlockedPerks.includes(perkName)) {
         showToast("Perk already unlocked!");
-        return;
+        return false;
     }
-    if (characterData.stats[perkData.requires.stat] < perkData.requires.value) {
+
+    if ((characterData.skillPoints || 0) < 1) {
+        showToast("Not enough Perk Points!");
+        return false;
+    }
+
+    const required = perkData.requires || {};
+    const requiredStat = required.stat;
+    const requiredValue = typeof required.value === 'number' ? required.value : null;
+    const currentValue = requiredStat ? characterData.stats?.[requiredStat] ?? 0 : null;
+
+    if (requiredStat && requiredValue !== null && currentValue < requiredValue) {
         showToast("Stat requirements not met!");
-        return;
+        return false;
     }
 
     characterData.skillPoints--;
     characterData.unlockedPerks.push(perkName);
     showToast(`Perk Unlocked: ${perkName}!`);
-    
+
     if (myp5) {
         myp5.prepareStarData();
     }
     updateDashboard();
+    return true;
 }
 
-function openSkillsModal() { 
+function openSkillsModal() {
+    starDetailController.hide();
+    if (myp5 && typeof myp5.prepareStarData === 'function') {
+        myp5.prepareStarData();
+    }
     skillsModal.classList.remove('hidden');
 }
 
@@ -513,8 +541,248 @@ function updateSkillTreeUI(title, breadcrumbs, showBack) {
     skillBackBtn.classList.toggle('hidden', !showBack);
 }
 
-function showToast(message) { 
+function showToast(message) {
     alert(message);
+}
+
+function determineStarStatus(starName, starData) {
+    if (!starData || !characterData) {
+        return 'locked';
+    }
+
+    if (starData.unlock_type === 'perk') {
+        if (Array.isArray(characterData.unlockedPerks) && characterData.unlockedPerks.includes(starName)) {
+            return 'unlocked';
+        }
+
+        const requiredStat = starData.requires?.stat;
+        const requiredValue = typeof starData.requires?.value === 'number' ? starData.requires.value : null;
+        const currentValue = requiredStat ? characterData.stats?.[requiredStat] ?? 0 : null;
+
+        if (requiredStat && requiredValue !== null && currentValue >= requiredValue) {
+            return 'available';
+        }
+
+        return 'locked';
+    }
+
+    if (starData.unlock_type === 'credential') {
+        if (Array.isArray(characterData.verifiedCredentials) && characterData.verifiedCredentials.includes(starName)) {
+            return 'unlocked';
+        }
+        return 'locked';
+    }
+
+    return 'locked';
+}
+
+function createStarDetailController() {
+    const panel = document.getElementById('star-detail-panel');
+    const titleEl = document.getElementById('star-detail-title');
+    const locationEl = document.getElementById('star-detail-location');
+    const artEl = document.getElementById('star-detail-art');
+    const descriptionEl = document.getElementById('star-detail-description');
+    const requirementsEl = document.getElementById('star-detail-requirements');
+    const unlockBtn = document.getElementById('star-unlock-btn');
+    const proofBtn = document.getElementById('star-proof-btn');
+    const closeBtn = document.getElementById('star-detail-close');
+
+    if (!panel || !titleEl || !artEl || !descriptionEl || !requirementsEl || !unlockBtn || !proofBtn || !closeBtn) {
+        console.warn('Star detail panel elements are missing from the DOM.');
+        return {
+            show: () => {},
+            hide: () => {},
+            refresh: () => {}
+        };
+    }
+
+    let activeStar = null;
+
+    const formatStatName = (stat) => {
+        if (!stat || typeof stat !== 'string') {
+            return '';
+        }
+        return stat.charAt(0).toUpperCase() + stat.slice(1);
+    };
+
+    const computeInitials = (name) => {
+        if (!name) {
+            return '★';
+        }
+        const initials = name
+            .split(/\s+/)
+            .filter(Boolean)
+            .map(part => part[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase();
+        return initials || '★';
+    };
+
+    const buildLocationLabel = (star) => {
+        const parts = [];
+        if (star?.galaxy) {
+            parts.push(star.galaxy);
+        }
+        if (star?.constellation) {
+            parts.push(star.constellation);
+        }
+        return parts.join(' • ');
+    };
+
+    const refreshCanvas = () => {
+        if (myp5 && typeof myp5.prepareStarData === 'function') {
+            myp5.prepareStarData();
+        }
+    };
+
+    const updateStatus = () => {
+        if (!activeStar) {
+            return;
+        }
+        activeStar.status = determineStarStatus(activeStar.name, activeStar.data);
+        if (activeStar.status) {
+            panel.dataset.status = activeStar.status;
+        } else {
+            delete panel.dataset.status;
+        }
+    };
+
+    const renderActions = () => {
+        if (!activeStar) {
+            requirementsEl.innerHTML = '';
+            unlockBtn.classList.add('hidden');
+            proofBtn.classList.add('hidden');
+            return;
+        }
+
+        const { data, status } = activeStar;
+
+        if (data.unlock_type === 'perk') {
+            unlockBtn.classList.remove('hidden');
+            proofBtn.classList.add('hidden');
+            const requires = data.requires || {};
+            const statName = formatStatName(requires.stat);
+            const requiredValue = typeof requires.value === 'number' ? requires.value : null;
+            const currentValue = requires.stat ? characterData.stats?.[requires.stat] ?? 0 : null;
+            const availablePoints = characterData.skillPoints || 0;
+
+            const requirementLines = [];
+            if (requires.stat && requiredValue !== null) {
+                let line = `<strong>Requires:</strong> ${requiredValue} ${statName}`;
+                if (currentValue !== null) {
+                    line += ` (Current: ${currentValue})`;
+                }
+                requirementLines.push(`<p>${line}</p>`);
+            } else {
+                requirementLines.push('<p><strong>Requires:</strong> No stat requirement</p>');
+            }
+            requirementLines.push(`<p><strong>Cost:</strong> 1 Perk Point (Available: ${availablePoints})</p>`);
+
+            requirementsEl.innerHTML = requirementLines.join('');
+
+            if (status === 'unlocked') {
+                unlockBtn.textContent = 'Perk Unlocked';
+                unlockBtn.disabled = true;
+            } else {
+                unlockBtn.textContent = 'Unlock Perk';
+                unlockBtn.disabled = status !== 'available';
+            }
+        } else if (data.unlock_type === 'credential') {
+            unlockBtn.classList.add('hidden');
+            proofBtn.classList.remove('hidden');
+            const proofRequirement = data.requires?.proof || 'Provide verification';
+            requirementsEl.innerHTML = `<p><strong>Verification:</strong> ${proofRequirement}</p>`;
+
+            if (status === 'unlocked') {
+                proofBtn.textContent = 'Credential Verified';
+                proofBtn.disabled = true;
+            } else {
+                proofBtn.textContent = 'Provide Proof';
+                proofBtn.disabled = false;
+            }
+        } else {
+            unlockBtn.classList.add('hidden');
+            proofBtn.classList.add('hidden');
+            requirementsEl.innerHTML = '';
+        }
+    };
+
+    const showPanel = (star) => {
+        activeStar = {
+            ...star,
+            status: determineStarStatus(star.name, star.data)
+        };
+
+        if (activeStar.status) {
+            panel.dataset.status = activeStar.status;
+        } else {
+            delete panel.dataset.status;
+        }
+
+        titleEl.textContent = star.name;
+        const locationLabel = buildLocationLabel(star);
+        locationEl.textContent = locationLabel;
+        locationEl.classList.toggle('hidden', !locationLabel);
+        artEl.textContent = computeInitials(star.name);
+        descriptionEl.textContent = star.data?.description || 'No description available.';
+        panel.classList.remove('hidden');
+        panel.setAttribute('aria-hidden', 'false');
+
+        renderActions();
+    };
+
+    const hidePanel = () => {
+        const wasVisible = !panel.classList.contains('hidden');
+        panel.classList.add('hidden');
+        panel.setAttribute('aria-hidden', 'true');
+        delete panel.dataset.status;
+        activeStar = null;
+        unlockBtn.disabled = false;
+        proofBtn.disabled = false;
+        proofBtn.classList.add('hidden');
+        if (wasVisible) {
+            refreshCanvas();
+        }
+    };
+
+    closeBtn.addEventListener('click', hidePanel);
+
+    unlockBtn.addEventListener('click', () => {
+        if (!activeStar || activeStar.data.unlock_type !== 'perk') {
+            return;
+        }
+
+        const unlocked = unlockPerk(activeStar.name, activeStar.data);
+        updateStatus();
+        if (unlocked) {
+            hidePanel();
+        } else {
+            renderActions();
+        }
+    });
+
+    proofBtn.addEventListener('click', () => {
+        if (!activeStar || activeStar.data.unlock_type !== 'credential') {
+            return;
+        }
+
+        if (activeStar.status === 'unlocked') {
+            return;
+        }
+
+        const proofRequirement = activeStar.data.requires?.proof || 'Credential proof';
+        showToast(`To verify this credential, provide: ${proofRequirement}. Submission support is coming soon.`);
+    });
+
+    return {
+        show: showPanel,
+        hide: hidePanel,
+        refresh() {
+            updateStatus();
+            renderActions();
+        }
+    };
 }
 
 function setupEventListeners() {
@@ -551,9 +819,13 @@ function setupEventListeners() {
         openSkillsModal();
     });
     document.getElementById('codex-logout-btn').addEventListener('click', handleLogout);
-    document.getElementById('close-skills-btn').addEventListener('click', () => document.getElementById('skills-modal').classList.add('hidden'));
-    
+    document.getElementById('close-skills-btn').addEventListener('click', () => {
+        starDetailController.hide();
+        document.getElementById('skills-modal').classList.add('hidden');
+    });
+
     skillBackBtn.addEventListener('click', () => {
+        starDetailController.hide();
         if (myp5) {
             myp5.goBack();
         }
@@ -597,5 +869,5 @@ document.getElementById('signup-btn').addEventListener('click', handleSignUp);
 document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
 
 
-let myp5 = new p5(sketch);
+myp5 = new p5(sketch);
 

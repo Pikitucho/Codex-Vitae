@@ -59,8 +59,17 @@ function sketch(p) {
             }
         } else if (currentView === 'stars') {
             for (const star of stars) {
-                if (star.status === 'available' && p.dist(p.mouseX, p.mouseY, star.x, star.y) < star.size / 2) {
-                    unlockPerk(star.name, star.data); // Call the function in main.js
+                const distance = p.dist(p.mouseX, p.mouseY, star.x, star.y);
+                if (distance < star.size / 2) {
+                    if (typeof handleStarSelection === 'function') {
+                        handleStarSelection({
+                            name: star.name,
+                            data: star.data,
+                            status: star.status,
+                            constellation: selectedConstellation,
+                            galaxy: selectedGalaxy
+                        });
+                    }
                     break;
                 }
             }
@@ -99,11 +108,11 @@ function sketch(p) {
         let distance = p.dist(p.mouseX, p.mouseY, x, y);
         
         // Determine if the cursor should be a hand
-        let isClickable = (type !== 'star' || status === 'available');
-        if (isClickable && distance < size / 2) { 
-            p.cursor(p.HAND); 
-        } else { 
-            p.cursor(p.ARROW); 
+        let isClickable = (type !== 'star') || (distance < size / 2);
+        if (isClickable && distance < size / 2) {
+            p.cursor(p.HAND);
+        } else {
+            p.cursor(p.ARROW);
         }
         
         // Default styles
@@ -173,12 +182,14 @@ function sketch(p) {
             const data = starData[name];
             let status = 'locked';
 
-            if (characterData.unlockedPerks && characterData.unlockedPerks.includes(name)) {
+            if (typeof determineStarStatus === 'function') {
+                status = determineStarStatus(name, data);
+            } else if (characterData.unlockedPerks && characterData.unlockedPerks.includes(name)) {
                 status = 'unlocked';
-            } else if (data.unlock_type === 'perk' && characterData.stats[data.requires.stat] >= data.requires.value) {
+            } else if (data.unlock_type === 'perk' && characterData.stats && characterData.stats[data.requires.stat] >= data.requires.value) {
                 status = 'available';
             }
-            
+
             const angle = p.TWO_PI / starNames.length * i - p.HALF_PI;
             const radius = 100;
             const x = p.width / 2 + radius * p.cos(angle);
