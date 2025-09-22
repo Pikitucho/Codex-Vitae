@@ -1074,7 +1074,7 @@
                 return;
             }
             const { galaxy, constellation, starSystem, star } = this.currentSelection;
-            const breadcrumbs = [{ label: 'All Galaxies' }];
+            const breadcrumbs = [{ label: 'Skill Universe' }];
 
             if (galaxy) {
                 breadcrumbs.push({
@@ -1104,7 +1104,7 @@
                 });
             }
 
-            let title = 'Skill Galaxies';
+            let title = 'Skill Universe';
             if (star) {
                 title = star;
             } else if (starSystem) {
