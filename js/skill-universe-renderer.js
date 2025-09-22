@@ -205,12 +205,24 @@
             this.currentView = 'galaxies';
             this.currentSelection = { galaxy: null, constellation: null, starSystem: null, star: null };
 
+            this.needsUniverseBuild = false;
+
             this._setupLights();
-            this._buildUniverse();
+            const initialSkillTree = this.getSkillTree() || {};
+            if (Object.keys(initialSkillTree).length) {
+                this._buildUniverse();
+            } else {
+                this.needsUniverseBuild = true;
+            }
             this._bindEvents();
             this._updateViewUI();
             this._animate = this._animate.bind(this);
             this._animate();
+        }
+
+        rebuildUniverse() {
+            this._buildUniverse();
+            this.refreshStars();
         }
 
         refreshStars() {
@@ -382,8 +394,11 @@
             const skillTree = this.getSkillTree() || {};
             const galaxyNames = Object.keys(skillTree);
             if (!galaxyNames.length) {
+                this.needsUniverseBuild = true;
                 return;
             }
+
+            this.needsUniverseBuild = false;
 
             galaxyNames.forEach((galaxyName, index) => {
                 const galaxyData = skillTree[galaxyName] || {};
