@@ -32,27 +32,12 @@
         <div class="avatar-hero">
             <div class="avatar-display">
                 <video id="webcam-feed" class="avatar-circle hidden" autoplay playsinline></video>
-                <img id="captured-photo" class="avatar-circle avatar-placeholder" src="assets/avatars/heroic-white-male-placeholder.svg" alt="Your Avatar">
-            </div>
-            <canvas id="photo-canvas" class="hidden"></canvas>
-        </div>
-    <div id="app-screen" class="hidden">
-        <h2>Welcome to Your Codex</h2>
-
-        <div id="level-xp-display" class="widget">
-            <div class="flex-between">
-                <p>Level <span id="level-value">1</span></p>
-                <p id="xp-text">0 / 10 Stats</p>
-            </div>
-            <div class="progress-bar-container">
-                <div id="xp-bar" class="progress-bar"></div>
-            </div>
-        </div>
-
-        <div class="avatar-hero">
-            <div class="avatar-display">
-                <video id="webcam-feed" class="avatar-circle hidden" autoplay playsinline></video>
-                <img id="captured-photo" class="avatar-circle" src="assets/avatars/ghibli-placeholder.svg" alt="Your Avatar">
+                <img
+                    id="captured-photo"
+                    class="avatar-circle avatar-placeholder"
+                    src="assets/avatars/heroic-white-male-placeholder.svg"
+                    alt="Your Avatar"
+                >
             </div>
             <canvas id="photo-canvas" class="hidden"></canvas>
         </div>
@@ -66,13 +51,6 @@
                 <h3>Perk Points: <span id="pp-total">0</span></h3>
             </div>
 
-            <div class="milestone-progress">
-        
-        <div id="perk-point-display" class="widget">
-            <div class="flex-between">
-                <h3>Perk Points: <span id="pp-total">0</span></h3>
-            </div>
-            
             <div class="milestone-progress">
                 <div class="flex-between">
                     <p class="milestone-label">Level Milestone</p>
@@ -127,7 +105,7 @@
         <div id="chore-section" class="widget">
             <h4>Chore Effort</h4>
             <p class="widget-subtitle">Complete chores to gain Stat Fragments. 1,000 Fragments = +1 Stat Point.</p>
-            
+
             <div id="chore-progress-grid">
                 <div class="chore-stat-tracker">
                     <div class="flex-between">
@@ -188,10 +166,10 @@
             <div id="add-chore-input-group" class="input-group">
                 <input type="text" id="chore-input" placeholder="Log a completed chore and press Enter...">
             </div>
-            
+
             <ul id="chore-list"></ul>
         </div>
-        
+
         <div id="activity-log-section" class="widget">
             <h4>Log a Quick Stat Gain</h4>
             <div class="input-group">
