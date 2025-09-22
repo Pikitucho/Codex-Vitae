@@ -174,6 +174,29 @@ function sketch(p) {
     }
 
     p.prepareStarData = function() {
+        if (!selectedGalaxy || !selectedConstellation) {
+            return;
+        }
+
+        const galaxy = skillTree[selectedGalaxy];
+        const constellation = galaxy?.constellations?.[selectedConstellation];
+        const starData = constellation?.stars;
+
+        if (!starData) {
+            return;
+        }
+
+        const starNames = Object.keys(starData);
+        const unlockedPerks = characterData.unlockedPerks || [];
+        const stats = characterData.stats || {};
+        const verifiedProofs = Array.isArray(characterData.verifiedProofs)
+            ? characterData.verifiedProofs
+            : [];
+        const hasSkillPoints = (characterData.skillPoints || 0) > 0;
+
+        stars = [];
+      
+    p.prepareStarData = function() {
         const starData = skillTree[selectedGalaxy].constellations[selectedConstellation].stars;
         const starNames = Object.keys(starData);
         stars = [];
@@ -182,6 +205,29 @@ function sketch(p) {
             const data = starData[name];
             let status = 'locked';
 
+            const requires = data.requires || {};
+            const requiredStat = requires.stat;
+            const requiredValue = requires.value;
+            const hasStatRequirement = requiredStat && requiredValue !== undefined;
+            const statValue = hasStatRequirement ? stats[requiredStat] : null;
+            const meetsStatRequirement = !hasStatRequirement
+                || (typeof statValue === 'number' && statValue >= requiredValue);
+
+            const requiredProof = requires.proof;
+            const hasProofRequirement = typeof requiredProof === 'string' && requiredProof.trim().length > 0;
+            const meetsProofRequirement = !hasProofRequirement || verifiedProofs.includes(name);
+
+            const meetsAllRequirements = meetsStatRequirement && meetsProofRequirement;
+            const requiresSkillPoint = data.unlock_type === 'perk';
+
+            if (unlockedPerks.includes(name)) {
+                status = 'unlocked';
+            } else if (requiresSkillPoint) {
+                if (meetsAllRequirements && hasSkillPoints) {
+                    status = 'available';
+                }
+            } else if (meetsAllRequirements) {
+              
             if (typeof determineStarStatus === 'function') {
                 status = determineStarStatus(name, data);
             } else if (characterData.unlockedPerks && characterData.unlockedPerks.includes(name)) {
@@ -192,6 +238,19 @@ function sketch(p) {
 
             const angle = p.TWO_PI / starNames.length * i - p.HALF_PI;
             const radius = 100;
+            const x = p.width / 2 + radius * p.cos(angle);
+            const y = p.height / 2 + radius * p.sin(angle);
+
+            stars.push({ name: name, data: data, status: status, x: x, y: y, size: 80 });
+        }
+    };
+
+    p.refreshStars = function() {
+        if (currentView === 'stars') {
+            p.prepareStarData();
+        }
+    };
+
             const x = p.width / 2 + radius * p.cos(angle);
             const y = p.height / 2 + radius * p.sin(angle);
 
