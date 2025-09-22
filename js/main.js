@@ -81,6 +81,248 @@ const skillTreePanControls = document.getElementById('skill-tree-pan-controls');
 const skillPanLeftBtn = document.getElementById('skill-pan-left');
 const skillPanRightBtn = document.getElementById('skill-pan-right');
 
+function createStarDetailController() {
+    const panel = document.getElementById('star-detail-panel');
+    const titleEl = document.getElementById('star-detail-title');
+    const locationEl = document.getElementById('star-detail-location');
+    const artEl = document.getElementById('star-detail-art');
+    const descriptionEl = document.getElementById('star-detail-description');
+    const requirementsEl = document.getElementById('star-detail-requirements');
+    const unlockBtn = document.getElementById('star-unlock-btn');
+    const proofBtn = document.getElementById('star-proof-btn');
+    const closeBtn = document.getElementById('star-detail-close');
+
+    if (!panel || !titleEl || !artEl || !descriptionEl || !requirementsEl || !unlockBtn || !proofBtn || !closeBtn) {
+        console.warn('Star detail panel elements are missing from the DOM.');
+        return {
+            show: () => {},
+            hide: () => {},
+            refresh: () => {}
+        };
+    }
+
+    let activeStar = null;
+
+    const formatStatName = (stat) => {
+        if (!stat || typeof stat !== 'string') {
+            return '';
+        }
+        return stat.charAt(0).toUpperCase() + stat.slice(1);
+    };
+
+    const computeInitials = (name) => {
+        if (!name) {
+            return '★';
+        }
+        const initials = name
+            .split(/\s+/)
+            .filter(Boolean)
+            .map(part => part[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase();
+        return initials || '★';
+    };
+
+    const buildLocationLabel = (star) => {
+        const parts = [];
+        if (star?.galaxy) {
+            parts.push(star.galaxy);
+        }
+        if (star?.constellation) {
+            parts.push(star.constellation);
+        }
+        return parts.join(' • ');
+    };
+
+    const refreshCanvas = () => {
+        if (myp5 && typeof myp5.prepareStarData === 'function') {
+            myp5.prepareStarData();
+        }
+    };
+
+    const updateStatus = () => {
+        if (!activeStar) {
+            return;
+        }
+        activeStar.status = determineStarStatus(activeStar.name, activeStar.data);
+        if (activeStar.status) {
+            panel.dataset.status = activeStar.status;
+        } else {
+            delete panel.dataset.status;
+        }
+    };
+
+    const renderActions = () => {
+        if (!activeStar) {
+            requirementsEl.innerHTML = '';
+            unlockBtn.classList.add('hidden');
+            proofBtn.classList.add('hidden');
+            return;
+        }
+
+        const { data, status } = activeStar;
+
+        if (data.unlock_type === 'perk') {
+            unlockBtn.classList.remove('hidden');
+            proofBtn.classList.add('hidden');
+            const requires = data.requires || {};
+            const statName = formatStatName(requires.stat);
+            const requiredValue = typeof requires.value === 'number' ? requires.value : null;
+            const currentValue = requires.stat ? characterData.stats?.[requires.stat] ?? 0 : null;
+            const availablePoints = characterData.skillPoints || 0;
+
+            const requirementLines = [];
+            if (requires.stat && requiredValue !== null) {
+                let line = `<strong>Requires:</strong> ${requiredValue} ${statName}`;
+                if (currentValue !== null) {
+                    line += ` (Current: ${currentValue})`;
+                }
+                requirementLines.push(`<p>${line}</p>`);
+            } else {
+                requirementLines.push('<p><strong>Requires:</strong> No stat requirement</p>');
+            }
+
+            if (requires.skill_points) {
+                requirementLines.push(`<p><strong>Perk Points Needed:</strong> ${requires.skill_points}</p>`);
+            }
+
+            if (requires.perks && Array.isArray(requires.perks) && requires.perks.length > 0) {
+                requirementLines.push(`<p><strong>Requires Unlocking:</strong> ${requires.perks.join(', ')}</p>`);
+            }
+
+            if (availablePoints > 0) {
+                requirementLines.push(`<p>You have ${availablePoints} Perk Point${availablePoints === 1 ? '' : 's'} available.</p>`);
+            }
+
+            requirementsEl.innerHTML = requirementLines.join('');
+            unlockBtn.disabled = availablePoints <= 0;
+            unlockBtn.dataset.starName = activeStar.name;
+        } else if (data.unlock_type === 'credential') {
+            proofBtn.classList.remove('hidden');
+            unlockBtn.classList.add('hidden');
+            const requires = data.requires || {};
+            const requirementLines = [];
+
+            if (requires.proof) {
+                requirementLines.push(`<p><strong>Proof Needed:</strong> ${requires.proof}</p>`);
+            } else {
+                requirementLines.push('<p><strong>Proof Needed:</strong> Credential verification required.</p>');
+            }
+
+            if (requires.description) {
+                requirementLines.push(`<p>${requires.description}</p>`);
+            }
+
+            if (status === 'unlocked') {
+                requirementLines.push('<p class="success">Credential verified!</p>');
+                proofBtn.disabled = true;
+            } else {
+                proofBtn.disabled = false;
+            }
+
+            requirementsEl.innerHTML = requirementLines.join('');
+            proofBtn.dataset.starName = activeStar.name;
+        } else {
+            unlockBtn.classList.add('hidden');
+            proofBtn.classList.add('hidden');
+            requirementsEl.innerHTML = '<p>No unlock actions available.</p>';
+        }
+    };
+
+    const renderPanel = () => {
+        if (!activeStar) {
+            return;
+        }
+
+        const { name, data } = activeStar;
+        panel.classList.remove('hidden');
+        panel.setAttribute('aria-hidden', 'false');
+
+        titleEl.textContent = name;
+        locationEl.textContent = buildLocationLabel(data);
+        descriptionEl.textContent = data.description || 'No description provided yet.';
+        panel.dataset.status = activeStar.status || '';
+
+        if (data.image) {
+            artEl.style.backgroundImage = `url(${data.image})`;
+            artEl.textContent = '';
+        } else {
+            artEl.style.backgroundImage = '';
+            artEl.textContent = computeInitials(name);
+        }
+
+        renderActions();
+    };
+
+    const showPanel = (star) => {
+        if (!star || !star.data) {
+            hidePanel();
+            return;
+        }
+
+        activeStar = {
+            name: star.name,
+            data: star.data,
+            status: star.status || determineStarStatus(star.name, star.data)
+        };
+
+        renderPanel();
+    };
+
+    const hidePanel = () => {
+        const wasVisible = !panel.classList.contains('hidden');
+        panel.classList.add('hidden');
+        panel.setAttribute('aria-hidden', 'true');
+        delete panel.dataset.status;
+        activeStar = null;
+        unlockBtn.disabled = false;
+        proofBtn.disabled = false;
+        proofBtn.classList.add('hidden');
+        if (wasVisible) {
+            refreshCanvas();
+        }
+    };
+
+    closeBtn.addEventListener('click', hidePanel);
+
+    unlockBtn.addEventListener('click', () => {
+        if (!activeStar || activeStar.data.unlock_type !== 'perk') {
+            return;
+        }
+
+        const unlocked = unlockPerk(activeStar.name, activeStar.data);
+        updateStatus();
+        if (unlocked) {
+            hidePanel();
+        } else {
+            renderActions();
+        }
+    });
+
+    proofBtn.addEventListener('click', () => {
+        if (!activeStar || activeStar.data.unlock_type !== 'credential') {
+            return;
+        }
+
+        if (activeStar.status === 'unlocked') {
+            return;
+        }
+
+        const proofRequirement = activeStar.data.requires?.proof || 'Credential proof';
+        showToast(`To verify this credential, provide: ${proofRequirement}. Submission support is coming soon.`);
+    });
+
+    return {
+        show: showPanel,
+        hide: hidePanel,
+        refresh() {
+            updateStatus();
+            renderActions();
+        }
+    };
+}
+
 const CONSTELLATION_PAN_NUDGE = 80;
 
 const starDetailController = createStarDetailController();
@@ -1020,214 +1262,6 @@ function determineStarStatus(starName, starData) {
     return 'locked';
 }
 
-function createStarDetailController() {
-    const panel = document.getElementById('star-detail-panel');
-    const titleEl = document.getElementById('star-detail-title');
-    const locationEl = document.getElementById('star-detail-location');
-    const artEl = document.getElementById('star-detail-art');
-    const descriptionEl = document.getElementById('star-detail-description');
-    const requirementsEl = document.getElementById('star-detail-requirements');
-    const unlockBtn = document.getElementById('star-unlock-btn');
-    const proofBtn = document.getElementById('star-proof-btn');
-    const closeBtn = document.getElementById('star-detail-close');
-
-    if (!panel || !titleEl || !artEl || !descriptionEl || !requirementsEl || !unlockBtn || !proofBtn || !closeBtn) {
-        console.warn('Star detail panel elements are missing from the DOM.');
-        return {
-            show: () => {},
-            hide: () => {},
-            refresh: () => {}
-        };
-    }
-
-    let activeStar = null;
-
-    const formatStatName = (stat) => {
-        if (!stat || typeof stat !== 'string') {
-            return '';
-        }
-        return stat.charAt(0).toUpperCase() + stat.slice(1);
-    };
-
-    const computeInitials = (name) => {
-        if (!name) {
-            return '★';
-        }
-        const initials = name
-            .split(/\s+/)
-            .filter(Boolean)
-            .map(part => part[0])
-            .join('')
-            .slice(0, 2)
-            .toUpperCase();
-        return initials || '★';
-    };
-
-    const buildLocationLabel = (star) => {
-        const parts = [];
-        if (star?.galaxy) {
-            parts.push(star.galaxy);
-        }
-        if (star?.constellation) {
-            parts.push(star.constellation);
-        }
-        return parts.join(' • ');
-    };
-
-    const refreshCanvas = () => {
-        if (myp5 && typeof myp5.prepareStarData === 'function') {
-            myp5.prepareStarData();
-        }
-    };
-
-    const updateStatus = () => {
-        if (!activeStar) {
-            return;
-        }
-        activeStar.status = determineStarStatus(activeStar.name, activeStar.data);
-        if (activeStar.status) {
-            panel.dataset.status = activeStar.status;
-        } else {
-            delete panel.dataset.status;
-        }
-    };
-
-    const renderActions = () => {
-        if (!activeStar) {
-            requirementsEl.innerHTML = '';
-            unlockBtn.classList.add('hidden');
-            proofBtn.classList.add('hidden');
-            return;
-        }
-
-        const { data, status } = activeStar;
-
-        if (data.unlock_type === 'perk') {
-            unlockBtn.classList.remove('hidden');
-            proofBtn.classList.add('hidden');
-            const requires = data.requires || {};
-            const statName = formatStatName(requires.stat);
-            const requiredValue = typeof requires.value === 'number' ? requires.value : null;
-            const currentValue = requires.stat ? characterData.stats?.[requires.stat] ?? 0 : null;
-            const availablePoints = characterData.skillPoints || 0;
-
-            const requirementLines = [];
-            if (requires.stat && requiredValue !== null) {
-                let line = `<strong>Requires:</strong> ${requiredValue} ${statName}`;
-                if (currentValue !== null) {
-                    line += ` (Current: ${currentValue})`;
-                }
-                requirementLines.push(`<p>${line}</p>`);
-            } else {
-                requirementLines.push('<p><strong>Requires:</strong> No stat requirement</p>');
-            }
-            requirementLines.push(`<p><strong>Cost:</strong> 1 Perk Point (Available: ${availablePoints})</p>`);
-
-            requirementsEl.innerHTML = requirementLines.join('');
-
-            if (status === 'unlocked') {
-                unlockBtn.textContent = 'Perk Unlocked';
-                unlockBtn.disabled = true;
-            } else {
-                unlockBtn.textContent = 'Unlock Perk';
-                unlockBtn.disabled = status !== 'available';
-            }
-        } else if (data.unlock_type === 'credential') {
-            unlockBtn.classList.add('hidden');
-            proofBtn.classList.remove('hidden');
-            const proofRequirement = data.requires?.proof || 'Provide verification';
-            requirementsEl.innerHTML = `<p><strong>Verification:</strong> ${proofRequirement}</p>`;
-
-            if (status === 'unlocked') {
-                proofBtn.textContent = 'Credential Verified';
-                proofBtn.disabled = true;
-            } else {
-                proofBtn.textContent = 'Provide Proof';
-                proofBtn.disabled = false;
-            }
-        } else {
-            unlockBtn.classList.add('hidden');
-            proofBtn.classList.add('hidden');
-            requirementsEl.innerHTML = '';
-        }
-    };
-
-    const showPanel = (star) => {
-        activeStar = {
-            ...star,
-            status: determineStarStatus(star.name, star.data)
-        };
-
-        if (activeStar.status) {
-            panel.dataset.status = activeStar.status;
-        } else {
-            delete panel.dataset.status;
-        }
-
-        titleEl.textContent = star.name;
-        const locationLabel = buildLocationLabel(star);
-        locationEl.textContent = locationLabel;
-        locationEl.classList.toggle('hidden', !locationLabel);
-        artEl.textContent = computeInitials(star.name);
-        descriptionEl.textContent = star.data?.description || 'No description available.';
-        panel.classList.remove('hidden');
-        panel.setAttribute('aria-hidden', 'false');
-
-        renderActions();
-    };
-
-    const hidePanel = () => {
-        const wasVisible = !panel.classList.contains('hidden');
-        panel.classList.add('hidden');
-        panel.setAttribute('aria-hidden', 'true');
-        delete panel.dataset.status;
-        activeStar = null;
-        unlockBtn.disabled = false;
-        proofBtn.disabled = false;
-        proofBtn.classList.add('hidden');
-        if (wasVisible) {
-            refreshCanvas();
-        }
-    };
-
-    closeBtn.addEventListener('click', hidePanel);
-
-    unlockBtn.addEventListener('click', () => {
-        if (!activeStar || activeStar.data.unlock_type !== 'perk') {
-            return;
-        }
-
-        const unlocked = unlockPerk(activeStar.name, activeStar.data);
-        updateStatus();
-        if (unlocked) {
-            hidePanel();
-        } else {
-            renderActions();
-        }
-    });
-
-    proofBtn.addEventListener('click', () => {
-        if (!activeStar || activeStar.data.unlock_type !== 'credential') {
-            return;
-        }
-
-        if (activeStar.status === 'unlocked') {
-            return;
-        }
-
-        const proofRequirement = activeStar.data.requires?.proof || 'Credential proof';
-        showToast(`To verify this credential, provide: ${proofRequirement}. Submission support is coming soon.`);
-    });
-
-    return {
-        show: showPanel,
-        hide: hidePanel,
-        refresh() {
-            updateStatus();
-            renderActions();
-        }
-    };
-}
 
 function setupEventListeners() {
     if (listenersInitialized) {
