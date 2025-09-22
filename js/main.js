@@ -136,8 +136,8 @@ function createStarDetailController() {
     };
 
     const refreshCanvas = () => {
-        if (myp5 && typeof myp5.prepareStarData === 'function') {
-            myp5.prepareStarData();
+        if (skillRenderer && typeof skillRenderer.refreshStars === 'function') {
+            skillRenderer.refreshStars();
         }
     };
 
@@ -344,7 +344,7 @@ let gameManager = {};
 let currentSkillPath = [];
 let listenersInitialized = false;
 let lastAuthAction = null;
-let myp5 = null;
+let skillRenderer = null;
 
 // --- Manager Logic ---
 const levelManager = {
@@ -860,13 +860,9 @@ function unlockPerk(perkName, perkData) {
 }
 
 function refreshStarAvailability() {
-    if (myp5 && typeof myp5.refreshStars === 'function') {
-        myp5.refreshStars();
+    if (skillRenderer && typeof skillRenderer.refreshStars === 'function') {
+        skillRenderer.refreshStars();
     }
-}
-
-function openSkillsModal() { 
-    skillsModal.classList.remove('hidden');
 }
 
 function updateSkillTreeUI(title, breadcrumbs, showBack) {
@@ -972,29 +968,29 @@ function restoreSkillSearchTargetNavigation() {
 function openSkillsModal() {
     starDetailController.hide();
 
-    const canHandleResize = myp5 && typeof myp5.handleResize === 'function';
+    skillsModal.classList.remove('hidden');
+    const canHandleModalInit = skillRenderer && typeof skillRenderer.onModalOpened === 'function';
 
-    if (canHandleResize) {
-        myp5.handleResize();
-    } else if (myp5 && typeof myp5.prepareStarData === 'function') {
-        myp5.prepareStarData();
+    if (canHandleModalInit) {
+        skillRenderer.onModalOpened();
+    } else if (skillRenderer && typeof skillRenderer.handleResize === 'function') {
+        skillRenderer.handleResize();
+    } else if (skillRenderer && typeof skillRenderer.refreshStars === 'function') {
+        skillRenderer.refreshStars();
     }
 
-    skillsModal.classList.remove('hidden');
     syncSkillSearchInputWithTarget();
     restoreSkillSearchTargetNavigation();
 
-    if (canHandleResize) {
+    if (skillRenderer && typeof skillRenderer.handleResize === 'function') {
         const schedule = typeof requestAnimationFrame === 'function'
             ? requestAnimationFrame
             : (fn) => setTimeout(fn, 0);
         schedule(() => {
-            if (myp5 && typeof myp5.handleResize === 'function') {
-                myp5.handleResize();
+            if (skillRenderer && typeof skillRenderer.handleResize === 'function') {
+                skillRenderer.handleResize();
             }
         });
-    } else if (myp5 && typeof myp5.prepareStarData === 'function') {
-        myp5.prepareStarData();
     }
 }
 
@@ -1217,7 +1213,7 @@ function findSkillTreePath(query) {
 }
 
 function requestSkillPath(path) {
-    if (!myp5 || typeof myp5.navigateToPath !== 'function') {
+    if (!skillRenderer || typeof skillRenderer.navigateToPath !== 'function') {
         return false;
     }
 
@@ -1234,7 +1230,7 @@ function requestSkillPath(path) {
         delete normalizedPath.star;
     }
 
-    return !!myp5.navigateToPath(normalizedPath);
+    return !!skillRenderer.navigateToPath(normalizedPath);
 }
 
 window.requestSkillPath = requestSkillPath;
@@ -1328,8 +1324,8 @@ function setupEventListeners() {
     });
     
     skillBackBtn.addEventListener('click', () => {
-        if (myp5) {
-            myp5.goBack();
+        if (skillRenderer && typeof skillRenderer.goBack === 'function') {
+            skillRenderer.goBack();
         }
     });
 
@@ -1410,8 +1406,8 @@ function setupEventListeners() {
     document.getElementById('close-skills-btn').addEventListener('click', () => document.getElementById('skills-modal').classList.add('hidden'));
 
     const nudgeConstellations = (delta) => {
-        if (myp5 && typeof myp5.adjustConstellationOffset === 'function') {
-            myp5.adjustConstellationOffset(delta);
+        if (skillRenderer && typeof skillRenderer.adjustConstellationOffset === 'function') {
+            skillRenderer.adjustConstellationOffset(delta);
         }
     };
 
@@ -1424,8 +1420,8 @@ function setupEventListeners() {
     }
 
     skillBackBtn.addEventListener('click', () => {
-        if (myp5) {
-            myp5.goBack();
+        if (skillRenderer && typeof skillRenderer.goBack === 'function') {
+            skillRenderer.goBack();
         }
     });
     document.getElementById('codex-logout-btn').addEventListener('click', handleLogout);
@@ -1436,8 +1432,8 @@ function setupEventListeners() {
 
     skillBackBtn.addEventListener('click', () => {
         starDetailController.hide();
-        if (myp5) {
-            myp5.goBack();
+        if (skillRenderer && typeof skillRenderer.goBack === 'function') {
+            skillRenderer.goBack();
         }
      });
     document.getElementById('scan-face-btn').addEventListener('click', handleFaceScan);
@@ -1480,5 +1476,17 @@ document.getElementById('signup-btn').addEventListener('click', handleSignUp);
 document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
 
 
-myp5 = new p5(sketch);
+skillRenderer = new SkillUniverseRenderer({
+    container: document.getElementById('skill-tree-canvas-container'),
+    getSkillTree: () => window.skillTree || {},
+    resolveStarStatus: (starName, starData) => determineStarStatus(starName, starData),
+    onSelectStar: (starInfo) => {
+        if (typeof handleStarSelection === 'function') {
+            handleStarSelection(starInfo);
+        }
+    },
+    onViewChange: ({ title, breadcrumbs, showBack }) => {
+        updateSkillTreeUI(title, breadcrumbs, showBack);
+    }
+});
 
