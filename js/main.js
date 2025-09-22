@@ -262,6 +262,8 @@ async function loadData(userId) {
             capturedPhoto.classList.add('hidden');
         }
 
+        syncSkillSearchInputWithTarget(characterData.skillSearchTarget);
+
         return true;
     } catch (error) {
         console.error('Failed to load character data:', error);
@@ -507,8 +509,104 @@ function unlockPerk(perkName, perkData) {
     updateDashboard();
 }
 
-function openSkillsModal() { 
+function deriveSkillPathType(path) {
+    if (!path || typeof path !== 'object') {
+        return null;
+    }
+
+    if (path.type === 'galaxy' || path.type === 'constellation' || path.type === 'star') {
+        return path.type;
+    }
+
+    if (path.star) {
+        return 'star';
+    }
+    if (path.constellation) {
+        return 'constellation';
+    }
+    if (path.galaxy) {
+        return 'galaxy';
+    }
+
+    return null;
+}
+
+function isValidSkillPath(path) {
+    const pathType = deriveSkillPathType(path);
+    if (!pathType) {
+        return false;
+    }
+
+    const galaxyName = path.galaxy;
+    if (typeof galaxyName !== 'string' || !skillTree[galaxyName]) {
+        return false;
+    }
+
+    if (pathType === 'galaxy') {
+        return true;
+    }
+
+    const constellationName = path.constellation;
+    const constellationData = skillTree[galaxyName]?.constellations?.[constellationName];
+    if (typeof constellationName !== 'string' || !constellationData) {
+        return false;
+    }
+
+    if (pathType === 'constellation') {
+        return true;
+    }
+
+    const starName = path.star;
+    return typeof starName === 'string' && !!constellationData.stars?.[starName];
+}
+
+function syncSkillSearchInputWithTarget(target = characterData?.skillSearchTarget) {
+    if (!skillSearchInput) {
+        return;
+    }
+
+    if (document.activeElement === skillSearchInput) {
+        return;
+    }
+
+    if (target?.query) {
+        skillSearchInput.value = target.query;
+    } else if (target?.label) {
+        skillSearchInput.value = target.label;
+    } else {
+        skillSearchInput.value = '';
+    }
+
+    if (target?.matchQuality === 'partial') {
+        skillSearchInput.setAttribute('title', `Showing closest match: ${target.label}`);
+    } else if (skillSearchInput.title) {
+        skillSearchInput.removeAttribute('title');
+    }
+}
+
+function restoreSkillSearchTargetNavigation() {
+    if (!characterData?.skillSearchTarget) {
+        return;
+    }
+
+    syncSkillSearchInputWithTarget(characterData.skillSearchTarget);
+    const restored = requestSkillPath(characterData.skillSearchTarget);
+    if (!restored) {
+        if (skillSearchInput) {
+            skillSearchInput.value = '';
+            skillSearchInput.removeAttribute('title');
+        }
+        characterData.skillSearchTarget = null;
+        if (auth.currentUser) {
+            saveData();
+        }
+    }
+}
+
+function openSkillsModal() {
     skillsModal.classList.remove('hidden');
+    syncSkillSearchInputWithTarget();
+    restoreSkillSearchTargetNavigation();
 }
 
 function updateSkillTreeUI(title, breadcrumbs, showBack) {
@@ -718,11 +816,24 @@ function findSkillTreePath(query) {
 }
 
 function requestSkillPath(path) {
-    if (!path || !myp5 || typeof myp5.navigateToPath !== 'function') {
+    if (!myp5 || typeof myp5.navigateToPath !== 'function') {
         return false;
     }
-    myp5.navigateToPath(path);
-    return true;
+
+    if (!isValidSkillPath(path)) {
+        return false;
+    }
+
+    const normalizedPath = { ...path, type: deriveSkillPathType(path) };
+
+    if (normalizedPath.type === 'galaxy') {
+        delete normalizedPath.constellation;
+        delete normalizedPath.star;
+    } else if (normalizedPath.type === 'constellation') {
+        delete normalizedPath.star;
+    }
+
+    return !!myp5.navigateToPath(normalizedPath);
 }
 
 window.requestSkillPath = requestSkillPath;
@@ -791,6 +902,7 @@ function setupEventListeners() {
             const query = skillSearchInput.value.trim();
 
             if (!query) {
+                skillSearchInput.value = '';
                 characterData.skillSearchTarget = null;
                 if (auth.currentUser) {
                     saveData();
@@ -832,6 +944,7 @@ function setupEventListeners() {
             }
 
             skillSearchInput.blur();
+            setTimeout(() => syncSkillSearchInputWithTarget(target), 0);
         });
 
         skillSearchInput.addEventListener('focus', () => toggleSearchFocus(true));
@@ -872,6 +985,7 @@ auth.onAuthStateChanged(async user => {
         document.getElementById('onboarding-modal').classList.add('hidden');
         characterData = {};
         choreManager.chores = [];
+        syncSkillSearchInputWithTarget(null);
         lastAuthAction = null;
     }
 });

@@ -264,10 +264,8 @@ function sketch(p) {
     // --- Public function for the back button ---
     p.navigateToPath = function(path) {
         if (!path || !path.galaxy || !skillTree[path.galaxy]) {
-            return;
+            return false;
         }
-
-        resetNavigationQueue();
 
         const wantsConstellation = !!path.constellation;
         const wantsStar = path.type === 'star' && !!path.star;
@@ -275,6 +273,12 @@ function sketch(p) {
         const targetStarExists = wantsStar
             && targetConstellationExists
             && !!skillTree[path.galaxy].constellations[path.constellation].stars?.[path.star];
+
+        if ((wantsConstellation && !targetConstellationExists) || (wantsStar && !targetStarExists)) {
+            return false;
+        }
+
+        resetNavigationQueue();
 
         const steps = [];
         const stepDelay = 240;
@@ -305,12 +309,14 @@ function sketch(p) {
         }
 
         if (path.type === 'galaxy') {
-            scheduleStep(() => {
-                currentView = 'galaxies';
-                selectedGalaxy = path.galaxy;
-                selectedConstellation = null;
-                prepareGalaxyData();
-            });
+            if (currentView !== 'galaxies' || selectedGalaxy !== path.galaxy) {
+                scheduleStep(() => {
+                    currentView = 'galaxies';
+                    selectedGalaxy = path.galaxy;
+                    selectedConstellation = null;
+                    prepareGalaxyData();
+                });
+            }
         } else {
             scheduleStep(() => {
                 currentView = 'constellations';
@@ -342,7 +348,7 @@ function sketch(p) {
             if (typeof p.redraw === 'function') {
                 p.redraw();
             }
-            return;
+            return true;
         }
 
         steps[0]();
@@ -351,6 +357,8 @@ function sketch(p) {
             const timeoutId = setTimeout(steps[i], i * stepDelay);
             pendingNavigationTimeouts.push(timeoutId);
         }
+
+        return true;
     };
 
     p.goBack = function() {
