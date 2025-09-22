@@ -520,6 +520,7 @@ function updateSkillTreeUI(title, breadcrumbs, showBack) {
     if (skillTreePanControls) {
         const showPanControls = Array.isArray(breadcrumbs) && breadcrumbs.length === 2;
         skillTreePanControls.classList.toggle('hidden', !showPanControls);
+        skillTreePanControls.setAttribute('aria-hidden', showPanControls ? 'false' : 'true');
         if (skillPanLeftBtn) {
             skillPanLeftBtn.disabled = !showPanControls;
         }

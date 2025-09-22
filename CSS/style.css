@@ -375,6 +375,12 @@ button:active {
     box-shadow: 0 8px 14px rgba(63, 111, 118, 0.28);
 }
 
+.skill-tree-pan-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
 #skill-tree-canvas-container {
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 18px;
