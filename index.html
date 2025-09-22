@@ -205,6 +205,24 @@
     <div id="skills-modal" class="modal hidden">
         <div class="modal-content">
             <div id="skill-tree-header">
+                <button id="skill-back-btn" class="hidden">&larr; Back</button>
+                <h2 id="skill-tree-title">Skill Galaxy</h2>
+                <div class="skill-tree-controls">
+                    <form id="skill-search-form" class="skill-tree-search" role="search">
+                        <input
+                            type="search"
+                            id="skill-search-input"
+                            placeholder="Search galaxy, constellation, or star..."
+                            aria-label="Search skills"
+                            autocomplete="off"
+                        >
+                        <button type="submit" id="skill-search-button">Search</button>
+                    </form>
+                    <button id="close-skills-btn">Close</button>
+                </div>
+            </div>
+
+            <div id="skill-tree-header">
                 <div id="skill-tree-controls">
                     <button id="skill-back-btn" class="hidden" type="button">&larr; Back</button>
                     <div id="skill-tree-pan-controls" class="hidden" role="group" aria-label="Constellation pan controls">

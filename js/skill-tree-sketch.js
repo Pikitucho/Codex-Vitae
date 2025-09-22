@@ -9,6 +9,11 @@ function sketch(p) {
     // --- Data Holders ---
     let galaxies = [];
     let constellations = [];
+    let stars = [];
+    let navigationToken = 0;
+    let pendingNavigationTimeouts = [];
+    let galaxies = [];
+    let constellations = [];
     let constellationOffsetX = 0;
     let constellationOffsetBounds = { min: 0, max: 0 };
     let pointerDownInfo = null;
@@ -187,6 +192,54 @@ function sketch(p) {
 
     // --- Drawing Functions ---
     function drawGalaxies() {
+        const searchTarget = characterData?.skillSearchTarget;
+        for (const galaxy of galaxies) {
+            const isTarget = !!searchTarget && searchTarget.galaxy === galaxy.name;
+            drawCelestialBody(galaxy.name, galaxy.x, galaxy.y, galaxy.size, 'galaxy', 'locked', isTarget);
+        }
+    }
+
+    function drawConstellations() {
+        const searchTarget = characterData?.skillSearchTarget;
+        for (const constellation of constellations) {
+            const isTarget = !!searchTarget
+                && searchTarget.galaxy === selectedGalaxy
+                && searchTarget.constellation === constellation.name;
+            drawCelestialBody(constellation.name, constellation.x, constellation.y, constellation.size, 'constellation', 'locked', isTarget);
+        }
+    }
+
+    function drawStars() {
+        const searchTarget = characterData?.skillSearchTarget;
+        // Draw connecting lines first to make it look like a constellation
+        p.stroke(245, 246, 250, 50); // Faint, off-white lines
+        p.strokeWeight(1);
+        for(let i = 0; i < stars.length; i++) {
+            let nextIndex = (i + 1) % stars.length; // Connect to the next star, wrapping around
+            p.line(stars[i].x, stars[i].y, stars[nextIndex].x, stars[nextIndex].y);
+        }
+
+        // Then draw the stars on top
+        for (const star of stars) {
+            const isTarget = !!searchTarget
+                && searchTarget.galaxy === selectedGalaxy
+                && searchTarget.constellation === selectedConstellation
+                && searchTarget.star === star.name;
+            drawCelestialBody(star.name, star.x, star.y, star.size, 'star', star.status, isTarget);
+        }
+    }
+
+    function drawCelestialBody(name, x, y, size, type, status = 'locked', isTarget = false) {
+        let distance = p.dist(p.mouseX, p.mouseY, x, y);
+
+        // Determine if the cursor should be a hand
+        let isClickable = (type !== 'star' || status === 'available');
+        if (isClickable && distance < size / 2) {
+            p.cursor(p.HAND); 
+        } else { 
+            p.cursor(p.ARROW); 
+
+    function drawGalaxies() {
         for (const galaxy of galaxies) {
             drawCelestialBody(galaxy.name, galaxy.x, galaxy.y, galaxy.size, 'galaxy');
         }
@@ -228,6 +281,7 @@ function sketch(p) {
         let glowColor = p.color(240, 147, 43, 50);
         let bodyColor = p.color(72, 52, 212, 150);
         let borderColor = p.color(245, 246, 250);
+        let outlineWeight = 2;
 
         if (type === 'star') {
             if (status === 'unlocked') {
@@ -235,26 +289,45 @@ function sketch(p) {
                 glowColor = p.color(0, 184, 148, 80);
             } else if (status === 'available') {
                 bodyColor = p.color(45, 52, 54); // Dark background, so the border pops
+                outlineWeight = 3;
             } else { // locked
                 bodyColor = p.color(45, 52, 54, 150);
                 glowColor = p.color(109, 76, 65, 50); // Muted glow
             }
         }
-        
+
+        if (isTarget) {
+            glowColor = p.color(255, 200, 124, 120);
+            borderColor = p.color(255, 214, 160);
+            outlineWeight = Math.max(outlineWeight, 4);
+        }
+
         p.noStroke();
         p.fill(glowColor);
         p.ellipse(x, y, size + 15);
 
         p.fill(bodyColor);
         p.stroke(borderColor);
-        p.strokeWeight(2);
+        p.strokeWeight(outlineWeight);
 
         if (type === 'star' && status === 'available') {
             p.stroke(240, 147, 43); // Accent color for border
             p.strokeWeight(3);
         }
 
+        if (isTarget) {
+            p.strokeWeight(Math.max(outlineWeight, 4));
+            p.stroke(p.color(255, 214, 160));
+        }
+
         p.ellipse(x, y, size);
+
+        if (isTarget) {
+            p.noFill();
+            p.stroke(p.color(255, 214, 160, 180));
+            p.strokeWeight(2);
+            p.ellipse(x, y, size + 18);
+        }
 
         p.noStroke();
         p.fill(borderColor);
@@ -272,6 +345,190 @@ function sketch(p) {
             galaxies.push({ name: galaxyNames[i], x: positions[i].x, y: positions[i].y, size: 120 });
         }
     }
+
+    function prepareConstellationData() {
+        if (!selectedGalaxy || !skillTree[selectedGalaxy]) {
+            constellations = [];
+            return;
+        }
+
+        const constellationData = skillTree[selectedGalaxy].constellations;
+        const constellationNames = Object.keys(constellationData);
+        constellations = [];
+        for (let i = 0; i < constellationNames.length; i++) {
+            constellations.push({ name: constellationNames[i], x: 80 + i * 120, y: p.height / 2, size: 100 });
+        }
+    }
+
+    p.prepareStarData = function() {
+        if (!selectedGalaxy || !selectedConstellation) {
+            stars = [];
+            return;
+        }
+
+        const galaxy = skillTree[selectedGalaxy];
+        const constellation = galaxy?.constellations?.[selectedConstellation];
+
+        if (!constellation || !constellation.stars) {
+            stars = [];
+            return;
+        }
+
+        const starData = constellation.stars;
+        const starNames = Object.keys(starData);
+        const unlockedPerks = Array.isArray(characterData?.unlockedPerks)
+            ? characterData.unlockedPerks
+            : [];
+        const stats = characterData?.stats || {};
+
+        stars = [];
+        for (let i = 0; i < starNames.length; i++) {
+            const name = starNames[i];
+            const data = starData[name];
+            let status = 'locked';
+
+            if (unlockedPerks.includes(name)) {
+                status = 'unlocked';
+            } else if (data.unlock_type === 'perk') {
+                const requiredStat = data.requires?.stat;
+                const requiredValue = data.requires?.value;
+                const statValue = requiredStat && typeof stats[requiredStat] === 'number'
+                    ? stats[requiredStat]
+                    : null;
+
+                if (statValue !== null && typeof requiredValue === 'number' && statValue >= requiredValue) {
+                    status = 'available';
+                }
+            }
+
+            const angle = p.TWO_PI / starNames.length * i - p.HALF_PI;
+            const radius = 100;
+            const x = p.width / 2 + radius * p.cos(angle);
+            const y = p.height / 2 + radius * p.sin(angle);
+
+            stars.push({ name: name, data: data, status: status, x: x, y: y, size: 80 });
+        }
+    }
+
+    function resetNavigationQueue() {
+        if (pendingNavigationTimeouts.length > 0) {
+            for (const timeoutId of pendingNavigationTimeouts) {
+                clearTimeout(timeoutId);
+            }
+            pendingNavigationTimeouts = [];
+        }
+    }
+
+    // --- Public function for the back button ---
+    p.navigateToPath = function(path) {
+        if (!path || !path.galaxy || !skillTree[path.galaxy]) {
+            return false;
+        }
+
+        const wantsConstellation = !!path.constellation;
+        const wantsStar = path.type === 'star' && !!path.star;
+        const targetConstellationExists = wantsConstellation && !!skillTree[path.galaxy].constellations?.[path.constellation];
+        const targetStarExists = wantsStar
+            && targetConstellationExists
+            && !!skillTree[path.galaxy].constellations[path.constellation].stars?.[path.star];
+
+        if ((wantsConstellation && !targetConstellationExists) || (wantsStar && !targetStarExists)) {
+            return false;
+        }
+
+        resetNavigationQueue();
+
+        const steps = [];
+        const stepDelay = 240;
+        const currentToken = ++navigationToken;
+
+        const scheduleStep = (fn) => {
+            steps.push(() => {
+                if (currentToken !== navigationToken) {
+                    return;
+                }
+                fn();
+                if (typeof p.redraw === 'function') {
+                    p.redraw();
+                }
+            });
+        };
+
+        const zoomedIn = currentView === 'constellations' || currentView === 'stars';
+        const changingGalaxy = !selectedGalaxy || selectedGalaxy !== path.galaxy;
+
+        if (zoomedIn && changingGalaxy) {
+            scheduleStep(() => {
+                currentView = 'galaxies';
+                selectedGalaxy = null;
+                selectedConstellation = null;
+                prepareGalaxyData();
+            });
+        }
+
+        if (path.type === 'galaxy') {
+            if (currentView !== 'galaxies' || selectedGalaxy !== path.galaxy) {
+                scheduleStep(() => {
+                    currentView = 'galaxies';
+                    selectedGalaxy = path.galaxy;
+                    selectedConstellation = null;
+                    prepareGalaxyData();
+                });
+            }
+        } else {
+            scheduleStep(() => {
+                currentView = 'constellations';
+                if (selectedGalaxy !== path.galaxy) {
+                    selectedGalaxy = path.galaxy;
+                    selectedConstellation = null;
+                }
+                prepareConstellationData();
+            });
+
+            if (wantsConstellation && targetConstellationExists) {
+                scheduleStep(() => {
+                    selectedConstellation = path.constellation;
+                });
+            }
+
+            if (wantsStar && targetStarExists) {
+                scheduleStep(() => {
+                    if (!selectedConstellation) {
+                        selectedConstellation = path.constellation;
+                    }
+                    p.prepareStarData();
+                    currentView = 'stars';
+                });
+            }
+        }
+
+        if (steps.length === 0) {
+            if (typeof p.redraw === 'function') {
+                p.redraw();
+            }
+            return true;
+        }
+
+        steps[0]();
+
+        for (let i = 1; i < steps.length; i++) {
+            const timeoutId = setTimeout(steps[i], i * stepDelay);
+            pendingNavigationTimeouts.push(timeoutId);
+        }
+
+        return true;
+    };
+
+    p.goBack = function() {
+        resetNavigationQueue();
+        navigationToken++;
+        if (currentView === 'stars') {
+            currentView = 'constellations';
+        } else if (currentView === 'constellations') {
+            currentView = 'galaxies';
+        }
+    }
+}
 
     function prepareConstellationData() {
         const galaxyData = skillTree[selectedGalaxy];

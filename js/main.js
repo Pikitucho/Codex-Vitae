@@ -77,6 +77,11 @@ const appScreen = document.getElementById('app-screen');
 const skillsModal = document.getElementById('skills-modal');
 const skillTreeTitle = document.getElementById('skill-tree-title');
 const skillBackBtn = document.getElementById('skill-back-btn');
+const skillSearchForm = document.getElementById('skill-search-form');
+const skillSearchInput = document.getElementById('skill-search-input');
+const skillsModal = document.getElementById('skills-modal');
+const skillTreeTitle = document.getElementById('skill-tree-title');
+const skillBackBtn = document.getElementById('skill-back-btn');
 const skillTreePanControls = document.getElementById('skill-tree-pan-controls');
 const skillPanLeftBtn = document.getElementById('skill-pan-left');
 const skillPanRightBtn = document.getElementById('skill-pan-right');
@@ -248,6 +253,15 @@ async function loadData(userId) {
             statsToNextLevel: loadedCharacterData.statsToNextLevel || 10,
             skillPoints: loadedCharacterData.skillPoints || 0,
             unlockedPerks: loadedCharacterData.unlockedPerks || [],
+            monthlyActivityLog: loadedCharacterData.monthlyActivityLog || [],
+            activityLogMonth: loadedCharacterData.activityLogMonth || (new Date().getFullYear() + '-' + (new Date().getMonth() + 1)),
+            monthlyPerkClaimed: loadedCharacterData.monthlyPerkClaimed || false,
+            skillSearchTarget: loadedCharacterData.skillSearchTarget || null,
+            choreProgress: {
+                strength: loadedCharacterData.choreProgress?.strength || 0,
+                dexterity: loadedCharacterData.choreProgress?.dexterity || 0,
+                constitution: loadedCharacterData.choreProgress?.constitution || 0,
+                intelligence: loadedCharacterData.choreProgress?.intelligence || 0,
             verifiedProofs: Array.isArray(loadedCharacterData.verifiedProofs) ? loadedCharacterData.verifiedProofs : [],
 
             statProgress: loadedCharacterData.statProgress || 0,
@@ -281,6 +295,8 @@ async function loadData(userId) {
             capturedPhoto.src = '';
             capturedPhoto.classList.add('hidden');
         }
+
+        syncSkillSearchInputWithTarget(characterData.skillSearchTarget);
 
         return true;
     } catch (error) {
@@ -335,6 +351,42 @@ function logMonthlyActivity() {
             refreshStarAvailability();
         }
     }
+}
+
+function calculateStartingStats() {
+    const exerciseValue = parseInt(document.getElementById('exercise-freq').value);
+    const studyValue = parseInt(document.getElementById('study-habit').value);
+    const now = new Date();
+    characterData = {
+        level: 1,
+        statProgress: 0,
+        statsToNextLevel: 10,
+        stats: {
+            strength: 8 + exerciseValue,
+            dexterity: 8,
+            constitution: 8 + exerciseValue,
+            intelligence: 8 + studyValue,
+            wisdom: 8 + studyValue,
+            charisma: 8
+        },
+        choreProgress: {
+            strength: 0,
+            dexterity: 0,
+            constitution: 0,
+            intelligence: 0,
+            wisdom: 0,
+            charisma: 0
+        },
+        avatarUrl: '',
+        skillPoints: 0,
+        unlockedPerks: [],
+        monthlyActivityLog: [],
+        activityLogMonth: `${now.getFullYear()}-${now.getMonth() + 1}`,
+        monthlyPerkClaimed: false,
+        skillSearchTarget: null,
+        chores: [],
+        onboardingComplete: true
+    };
 }
 
 function calculateStartingStats() {
@@ -611,6 +663,105 @@ function updateSkillTreeUI(title, breadcrumbs, showBack) {
     return true;
 }
 
+function deriveSkillPathType(path) {
+    if (!path || typeof path !== 'object') {
+        return null;
+    }
+
+    if (path.type === 'galaxy' || path.type === 'constellation' || path.type === 'star') {
+        return path.type;
+    }
+
+    if (path.star) {
+        return 'star';
+    }
+    if (path.constellation) {
+        return 'constellation';
+    }
+    if (path.galaxy) {
+        return 'galaxy';
+    }
+
+    return null;
+}
+
+function isValidSkillPath(path) {
+    const pathType = deriveSkillPathType(path);
+    if (!pathType) {
+        return false;
+    }
+
+    const galaxyName = path.galaxy;
+    if (typeof galaxyName !== 'string' || !skillTree[galaxyName]) {
+        return false;
+    }
+
+    if (pathType === 'galaxy') {
+        return true;
+    }
+
+    const constellationName = path.constellation;
+    const constellationData = skillTree[galaxyName]?.constellations?.[constellationName];
+    if (typeof constellationName !== 'string' || !constellationData) {
+        return false;
+    }
+
+    if (pathType === 'constellation') {
+        return true;
+    }
+
+    const starName = path.star;
+    return typeof starName === 'string' && !!constellationData.stars?.[starName];
+}
+
+function syncSkillSearchInputWithTarget(target = characterData?.skillSearchTarget) {
+    if (!skillSearchInput) {
+        return;
+    }
+
+    if (document.activeElement === skillSearchInput) {
+        return;
+    }
+
+    if (target?.query) {
+        skillSearchInput.value = target.query;
+    } else if (target?.label) {
+        skillSearchInput.value = target.label;
+    } else {
+        skillSearchInput.value = '';
+    }
+
+    if (target?.matchQuality === 'partial') {
+        skillSearchInput.setAttribute('title', `Showing closest match: ${target.label}`);
+    } else if (skillSearchInput.title) {
+        skillSearchInput.removeAttribute('title');
+    }
+}
+
+function restoreSkillSearchTargetNavigation() {
+    if (!characterData?.skillSearchTarget) {
+        return;
+    }
+
+    syncSkillSearchInputWithTarget(characterData.skillSearchTarget);
+    const restored = requestSkillPath(characterData.skillSearchTarget);
+    if (!restored) {
+        if (skillSearchInput) {
+            skillSearchInput.value = '';
+            skillSearchInput.removeAttribute('title');
+        }
+        characterData.skillSearchTarget = null;
+        if (auth.currentUser) {
+            saveData();
+        }
+    }
+}
+
+function openSkillsModal() {
+    skillsModal.classList.remove('hidden');
+    syncSkillSearchInputWithTarget();
+    restoreSkillSearchTargetNavigation();
+}
 function openSkillsModal() {
     starDetailController.hide();
     if (myp5 && typeof myp5.prepareStarData === 'function') {
@@ -637,6 +788,233 @@ function updateSkillTreeUI(title, breadcrumbs, showBack) {
     }
 }
 
+function showToast(message) {
+    alert(message);
+}
+
+function findSkillTreePath(query) {
+    if (!query || typeof query !== 'string') {
+        return null;
+    }
+
+    const rawQuery = query.trim();
+    const normalized = rawQuery.toLowerCase();
+    if (!normalized) {
+        return null;
+    }
+
+    const hasHierarchyDelimiters = /(?:->|>|\/)/.test(rawQuery);
+
+    const pickBestMatch = (names, segment) => {
+        const exactMatches = [];
+        const partialMatches = [];
+        const normalizedSegment = segment.toLowerCase();
+
+        for (const name of names) {
+            const normalizedName = name.toLowerCase();
+            if (normalizedName === normalizedSegment) {
+                exactMatches.push(name);
+            } else if (normalizedName.includes(normalizedSegment)) {
+                partialMatches.push(name);
+            }
+        }
+
+        if (exactMatches.length > 0) {
+            return { name: exactMatches[0], matchQuality: 'exact' };
+        }
+        if (partialMatches.length > 0) {
+            return { name: partialMatches[0], matchQuality: 'partial' };
+        }
+        return null;
+    };
+
+    const tryResolveHierarchicalQuery = () => {
+        if (!hasHierarchyDelimiters) {
+            return null;
+        }
+
+        const segments = rawQuery
+            .split(/(?:->|>|\/)/)
+            .map(segment => segment.trim())
+            .filter(Boolean);
+
+        if (segments.length <= 1) {
+            return null;
+        }
+
+        const galaxyMatch = pickBestMatch(Object.keys(skillTree), segments[0]);
+        if (!galaxyMatch) {
+            return null;
+        }
+
+        const result = {
+            type: 'galaxy',
+            galaxy: galaxyMatch.name,
+            label: galaxyMatch.name,
+            matchQuality: galaxyMatch.matchQuality
+        };
+
+        if (segments.length === 1) {
+            return result;
+        }
+
+        const constellations = skillTree[galaxyMatch.name]?.constellations || {};
+        const constellationMatch = pickBestMatch(Object.keys(constellations), segments[1]);
+        if (!constellationMatch) {
+            return null;
+        }
+
+        result.type = 'constellation';
+        result.constellation = constellationMatch.name;
+        result.label = constellationMatch.name;
+        if (result.matchQuality === 'exact' && constellationMatch.matchQuality === 'partial') {
+            result.matchQuality = 'partial';
+        }
+
+        if (segments.length === 2) {
+            return result;
+        }
+
+        const stars = constellations[constellationMatch.name]?.stars || {};
+        const starMatch = pickBestMatch(Object.keys(stars), segments[2]);
+        if (!starMatch) {
+            return null;
+        }
+
+        result.type = 'star';
+        result.star = starMatch.name;
+        result.label = starMatch.name;
+        if (result.matchQuality === 'exact' && starMatch.matchQuality === 'partial') {
+            result.matchQuality = 'partial';
+        }
+
+        return result;
+    };
+
+    const hierarchicalResult = tryResolveHierarchicalQuery();
+    if (hierarchicalResult) {
+        return hierarchicalResult;
+    }
+
+    const matches = {
+        starExact: [],
+        starPartial: [],
+        constellationExact: [],
+        constellationPartial: [],
+        galaxyExact: [],
+        galaxyPartial: []
+    };
+
+    for (const [galaxyName, galaxyData] of Object.entries(skillTree)) {
+        const galaxyNormalized = galaxyName.toLowerCase();
+        if (galaxyNormalized === normalized) {
+            matches.galaxyExact.push({
+                type: 'galaxy',
+                galaxy: galaxyName,
+                label: galaxyName,
+                matchQuality: 'exact'
+            });
+        } else if (galaxyNormalized.includes(normalized)) {
+            matches.galaxyPartial.push({
+                type: 'galaxy',
+                galaxy: galaxyName,
+                label: galaxyName,
+                matchQuality: 'partial'
+            });
+        }
+
+        const constellationEntries = Object.entries(galaxyData.constellations || {});
+        for (const [constellationName, constellationData] of constellationEntries) {
+            const constellationNormalized = constellationName.toLowerCase();
+            if (constellationNormalized === normalized) {
+                matches.constellationExact.push({
+                    type: 'constellation',
+                    galaxy: galaxyName,
+                    constellation: constellationName,
+                    label: constellationName,
+                    matchQuality: 'exact'
+                });
+            } else if (constellationNormalized.includes(normalized)) {
+                matches.constellationPartial.push({
+                    type: 'constellation',
+                    galaxy: galaxyName,
+                    constellation: constellationName,
+                    label: constellationName,
+                    matchQuality: 'partial'
+                });
+            }
+
+            const starEntries = Object.keys(constellationData.stars || {});
+            for (const starName of starEntries) {
+                const starNormalized = starName.toLowerCase();
+                if (starNormalized === normalized) {
+                    matches.starExact.push({
+                        type: 'star',
+                        galaxy: galaxyName,
+                        constellation: constellationName,
+                        star: starName,
+                        label: starName,
+                        matchQuality: 'exact'
+                    });
+                } else if (starNormalized.includes(normalized)) {
+                    matches.starPartial.push({
+                        type: 'star',
+                        galaxy: galaxyName,
+                        constellation: constellationName,
+                        star: starName,
+                        label: starName,
+                        matchQuality: 'partial'
+                    });
+                }
+            }
+        }
+    }
+
+    const priorityOrder = [
+        matches.starExact,
+        matches.constellationExact,
+        matches.galaxyExact,
+        matches.starPartial,
+        matches.constellationPartial,
+        matches.galaxyPartial
+    ];
+
+    for (const bucket of priorityOrder) {
+        if (bucket.length > 0) {
+            return bucket[0];
+        }
+    }
+
+    return null;
+}
+
+function requestSkillPath(path) {
+    if (!myp5 || typeof myp5.navigateToPath !== 'function') {
+        return false;
+    }
+
+    if (!isValidSkillPath(path)) {
+        return false;
+    }
+
+    const normalizedPath = { ...path, type: deriveSkillPathType(path) };
+
+    if (normalizedPath.type === 'galaxy') {
+        delete normalizedPath.constellation;
+        delete normalizedPath.star;
+    } else if (normalizedPath.type === 'constellation') {
+        delete normalizedPath.star;
+    }
+
+    return !!myp5.navigateToPath(normalizedPath);
+}
+
+window.requestSkillPath = requestSkillPath;
+
+function setupEventListeners() {
+    if (listenersInitialized) {
+        return;
+    }
 function showToast(message) {
     alert(message);
 }
@@ -908,6 +1286,100 @@ function setupEventListeners() {
         activityManager.logActivity(document.getElementById('activity-select').value);
     });
     
+    const codexModal = document.getElementById('codex-modal');
+
+    document.getElementById('open-codex-btn').addEventListener('click', () => {
+        codexModal.classList.remove('hidden');
+    });
+
+    document.getElementById('close-codex-btn').addEventListener('click', () => {
+        codexModal.classList.add('hidden');
+    });
+
+    document.getElementById('codex-skills-btn').addEventListener('click', () => {
+        codexModal.classList.add('hidden');
+        openSkillsModal();
+    });
+
+    document.getElementById('codex-logout-btn').addEventListener('click', handleLogout);
+
+    document.getElementById('close-skills-btn').addEventListener('click', () => {
+        skillsModal.classList.add('hidden');
+    });
+    
+    skillBackBtn.addEventListener('click', () => {
+        if (myp5) {
+            myp5.goBack();
+        }
+    });
+
+    if (skillSearchForm && skillSearchInput) {
+        const toggleSearchFocus = (isActive) => {
+            skillSearchForm.classList.toggle('search-active', isActive);
+        };
+
+        skillSearchForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const query = skillSearchInput.value.trim();
+
+            if (!query) {
+                skillSearchInput.value = '';
+                characterData.skillSearchTarget = null;
+                if (auth.currentUser) {
+                    saveData();
+                }
+                skillSearchInput.removeAttribute('title');
+                toggleSearchFocus(false);
+                return;
+            }
+
+            const result = findSkillTreePath(query);
+
+            if (!result) {
+                showToast('No matching skill found.');
+                skillSearchInput.removeAttribute('title');
+                return;
+            }
+
+            const target = {
+                ...result,
+                query,
+                timestamp: Date.now()
+            };
+
+            const navigationStarted = requestSkillPath(target);
+            if (!navigationStarted) {
+                showToast('Unable to navigate to the selected result.');
+                return;
+            }
+
+            if (result.matchQuality === 'partial') {
+                skillSearchInput.setAttribute('title', `Showing closest match: ${target.label}`);
+            } else {
+                skillSearchInput.removeAttribute('title');
+            }
+
+            characterData.skillSearchTarget = target;
+            if (auth.currentUser) {
+                saveData();
+            }
+
+            skillSearchInput.blur();
+            setTimeout(() => syncSkillSearchInputWithTarget(target), 0);
+        });
+
+        skillSearchInput.addEventListener('focus', () => toggleSearchFocus(true));
+        skillSearchInput.addEventListener('blur', () => toggleSearchFocus(false));
+        skillSearchInput.addEventListener('input', () => {
+            if (skillSearchInput.title) {
+                skillSearchInput.removeAttribute('title');
+            }
+        });
+    }
+    document.getElementById('scan-face-btn').addEventListener('click', handleFaceScan);
+
+    listenersInitialized = true;
+}
     document.getElementById('open-codex-btn').addEventListener('click', () => document.getElementById('codex-modal').classList.remove('hidden'));
     document.getElementById('close-codex-btn').addEventListener('click', () => document.getElementById('codex-modal').classList.add('hidden'));
     document.getElementById('codex-skills-btn').addEventListener('click', () => {
@@ -978,6 +1450,7 @@ auth.onAuthStateChanged(async user => {
         document.getElementById('onboarding-modal').classList.add('hidden');
         characterData = {};
         choreManager.chores = [];
+        syncSkillSearchInputWithTarget(null);
         lastAuthAction = null;
     }
 });
