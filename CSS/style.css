@@ -345,8 +345,80 @@ button:active {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
     margin-bottom: 24px;
     color: #e7edf0;
+    position: relative;
+    z-index: 5;
+}
+
+#skill-tree-header h2 {
+    flex: 1 1 auto;
+    text-align: center;
+    margin: 0;
+}
+
+.skill-tree-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    min-width: 0;
+}
+
+#skill-search-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(20, 33, 42, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    flex: 1 1 220px;
+    min-width: 0;
+    box-shadow: 0 12px 26px rgba(10, 16, 20, 0.35);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+#skill-search-form.search-active,
+#skill-search-form:focus-within {
+    border-color: rgba(245, 178, 103, 0.9);
+    background: rgba(20, 33, 42, 0.92);
+    box-shadow: 0 14px 32px rgba(245, 178, 103, 0.28);
+}
+
+#skill-search-input {
+    flex: 1 1 auto;
+    border: none;
+    background: transparent;
+    color: #f6f9fb;
+    padding: 6px 0;
+    font-size: 0.95em;
+}
+
+#skill-search-input::placeholder {
+    color: rgba(231, 236, 240, 0.65);
+}
+
+#skill-search-input:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+#skill-search-form button {
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 0.85em;
+    background: linear-gradient(135deg, var(--color-accent) 0%, #f58d54 100%);
+    color: #2c190b;
+    box-shadow: 0 8px 18px rgba(245, 178, 103, 0.28);
+}
+
+#skill-search-form button:hover {
+    box-shadow: 0 12px 24px rgba(245, 178, 103, 0.34);
 }
 
 #skill-tree-canvas-container {

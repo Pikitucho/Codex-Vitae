@@ -77,6 +77,8 @@ const appScreen = document.getElementById('app-screen');
 const skillsModal = document.getElementById('skills-modal');
 const skillTreeTitle = document.getElementById('skill-tree-title');
 const skillBackBtn = document.getElementById('skill-back-btn');
+const skillSearchForm = document.getElementById('skill-search-form');
+const skillSearchInput = document.getElementById('skill-search-input');
 
 // --- Global Data Variables ---
 let characterData = {};
@@ -235,6 +237,7 @@ async function loadData(userId) {
             monthlyActivityLog: loadedCharacterData.monthlyActivityLog || [],
             activityLogMonth: loadedCharacterData.activityLogMonth || (new Date().getFullYear() + '-' + (new Date().getMonth() + 1)),
             monthlyPerkClaimed: loadedCharacterData.monthlyPerkClaimed || false,
+            skillSearchTarget: loadedCharacterData.skillSearchTarget || null,
             choreProgress: {
                 strength: loadedCharacterData.choreProgress?.strength || 0,
                 dexterity: loadedCharacterData.choreProgress?.dexterity || 0,
@@ -343,6 +346,7 @@ function calculateStartingStats() {
         monthlyActivityLog: [],
         activityLogMonth: `${now.getFullYear()}-${now.getMonth() + 1}`,
         monthlyPerkClaimed: false,
+        skillSearchTarget: null,
         chores: [],
         onboardingComplete: true
     };
@@ -513,9 +517,68 @@ function updateSkillTreeUI(title, breadcrumbs, showBack) {
     skillBackBtn.classList.toggle('hidden', !showBack);
 }
 
-function showToast(message) { 
+function showToast(message) {
     alert(message);
 }
+
+function findSkillTreePath(query) {
+    if (!query || typeof query !== 'string') {
+        return null;
+    }
+
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) {
+        return null;
+    }
+
+    let starResult = null;
+    let constellationResult = null;
+    let galaxyResult = null;
+
+    for (const [galaxyName, galaxyData] of Object.entries(skillTree)) {
+        if (!galaxyResult && galaxyName.toLowerCase().includes(normalized)) {
+            galaxyResult = { type: 'galaxy', galaxy: galaxyName, label: galaxyName };
+        }
+
+        const constellationEntries = Object.entries(galaxyData.constellations || {});
+        for (const [constellationName, constellationData] of constellationEntries) {
+            if (!constellationResult && constellationName.toLowerCase().includes(normalized)) {
+                constellationResult = {
+                    type: 'constellation',
+                    galaxy: galaxyName,
+                    constellation: constellationName,
+                    label: constellationName
+                };
+            }
+
+            const starEntries = Object.keys(constellationData.stars || {});
+            for (const starName of starEntries) {
+                if (starName.toLowerCase().includes(normalized)) {
+                    if (!starResult) {
+                        starResult = {
+                            type: 'star',
+                            galaxy: galaxyName,
+                            constellation: constellationName,
+                            star: starName,
+                            label: starName
+                        };
+                    }
+                }
+            }
+        }
+    }
+
+    return starResult || constellationResult || galaxyResult;
+}
+
+function requestSkillPath(path) {
+    if (!path || !myp5 || typeof myp5.navigateToPath !== 'function') {
+        return;
+    }
+    myp5.navigateToPath(path);
+}
+
+window.requestSkillPath = requestSkillPath;
 
 function setupEventListeners() {
     if (listenersInitialized) {
@@ -558,6 +621,50 @@ function setupEventListeners() {
             myp5.goBack();
         }
      });
+
+    if (skillSearchForm && skillSearchInput) {
+        const toggleSearchFocus = (isActive) => {
+            skillSearchForm.classList.toggle('search-active', isActive);
+        };
+
+        skillSearchForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const query = skillSearchInput.value.trim();
+
+            if (!query) {
+                characterData.skillSearchTarget = null;
+                if (auth.currentUser) {
+                    saveData();
+                }
+                toggleSearchFocus(false);
+                return;
+            }
+
+            const result = findSkillTreePath(query);
+
+            if (!result) {
+                showToast('No matching skill found.');
+                return;
+            }
+
+            const target = {
+                ...result,
+                query,
+                timestamp: Date.now()
+            };
+
+            characterData.skillSearchTarget = target;
+            if (auth.currentUser) {
+                saveData();
+            }
+
+            requestSkillPath(target);
+            skillSearchInput.blur();
+        });
+
+        skillSearchInput.addEventListener('focus', () => toggleSearchFocus(true));
+        skillSearchInput.addEventListener('blur', () => toggleSearchFocus(false));
+    }
     document.getElementById('scan-face-btn').addEventListener('click', handleFaceScan);
 
     listenersInitialized = true;
