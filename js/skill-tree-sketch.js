@@ -59,8 +59,17 @@ function sketch(p) {
             }
         } else if (currentView === 'stars') {
             for (const star of stars) {
-                if (star.status === 'available' && p.dist(p.mouseX, p.mouseY, star.x, star.y) < star.size / 2) {
-                    unlockPerk(star.name, star.data); // Call the function in main.js
+                const distance = p.dist(p.mouseX, p.mouseY, star.x, star.y);
+                if (distance < star.size / 2) {
+                    if (typeof handleStarSelection === 'function') {
+                        handleStarSelection({
+                            name: star.name,
+                            data: star.data,
+                            status: star.status,
+                            constellation: selectedConstellation,
+                            galaxy: selectedGalaxy
+                        });
+                    }
                     break;
                 }
             }
@@ -99,11 +108,11 @@ function sketch(p) {
         let distance = p.dist(p.mouseX, p.mouseY, x, y);
         
         // Determine if the cursor should be a hand
-        let isClickable = (type !== 'star' || status === 'available');
-        if (isClickable && distance < size / 2) { 
-            p.cursor(p.HAND); 
-        } else { 
-            p.cursor(p.ARROW); 
+        let isClickable = (type !== 'star') || (distance < size / 2);
+        if (isClickable && distance < size / 2) {
+            p.cursor(p.HAND);
+        } else {
+            p.cursor(p.ARROW);
         }
         
         // Default styles
@@ -186,6 +195,11 @@ function sketch(p) {
         const hasSkillPoints = (characterData.skillPoints || 0) > 0;
 
         stars = [];
+      
+    p.prepareStarData = function() {
+        const starData = skillTree[selectedGalaxy].constellations[selectedConstellation].stars;
+        const starNames = Object.keys(starData);
+        stars = [];
         for (let i = 0; i < starNames.length; i++) {
             const name = starNames[i];
             const data = starData[name];
@@ -213,6 +227,12 @@ function sketch(p) {
                     status = 'available';
                 }
             } else if (meetsAllRequirements) {
+              
+            if (typeof determineStarStatus === 'function') {
+                status = determineStarStatus(name, data);
+            } else if (characterData.unlockedPerks && characterData.unlockedPerks.includes(name)) {
+                status = 'unlocked';
+            } else if (data.unlock_type === 'perk' && characterData.stats && characterData.stats[data.requires.stat] >= data.requires.value) {
                 status = 'available';
             }
 
@@ -230,6 +250,13 @@ function sketch(p) {
             p.prepareStarData();
         }
     };
+
+            const x = p.width / 2 + radius * p.cos(angle);
+            const y = p.height / 2 + radius * p.sin(angle);
+
+            stars.push({ name: name, data: data, status: status, x: x, y: y, size: 80 });
+        }
+    }
 
     // --- Public function for the back button ---
     p.goBack = function() {
