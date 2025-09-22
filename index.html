@@ -17,6 +17,14 @@
     </div>
 
     <div id="app-screen" class="hidden">
+        <div class="avatar-hero">
+            <div class="avatar-display">
+                <video id="webcam-feed" class="avatar-circle hidden" autoplay playsinline></video>
+                <img id="captured-photo" class="avatar-circle" src="assets/avatars/ghibli-placeholder.svg" alt="Your Avatar">
+            </div>
+            <canvas id="photo-canvas" class="hidden"></canvas>
+        </div>
+
         <h2>Welcome to Your Codex</h2>
 
         <div id="level-xp-display" class="widget">
@@ -56,12 +64,7 @@
         </div>
 
         <div id="face-scan-section" class="widget">
-            <div class="avatar-display">
-                <video id="webcam-feed" class="avatar-circle hidden" autoplay playsinline></video>
-                <img id="captured-photo" class="avatar-circle" alt="Your Avatar">
-            </div>
-            <canvas id="photo-canvas" class="hidden"></canvas>
-            <button id="scan-face-btn">Create Avatar</button>
+            <button id="scan-face-btn">Scan Your Face &amp; Body</button>
         </div>
 
         <div id="dashboard" class="widget">

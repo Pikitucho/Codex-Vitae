@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320" role="img" aria-labelledby="title desc">
+  <title id="title">Sky Loft Guardian Placeholder</title>
+  <desc id="desc">A whimsical Ghibli-inspired avatar with mossy teal hair, warm lantern highlights, and floating sky blossoms.</desc>
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="42%" r="70%">
+      <stop offset="0%" stop-color="#fdfbf6"/>
+      <stop offset="55%" stop-color="#dfe8f2"/>
+      <stop offset="95%" stop-color="#3f6f76" stop-opacity="0.25"/>
+    </radialGradient>
+    <radialGradient id="bgAura" cx="20%" cy="20%" r="80%">
+      <stop offset="0%" stop-color="#f7e2ad" stop-opacity="0.85"/>
+      <stop offset="65%" stop-color="#f7e2ad" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cloakGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3f6f76"/>
+      <stop offset="45%" stop-color="#4f8c92"/>
+      <stop offset="100%" stop-color="#26444b"/>
+    </linearGradient>
+    <linearGradient id="hairGradient" x1="15%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#26444b"/>
+      <stop offset="45%" stop-color="#3f6f76"/>
+      <stop offset="100%" stop-color="#2c353a"/>
+    </linearGradient>
+    <radialGradient id="faceGlow" cx="48%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#fef9f0"/>
+      <stop offset="60%" stop-color="#f9f3ea"/>
+      <stop offset="100%" stop-color="#f7b267" stop-opacity="0.28"/>
+    </radialGradient>
+    <radialGradient id="cheekGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f7b267" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#f7b267" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="lanternLight" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#f7b267" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#f7b267" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="trimGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f9f3ea"/>
+      <stop offset="100%" stop-color="#dfe8f2"/>
+    </linearGradient>
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+      <feComposite in="blur" in2="SourceAlpha" operator="out" result="halo"/>
+      <feBlend in="SourceGraphic" in2="halo" mode="screen"/>
+    </filter>
+  </defs>
+  <rect width="320" height="320" fill="#dfe8f2"/>
+  <g transform="translate(16 16)">
+    <circle cx="144" cy="144" r="144" fill="url(#bgGlow)"/>
+    <circle cx="94" cy="86" r="88" fill="url(#bgAura)" opacity="0.55"/>
+    <circle cx="200" cy="210" r="78" fill="url(#lanternLight)" opacity="0.35"/>
+    <g filter="url(#softGlow)">
+      <ellipse cx="144" cy="270" rx="110" ry="30" fill="#26444b" fill-opacity="0.25"/>
+    </g>
+    <path d="M60 170c-12 36-8 86 84 90s110-44 90-88" fill="#2c353a" opacity="0.08"/>
+    <path d="M62 114c8-44 48-78 96-78s88 36 96 80c3 16 4 36-8 60-10-10-24-20-44-22-30-4-44 12-70 10-22-2-42-16-62-50z" fill="url(#hairGradient)"/>
+    <path d="M72 136c10-24 42-42 72-42s60 18 72 44c-6 12-26 28-44 30-14 2-21-6-28-6s-14 8-26 8c-20 0-40-16-46-34z" fill="#2c353a" opacity="0.28"/>
+    <ellipse cx="144" cy="170" rx="74" ry="82" fill="url(#faceGlow)"/>
+    <path d="M98 180c4 22 20 44 46 46 28 2 46-20 52-44-8 8-28 8-36 0-8 8-34 10-62-2z" fill="#f9f3ea" opacity="0.9"/>
+    <ellipse cx="118" cy="176" rx="16" ry="10" fill="url(#cheekGradient)"/>
+    <ellipse cx="174" cy="176" rx="16" ry="10" fill="url(#cheekGradient)"/>
+    <ellipse cx="126" cy="160" rx="12" ry="16" fill="#2c353a" opacity="0.85"/>
+    <ellipse cx="162" cy="160" rx="12" ry="16" fill="#2c353a" opacity="0.85"/>
+    <circle cx="124" cy="158" r="6" fill="#f9f3ea" opacity="0.9"/>
+    <circle cx="160" cy="158" r="6" fill="#f9f3ea" opacity="0.9"/>
+    <path d="M136 198c6 4 18 4 24 0-4 10-18 12-24 0z" fill="#f7b267" opacity="0.75"/>
+    <path d="M108 132c10-12 72-12 88 8-2-22-24-36-46-36s-36 12-42 28z" fill="#2c353a" opacity="0.45"/>
+    <path d="M84 220c22-16 44-24 60-24s42 8 64 26c10 8 32 36 0 58-18 12-56 16-92 6-38-12-48-38-32-66z" fill="url(#cloakGradient)"/>
+    <path d="M84 220c18 10 40 20 62 20s46-10 62-20c-6 28-22 54-62 54s-58-30-62-54z" fill="#26444b" opacity="0.35"/>
+    <path d="M102 214c14 10 28 14 42 14s26-4 42-14c-8-8-26-12-42-12s-34 4-42 12z" fill="url(#trimGradient)" opacity="0.75"/>
+    <path d="M58 132c-6 4-12 16-12 26 16 4 26 2 32-2-8-6-14-12-20-24z" fill="#3f6f76" opacity="0.75"/>
+    <path d="M226 134c4 8 10 20 24 26 0-14-6-26-10-30-4 0-10 2-14 4z" fill="#3f6f76" opacity="0.75"/>
+    <path d="M90 92c-12 0-22-12-22-22 14 0 30 6 42 22-6 0-12 0-20 0z" fill="#7fb27b" opacity="0.65"/>
+    <path d="M206 90c12-4 24-14 28-32-12 4-30 16-40 34 4-2 8-2 12-2z" fill="#7fb27b" opacity="0.6"/>
+    <g opacity="0.7">
+      <ellipse cx="72" cy="254" rx="22" ry="10" fill="#56646c" fill-opacity="0.45"/>
+      <ellipse cx="220" cy="256" rx="26" ry="12" fill="#56646c" fill-opacity="0.35"/>
+    </g>
+    <g opacity="0.6">
+      <path d="M40 166c-10 12-16 26-10 38 8 16 32 18 42 2-14-12-22-24-32-40z" fill="#7fb27b"/>
+      <path d="M242 164c12 18 18 32 8 46-10 14-32 12-40-6 12-10 22-18 32-40z" fill="#7fb27b"/>
+    </g>
+    <circle cx="90" cy="74" r="8" fill="#f9f3ea" opacity="0.85"/>
+    <circle cx="214" cy="70" r="10" fill="#f9f3ea" opacity="0.9"/>
+    <circle cx="66" cy="208" r="6" fill="#f7b267" opacity="0.8"/>
+    <circle cx="226" cy="208" r="6" fill="#f7b267" opacity="0.8"/>
+  </g>
+</svg>
