@@ -115,6 +115,10 @@ p {
     border: 1px solid rgba(255, 255, 255, 0.7);
 }
 
+#app-screen > h2 {
+    margin: 0;
+}
+
 /* --- FORM CONTROLS --- */
 input,
 select,
@@ -264,7 +268,7 @@ button:active {
 /* --- FACE SCAN & AVATAR --- */
 .avatar-hero {
     position: relative;
-    margin: -14px -10px 6px;
+    margin: 0 -10px 6px;
     padding: 38px 28px 48px;
     border-radius: 42px;
     background:
