@@ -161,3 +161,5 @@ const skillTree = {
         }
     }
 };
+
+window.skillTree ??= skillTree;
