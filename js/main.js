@@ -38,6 +38,8 @@ const BACKEND_SERVER_URL =
     typeof codexConfig.backendUrl === 'string' ? codexConfig.backendUrl.trim() : '';
 const AI_FEATURES_AVAILABLE = BACKEND_SERVER_URL.length > 0;
 const AVATAR_PLACEHOLDER_SRC = 'assets/avatars/heroic-white-male-placeholder.svg';
+const DEFAULT_AVATAR_MODEL_SRC = 'assets/avatars/codex-placeholder-avatar.gltf';
+const AVATAR_MODEL_EXTENSIONS = ['.glb', '.gltf'];
 
 if (!firebaseConfig || typeof firebaseConfig !== 'object') {
     displayConfigurationError(
@@ -88,12 +90,38 @@ function updateCapturedPhotoElement(element, imageSrc) {
     }
 
     const trimmedSrc = typeof imageSrc === 'string' ? imageSrc.trim() : '';
-    const resolvedSrc = trimmedSrc && trimmedSrc !== AVATAR_PLACEHOLDER_SRC
-        ? trimmedSrc
-        : AVATAR_PLACEHOLDER_SRC;
+    const lowerSrc = trimmedSrc.toLowerCase();
+    const isPlaceholderImage = trimmedSrc === AVATAR_PLACEHOLDER_SRC;
+    const isPlaceholderModel = trimmedSrc === DEFAULT_AVATAR_MODEL_SRC;
+    const hasCustomValue = trimmedSrc.length > 0 && !isPlaceholderImage && !isPlaceholderModel;
+    const isModelSrc = hasCustomValue
+        && AVATAR_MODEL_EXTENSIONS.some(extension => lowerSrc.endsWith(extension));
+    const viewerSrc = isModelSrc ? trimmedSrc : DEFAULT_AVATAR_MODEL_SRC;
+    const posterSrc = hasCustomValue && !isModelSrc ? trimmedSrc : AVATAR_PLACEHOLDER_SRC;
+    const shouldShowPoster = hasCustomValue && !isModelSrc;
+    const revealMode = shouldShowPoster ? 'interaction' : 'auto';
+    const isPlaceholder = !hasCustomValue;
 
-    element.src = resolvedSrc;
-    const isPlaceholder = resolvedSrc === AVATAR_PLACEHOLDER_SRC;
+    if (element.getAttribute('src') !== viewerSrc) {
+        element.setAttribute('src', viewerSrc);
+    }
+
+    if (element.getAttribute('poster') !== posterSrc) {
+        element.setAttribute('poster', posterSrc);
+    }
+
+    if (element.getAttribute('reveal') !== revealMode) {
+        element.setAttribute('reveal', revealMode);
+    }
+
+    const canShowPoster = typeof element.showPoster === 'function';
+    const canDismissPoster = typeof element.dismissPoster === 'function';
+    if (shouldShowPoster && canShowPoster) {
+        element.showPoster();
+    } else if (!shouldShowPoster && canDismissPoster) {
+        element.dismissPoster();
+    }
+
     element.classList.toggle('avatar-placeholder', isPlaceholder);
     element.classList.remove('hidden');
 }

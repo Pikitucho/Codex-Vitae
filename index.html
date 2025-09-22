@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Codex Vitae</title>
     <link rel="stylesheet" href="CSS/style.css">
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 </head>
 <body>
 
@@ -32,12 +33,18 @@
         <div class="avatar-hero">
             <div class="avatar-display">
                 <video id="webcam-feed" class="avatar-circle hidden" autoplay playsinline></video>
-                <img
+                <model-viewer
                     id="captured-photo"
                     class="avatar-circle avatar-placeholder"
-                    src="assets/avatars/heroic-white-male-placeholder.svg"
+                    src="assets/avatars/codex-placeholder-avatar.gltf"
+                    poster="assets/avatars/heroic-white-male-placeholder.svg"
                     alt="Your Avatar"
-                >
+                    camera-controls
+                    disable-zoom
+                    auto-rotate
+                    shadow-intensity="0.3"
+                    exposure="1"
+                ></model-viewer>
             </div>
             <canvas id="photo-canvas" class="hidden"></canvas>
         </div>

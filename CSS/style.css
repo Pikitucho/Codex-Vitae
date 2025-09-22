@@ -319,14 +319,14 @@ button:active {
     width: min(72vw, 300px);
     aspect-ratio: 1;
     margin: 0 auto;
-    padding: 22px;
+    padding: 24px;
     border-radius: 50%;
     background:
-        radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.92), rgba(249, 243, 234, 0.75) 58%, rgba(223, 232, 242, 0.65) 100%);
+        radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.9), rgba(249, 243, 234, 0.72) 60%, rgba(207, 220, 230, 0.55) 100%);
     box-shadow:
-        0 26px 52px rgba(38, 68, 75, 0.28),
-        inset 0 18px 28px rgba(255, 255, 255, 0.35),
-        inset 0 -18px 34px rgba(63, 111, 118, 0.18);
+        0 32px 60px rgba(38, 68, 75, 0.26),
+        inset 0 22px 34px rgba(255, 255, 255, 0.4),
+        inset 0 -20px 36px rgba(63, 111, 118, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -337,10 +337,10 @@ button:active {
 .avatar-display::before {
     content: "";
     position: absolute;
-    inset: -18px;
+    inset: -20px;
     border-radius: 50%;
-    background: linear-gradient(140deg, rgba(247, 178, 103, 0.46), rgba(63, 111, 118, 0.55));
-    filter: blur(0.4px);
+    background: linear-gradient(145deg, rgba(247, 178, 103, 0.46), rgba(63, 111, 118, 0.55));
+    filter: blur(0.6px);
     z-index: -2;
 }
 
@@ -349,7 +349,7 @@ button:active {
     position: absolute;
     inset: 18px;
     border-radius: 50%;
-    background: radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.75), transparent 68%);
+    background: radial-gradient(circle at 32% 22%, rgba(255, 255, 255, 0.78), transparent 68%);
     z-index: -1;
 }
 
@@ -357,39 +357,69 @@ button:active {
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    object-fit: cover;
-    border: 6px solid rgba(255, 255, 255, 0.82);
-    box-shadow: inset 0 0 22px rgba(38, 68, 75, 0.22);
-    background-color: rgba(223, 232, 242, 0.6);
-    transition: transform 0.45s ease, filter 0.45s ease;
+    border: 8px solid rgba(255, 255, 255, 0.82);
+    box-shadow:
+        inset 0 0 28px rgba(38, 68, 75, 0.22),
+        0 18px 26px rgba(38, 68, 75, 0.16);
+    background: radial-gradient(circle at 50% 30%, rgba(223, 232, 242, 0.85), rgba(207, 220, 230, 0.65));
+    display: block;
+    overflow: hidden;
+    transition: transform 0.45s ease, filter 0.45s ease, box-shadow 0.45s ease;
 }
 
 .avatar-display:hover .avatar-circle {
-    transform: translateY(-3px) scale(1.01);
-    filter: saturate(1.05);
+    transform: translateY(-4px) scale(1.015);
+    box-shadow:
+        inset 0 0 28px rgba(38, 68, 75, 0.18),
+        0 26px 32px rgba(38, 68, 75, 0.22);
+    filter: saturate(1.08);
+}
+
+video.avatar-circle {
+    object-fit: cover;
+    background-color: rgba(223, 232, 242, 0.9);
+}
+
+model-viewer.avatar-circle {
+    --poster-color: transparent;
+    background: radial-gradient(circle at 50% 40%, rgba(223, 232, 242, 0.75), rgba(195, 212, 223, 0.55));
+}
+
+.avatar-circle.avatar-placeholder {
+    background-image: url('../assets/avatars/heroic-white-male-placeholder.svg');
+    background-repeat: no-repeat;
+    background-position: 50% 82%;
+    background-size: 72%;
 }
 
 #webcam-feed {
     width: 100%;
     height: 100%;
-    object-fit: cover;
     border-radius: 50%;
-    background-color: rgba(223, 232, 242, 0.9);
 }
 
 #captured-photo {
     width: 100%;
     height: 100%;
     position: relative;
+    border-radius: 50%;
     transform: none;
     padding: 0;
 }
 
-#captured-photo.avatar-placeholder {
-    object-fit: contain;
-    padding: 6%;
-    background: transparent;
-    object-position: bottom center;
+#captured-photo::part(default-progress-bar) {
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.55);
+    box-shadow: 0 4px 10px rgba(38, 68, 75, 0.25);
+}
+
+#captured-photo::part(default-progress-mask) {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+}
+
+#captured-photo::part(default-ar-button) {
+    display: none;
 }
 
 /* --- MODALS --- */
