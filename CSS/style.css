@@ -499,6 +499,15 @@ button:active {
     background: radial-gradient(circle at top, rgba(79, 140, 146, 0.35), transparent 70%);
 }
 
+.skill-tree-unavailable {
+    margin: auto;
+    padding: 24px;
+    text-align: center;
+    color: rgba(246, 249, 251, 0.85);
+    font-weight: 600;
+    line-height: 1.4;
+}
+
 /* --- PERK POINT & CHORE DISPLAYS --- */
 #perk-point-display h3 {
     margin: 0;

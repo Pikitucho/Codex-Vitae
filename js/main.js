@@ -82,7 +82,7 @@ const skillPanLeftBtn = document.getElementById('skill-pan-left');
 const skillPanRightBtn = document.getElementById('skill-pan-right');
 
 const skillTreeUtils = window.SkillTreeUtils || {};
-const getConstellationStarsMap = typeof skillTreeUtils.getConstellationStarsMap === 'function'
+const resolveConstellationStarsMap = typeof skillTreeUtils.getConstellationStarsMap === 'function'
     ? (constellationData, constellationName) => skillTreeUtils.getConstellationStarsMap(constellationData, constellationName)
     : (constellationData) => {
         if (!constellationData || typeof constellationData !== 'object') {
@@ -106,7 +106,7 @@ const getConstellationStarsMap = typeof skillTreeUtils.getConstellationStarsMap 
         return { ...(constellationData.stars || {}) };
     };
 
-const getConstellationStarSystems = typeof skillTreeUtils.getConstellationStarSystems === 'function'
+const resolveConstellationStarSystems = typeof skillTreeUtils.getConstellationStarSystems === 'function'
     ? (constellationData, constellationName) => skillTreeUtils.getConstellationStarSystems(constellationData, constellationName)
     : (constellationData, constellationName) => {
         if (!constellationData || typeof constellationData !== 'object') {
@@ -130,14 +130,14 @@ const getConstellationStarSystems = typeof skillTreeUtils.getConstellationStarSy
         return {};
     };
 
-const getConstellationStarEntries = typeof skillTreeUtils.getConstellationStarEntries === 'function'
+const resolveConstellationStarEntries = typeof skillTreeUtils.getConstellationStarEntries === 'function'
     ? (constellationData, constellationName) => skillTreeUtils.getConstellationStarEntries(constellationData, constellationName)
     : (constellationData, constellationName) => {
         if (!constellationData || typeof constellationData !== 'object') {
             return [];
         }
 
-        const starSystems = getConstellationStarSystems(constellationData, constellationName);
+        const starSystems = resolveConstellationStarSystems(constellationData, constellationName);
         const entries = [];
 
         if (starSystems && typeof starSystems === 'object' && Object.keys(starSystems).length > 0) {
@@ -170,7 +170,7 @@ const getConstellationStarEntries = typeof skillTreeUtils.getConstellationStarEn
         return entries;
     };
 
-const findStarInConstellation = typeof skillTreeUtils.findStarInConstellation === 'function'
+const findStarInConstellationSafe = typeof skillTreeUtils.findStarInConstellation === 'function'
     ? (constellationData, starName, constellationName) => skillTreeUtils.findStarInConstellation(constellationData, starName, constellationName)
     : (constellationData, starName) => {
         if (!constellationData || typeof constellationData !== 'object' || typeof starName !== 'string') {
@@ -201,13 +201,13 @@ const findStarInConstellation = typeof skillTreeUtils.findStarInConstellation ==
         return null;
     };
 
-const hasConstellationStar = typeof skillTreeUtils.hasConstellationStar === 'function'
+const hasConstellationStarSafe = typeof skillTreeUtils.hasConstellationStar === 'function'
     ? (constellationData, starName, constellationName) => skillTreeUtils.hasConstellationStar(constellationData, starName, constellationName)
     : (constellationData, starName) => {
         if (typeof starName !== 'string') {
             return false;
         }
-        const stars = getConstellationStarsMap(constellationData);
+        const stars = resolveConstellationStarsMap(constellationData);
         return Object.prototype.hasOwnProperty.call(stars, starName);
     };
 
@@ -1130,7 +1130,7 @@ function isValidSkillPath(path) {
         return true;
     }
 
-    const starSystems = getConstellationStarSystems(constellationData, constellationName);
+    const starSystems = resolveConstellationStarSystems(constellationData, constellationName);
 
     if (pathType === 'starSystem') {
         const starSystemName = path.starSystem;
@@ -1151,7 +1151,7 @@ function isValidSkillPath(path) {
             return Object.prototype.hasOwnProperty.call(stars, starName);
         }
 
-        return hasConstellationStar(constellationData, starName, constellationName);
+        return hasConstellationStarSafe(constellationData, starName, constellationName);
     }
 
     return false;
@@ -1348,8 +1348,8 @@ function findSkillTreePath(query) {
         }
 
         const constellationData = constellations[constellationMatch.name] || {};
-        const starSystems = getConstellationStarSystems(constellationData, constellationMatch.name);
-        const starEntries = getConstellationStarEntries(constellationData, constellationMatch.name);
+        const starSystems = resolveConstellationStarSystems(constellationData, constellationMatch.name);
+        const starEntries = resolveConstellationStarEntries(constellationData, constellationMatch.name);
 
         if (segments.length === 3) {
             if (Object.keys(starSystems).length > 0) {
@@ -1481,7 +1481,7 @@ function findSkillTreePath(query) {
                 });
             }
 
-            const starSystems = getConstellationStarSystems(constellationData, constellationName);
+            const starSystems = resolveConstellationStarSystems(constellationData, constellationName);
             for (const [systemName] of Object.entries(starSystems)) {
                 const normalizedSystem = (systemName || '').toLowerCase();
                 if (!systemName) {
@@ -1516,7 +1516,7 @@ function findSkillTreePath(query) {
                 }
             }
 
-            const starEntries = getConstellationStarEntries(constellationData, constellationName);
+            const starEntries = resolveConstellationStarEntries(constellationData, constellationName);
             for (const entry of starEntries) {
                 const starName = entry.starName;
                 const starNormalized = starName.toLowerCase();
@@ -1590,7 +1590,7 @@ function requestSkillPath(path) {
 
     const galaxyData = skillTree[galaxyName] || null;
     const constellationData = galaxyData?.constellations?.[constellationName] || null;
-    const starSystems = constellationData ? getConstellationStarSystems(constellationData, constellationName) : {};
+    const starSystems = constellationData ? resolveConstellationStarSystems(constellationData, constellationName) : {};
 
     if (normalizedPath.type === 'galaxy') {
         delete normalizedPath.constellation;
@@ -1602,7 +1602,7 @@ function requestSkillPath(path) {
     } else if (normalizedPath.type === 'starSystem') {
         delete normalizedPath.star;
     } else if (normalizedPath.type === 'star' && !starSystemName) {
-        const starInfo = constellationData ? findStarInConstellation(constellationData, starName, constellationName) : null;
+        const starInfo = constellationData ? findStarInConstellationSafe(constellationData, starName, constellationName) : null;
         if (starInfo && typeof starInfo.starSystemName === 'string') {
             normalizedPath.starSystem = starInfo.starSystemName;
         } else {
@@ -1637,7 +1637,7 @@ function requestSkillPath(path) {
         }
 
         if (!starData && constellationData) {
-            const starInfo = findStarInConstellation(constellationData, starName, constellationName);
+            const starInfo = findStarInConstellationSafe(constellationData, starName, constellationName);
             if (starInfo) {
                 starData = starInfo.starData || null;
                 if (!resolvedStarSystemName && starInfo.starSystemName) {
@@ -1911,17 +1911,28 @@ document.getElementById('signup-btn').addEventListener('click', handleSignUp);
 document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
 
 
-skillRenderer = new SkillUniverseRenderer({
-    container: document.getElementById('skill-tree-canvas-container'),
-    getSkillTree: () => window.skillTree || {},
-    resolveStarStatus: (starName, starData) => determineStarStatus(starName, starData),
-    onSelectStar: (starInfo) => {
-        if (typeof handleStarSelection === 'function') {
-            handleStarSelection(starInfo);
+const skillTreeContainer = document.getElementById('skill-tree-canvas-container');
+if (typeof window.SkillUniverseRenderer === 'function') {
+    skillRenderer = new window.SkillUniverseRenderer({
+        container: skillTreeContainer,
+        getSkillTree: () => window.skillTree || {},
+        resolveStarStatus: (starName, starData) => determineStarStatus(starName, starData),
+        onSelectStar: (starInfo) => {
+            if (typeof handleStarSelection === 'function') {
+                handleStarSelection(starInfo);
+            }
+        },
+        onViewChange: ({ title, breadcrumbs, showBack }) => {
+            updateSkillTreeUI(title, breadcrumbs, showBack);
         }
-    },
-    onViewChange: ({ title, breadcrumbs, showBack }) => {
-        updateSkillTreeUI(title, breadcrumbs, showBack);
+    });
+} else {
+    console.warn(
+        'SkillUniverseRenderer is unavailable. Three.js failed to load, so the 3D skill tree will be disabled.'
+    );
+    if (skillTreeContainer) {
+        skillTreeContainer.innerHTML =
+            '<p class="skill-tree-unavailable">3D skill tree unavailable (offline or missing Three.js).</p>';
     }
-});
+}
 
