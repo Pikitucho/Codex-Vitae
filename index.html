@@ -221,10 +221,51 @@
                     <button id="close-skills-btn">Close</button>
                 </div>
             </div>
+
+            <div id="skill-tree-header">
+                <div id="skill-tree-controls">
+                    <button id="skill-back-btn" class="hidden" type="button">&larr; Back</button>
+                    <div id="skill-tree-pan-controls" class="hidden" role="group" aria-label="Constellation pan controls">
+                        <button id="skill-pan-left" class="skill-tree-pan-button" type="button" aria-label="Nudge constellations left">&#8592;</button>
+                        <button id="skill-pan-right" class="skill-tree-pan-button" type="button" aria-label="Nudge constellations right">&#8594;</button>
+                    </div>
+                </div>
+                <h2 id="skill-tree-title">Skill Galaxy</h2>
+                <button id="close-skills-btn" type="button">Close</button>
+            </div>
             <div id="skill-tree-breadcrumbs"></div>
             <div id="skill-tree-canvas-container"></div>
         </div>
     </div>
+        <div id="skills-modal" class="modal hidden">
+            <div class="modal-content">
+                <div id="skill-tree-header">
+                    <button id="skill-back-btn" class="hidden">&larr; Back</button>
+                    <h2 id="skill-tree-title">Skill Galaxy</h2>
+                    <button id="close-skills-btn">Close</button>
+                </div>
+                <div id="skill-tree-breadcrumbs"></div>
+                <div id="skill-tree-canvas-container"></div>
+                <div id="star-detail-panel" class="hidden">
+                    <div class="star-detail-header">
+                        <div class="star-detail-title-group">
+                            <div id="star-detail-art" class="star-detail-art" aria-hidden="true"></div>
+                            <div class="star-detail-text">
+                                <h3 id="star-detail-title"></h3>
+                                <p id="star-detail-location" class="star-detail-location"></p>
+                            </div>
+                        </div>
+                        <button id="star-detail-close" type="button" aria-label="Close star details">&times;</button>
+                    </div>
+                    <p id="star-detail-description" class="star-detail-description"></p>
+                    <div id="star-detail-requirements" class="star-detail-requirements"></div>
+                    <div id="star-detail-actions" class="star-detail-actions">
+                        <button id="star-unlock-btn" type="button">Unlock</button>
+                        <button id="star-proof-btn" type="button">Provide Proof</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     <div id="codex-modal" class="modal hidden">
         <div class="modal-content">
