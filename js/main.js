@@ -495,6 +495,60 @@ let currentSkillPath = [];
 let listenersInitialized = false;
 let lastAuthAction = null;
 let skillRenderer = null;
+const SKILL_TREE_READY_EVENT = 'skillTreeDataReady';
+
+function getCurrentSkillTree() {
+    const tree = window.skillTree;
+    return tree && typeof tree === 'object' ? tree : null;
+}
+
+function skillTreeHasGalaxies(skillTree = getCurrentSkillTree()) {
+    if (!skillTree) {
+        return false;
+    }
+    return Object.keys(skillTree).length > 0;
+}
+
+function rebuildSkillUniverseIfReady(options = {}) {
+    const { force = false } = options;
+    if (!skillRenderer || typeof skillRenderer.rebuildUniverse !== 'function') {
+        return false;
+    }
+    if (!skillTreeHasGalaxies()) {
+        return false;
+    }
+    if (!force && !skillRenderer.needsUniverseBuild) {
+        return false;
+    }
+    skillRenderer.rebuildUniverse();
+    return true;
+}
+
+function handleSkillTreeDataReady(event) {
+    const forceRebuild = Boolean(event?.detail?.forceRebuild);
+    rebuildSkillUniverseIfReady({ force: forceRebuild });
+}
+
+function dispatchSkillTreeDataReady(options = {}) {
+    const { force = false } = options;
+    if (!skillTreeHasGalaxies()) {
+        return false;
+    }
+
+    const detail = { forceRebuild: force };
+    let readyEvent;
+    if (typeof window.CustomEvent === 'function') {
+        readyEvent = new CustomEvent(SKILL_TREE_READY_EVENT, { detail });
+    } else {
+        readyEvent = document.createEvent('CustomEvent');
+        readyEvent.initCustomEvent(SKILL_TREE_READY_EVENT, false, false, detail);
+    }
+
+    window.dispatchEvent(readyEvent);
+    return true;
+}
+
+window.addEventListener(SKILL_TREE_READY_EVENT, handleSkillTreeDataReady);
 
 // --- Manager Logic ---
 const levelManager = {
@@ -691,6 +745,7 @@ async function loadData(userId) {
 
         syncSkillSearchInputWithTarget(characterData.skillSearchTarget);
 
+        dispatchSkillTreeDataReady({ force: true });
         return true;
     } catch (error) {
         console.error('Failed to load character data:', error);
@@ -1234,6 +1289,13 @@ function restoreSkillSearchTargetNavigation() {
 }
 
 function openSkillsModal() {
+    if (!skillTreeHasGalaxies()) {
+        showToast('Skill tree data is still loading. Please try again in a moment.');
+        return;
+    }
+
+    rebuildSkillUniverseIfReady();
+
     starDetailController.hide();
 
     skillsModal.classList.remove('hidden');
@@ -1952,6 +2014,8 @@ if (typeof window.SkillUniverseRenderer === 'function') {
             updateSkillTreeUI(title, breadcrumbs, showBack);
         }
     });
+
+    rebuildSkillUniverseIfReady();
 } else {
     console.warn(
         'SkillUniverseRenderer is unavailable. Three.js failed to load, so the 3D skill tree will be disabled.'
