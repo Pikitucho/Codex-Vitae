@@ -970,16 +970,32 @@ function restoreSkillSearchTargetNavigation() {
 }
 
 function openSkillsModal() {
+    starDetailController.hide();
+
+    const canHandleResize = myp5 && typeof myp5.handleResize === 'function';
+
+    if (canHandleResize) {
+        myp5.handleResize();
+    } else if (myp5 && typeof myp5.prepareStarData === 'function') {
+        myp5.prepareStarData();
+    }
+
     skillsModal.classList.remove('hidden');
     syncSkillSearchInputWithTarget();
     restoreSkillSearchTargetNavigation();
-}
-function openSkillsModal() {
-    starDetailController.hide();
-    if (myp5 && typeof myp5.prepareStarData === 'function') {
+
+    if (canHandleResize) {
+        const schedule = typeof requestAnimationFrame === 'function'
+            ? requestAnimationFrame
+            : (fn) => setTimeout(fn, 0);
+        schedule(() => {
+            if (myp5 && typeof myp5.handleResize === 'function') {
+                myp5.handleResize();
+            }
+        });
+    } else if (myp5 && typeof myp5.prepareStarData === 'function') {
         myp5.prepareStarData();
     }
-    skillsModal.classList.remove('hidden');
 }
 
 function updateSkillTreeUI(title, breadcrumbs, showBack) {
