@@ -37,6 +37,7 @@ const firebaseConfig = codexConfig.firebaseConfig;
 const BACKEND_SERVER_URL =
     typeof codexConfig.backendUrl === 'string' ? codexConfig.backendUrl.trim() : '';
 const AI_FEATURES_AVAILABLE = BACKEND_SERVER_URL.length > 0;
+const AVATAR_PLACEHOLDER_SRC = 'assets/avatars/ghibli-placeholder.svg';
 
 if (!firebaseConfig || typeof firebaseConfig !== 'object') {
     displayConfigurationError(
@@ -662,12 +663,17 @@ async function loadData(userId) {
         choreManager.chores = characterData.chores;
 
         const capturedPhoto = document.getElementById('captured-photo');
-        if (characterData.avatarUrl) {
-            capturedPhoto.src = characterData.avatarUrl;
+        const webcamFeed = document.getElementById('webcam-feed');
+        const scanButton = document.getElementById('scan-face-btn');
+        if (capturedPhoto) {
+            capturedPhoto.src = characterData.avatarUrl || AVATAR_PLACEHOLDER_SRC;
             capturedPhoto.classList.remove('hidden');
-        } else {
-            capturedPhoto.src = '';
-            capturedPhoto.classList.add('hidden');
+        }
+        if (webcamFeed) {
+            webcamFeed.classList.add('hidden');
+        }
+        if (scanButton) {
+            scanButton.textContent = characterData.avatarUrl ? 'Update Avatar' : 'Scan Your Face & Body';
         }
 
         syncSkillSearchInputWithTarget(characterData.skillSearchTarget);
@@ -881,8 +887,20 @@ async function handleFaceScan() {
         console.error('Avatar generation failed:', error);
         alert('Avatar generation failed. Try again later.');
     } finally {
-        scanButton.textContent = 'Rescan Face';
-        scanButton.disabled = false;
+        if (webcamFeed) {
+            webcamFeed.classList.add('hidden');
+            webcamFeed.srcObject = null;
+        }
+        if (capturedPhoto) {
+            if (!characterData.avatarUrl) {
+                capturedPhoto.src = AVATAR_PLACEHOLDER_SRC;
+            }
+            capturedPhoto.classList.remove('hidden');
+        }
+        if (scanButton) {
+            scanButton.textContent = characterData.avatarUrl ? 'Update Avatar' : 'Scan Your Face & Body';
+            scanButton.disabled = false;
+        }
     }
 }
 
@@ -928,14 +946,21 @@ function updateDashboard() {
     });
 
     const capturedPhoto = document.getElementById('captured-photo');
-    if (characterData.avatarUrl) {
-        capturedPhoto.src = characterData.avatarUrl;
+    const webcamFeed = document.getElementById('webcam-feed');
+    const scanButton = document.getElementById('scan-face-btn');
+    if (capturedPhoto) {
+        if (characterData.avatarUrl) {
+            capturedPhoto.src = characterData.avatarUrl;
+        } else {
+            capturedPhoto.src = AVATAR_PLACEHOLDER_SRC;
+        }
         capturedPhoto.classList.remove('hidden');
-        document.getElementById('webcam-feed').classList.add('hidden');
-        document.getElementById('scan-face-btn').textContent = 'Update Avatar';
-    } else {
-        capturedPhoto.src = '';
-        capturedPhoto.classList.add('hidden');
+    }
+    if (webcamFeed) {
+        webcamFeed.classList.add('hidden');
+    }
+    if (scanButton) {
+        scanButton.textContent = characterData.avatarUrl ? 'Update Avatar' : 'Scan Your Face & Body';
     }
 
     if (auth.currentUser) saveData();
