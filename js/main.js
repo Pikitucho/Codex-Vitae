@@ -607,20 +607,32 @@ function setupEventListeners() {
         activityManager.logActivity(document.getElementById('activity-select').value);
     });
     
-    document.getElementById('open-codex-btn').addEventListener('click', () => document.getElementById('codex-modal').classList.remove('hidden'));
-    document.getElementById('close-codex-btn').addEventListener('click', () => document.getElementById('codex-modal').classList.add('hidden'));
+    const codexModal = document.getElementById('codex-modal');
+
+    document.getElementById('open-codex-btn').addEventListener('click', () => {
+        codexModal.classList.remove('hidden');
+    });
+
+    document.getElementById('close-codex-btn').addEventListener('click', () => {
+        codexModal.classList.add('hidden');
+    });
+
     document.getElementById('codex-skills-btn').addEventListener('click', () => {
-        document.getElementById('codex-modal').classList.add('hidden');
+        codexModal.classList.add('hidden');
         openSkillsModal();
     });
+
     document.getElementById('codex-logout-btn').addEventListener('click', handleLogout);
-    document.getElementById('close-skills-btn').addEventListener('click', () => document.getElementById('skills-modal').classList.add('hidden'));
+
+    document.getElementById('close-skills-btn').addEventListener('click', () => {
+        skillsModal.classList.add('hidden');
+    });
     
     skillBackBtn.addEventListener('click', () => {
         if (myp5) {
             myp5.goBack();
         }
-     });
+    });
 
     if (skillSearchForm && skillSearchInput) {
         const toggleSearchFocus = (isActive) => {
