@@ -11,7 +11,14 @@
     const CAMERA_LEVELS = {
         galaxies: { distance: 900, height: 260, duration: 900 },
         constellations: { distance: 520, height: 200, duration: 900 },
-        stars: { distance: 260, height: 120, duration: 900 }
+        starSystems: { distance: 360, height: 150, duration: 900 },
+        stars: { distance: 210, height: 110, duration: 900 }
+    };
+
+    const CAMERA_THRESHOLDS = {
+        starToSystem: (CAMERA_LEVELS.starSystems.distance + CAMERA_LEVELS.stars.distance) / 2,
+        systemToConstellation: (CAMERA_LEVELS.constellations.distance + CAMERA_LEVELS.starSystems.distance) / 2,
+        constellationToGalaxy: (CAMERA_LEVELS.galaxies.distance + CAMERA_LEVELS.constellations.distance) / 2
     };
 
     const STATUS_COLORS = {
@@ -186,6 +193,7 @@
 
             this.galaxyMap = new Map();
             this.constellationMap = new Map();
+            this.starSystemMap = new Map();
             this.starMeshMap = new Map();
             this.pickableObjects = [];
 
@@ -195,7 +203,7 @@
             this.pointerDownInfo = null;
 
             this.currentView = 'galaxies';
-            this.currentSelection = { galaxy: null, constellation: null, star: null };
+            this.currentSelection = { galaxy: null, constellation: null, starSystem: null, star: null };
 
             this._setupLights();
             this._buildUniverse();
@@ -262,9 +270,10 @@
             }
 
             const type = path.type || 'galaxy';
+            const focusCoordinates = path.focusCoordinates || {};
 
             if (type === 'galaxy') {
-                this._focusGalaxy(path.galaxy);
+                this._focusGalaxy(path.galaxy, focusCoordinates.galaxy);
                 return true;
             }
 
@@ -273,7 +282,19 @@
                 if (!this.constellationMap.has(constellationKey)) {
                     return false;
                 }
-                this._focusConstellation(path.galaxy, path.constellation);
+                this._focusConstellation(path.galaxy, path.constellation, focusCoordinates.constellation);
+                return true;
+            }
+
+            if (type === 'starSystem') {
+                if (!path.starSystem) {
+                    return false;
+                }
+                const systemKey = `${path.galaxy}|${path.constellation}|${path.starSystem}`;
+                if (!this.starSystemMap.has(systemKey)) {
+                    return false;
+                }
+                this._focusStarSystem(path.galaxy, path.constellation, path.starSystem, focusCoordinates.starSystem);
                 return true;
             }
 
@@ -283,7 +304,7 @@
                 if (!starMesh) {
                     return false;
                 }
-                this._focusStar(path.galaxy, path.constellation, path.star);
+                this._focusStar(path.galaxy, path.constellation, path.star, focusCoordinates.star);
                 return true;
             }
 
@@ -291,8 +312,23 @@
         }
 
         goBack() {
-            if (this.currentView === 'stars' && this.currentSelection.galaxy) {
-                this._focusConstellation(this.currentSelection.galaxy, this.currentSelection.constellation || null);
+            const { galaxy, constellation, starSystem, star } = this.currentSelection;
+            if (this.currentView === 'stars') {
+                if (star && starSystem) {
+                    this._focusStarSystem(galaxy, constellation, starSystem);
+                } else if (starSystem) {
+                    this._focusConstellation(galaxy, constellation);
+                } else if (constellation) {
+                    this._focusGalaxy(galaxy);
+                } else {
+                    this._focusUniverse();
+                }
+            } else if (this.currentView === 'starSystems') {
+                if (galaxy) {
+                    this._focusGalaxy(galaxy);
+                } else {
+                    this._focusUniverse();
+                }
             } else if (this.currentView === 'constellations') {
                 this._focusUniverse();
             } else {
@@ -494,6 +530,7 @@
 
                         const systemGroup = new THREE.Group();
                         const systemLabelName = systemName || `system-${sIndex}`;
+                        const systemIdentifier = typeof systemName === 'string' && systemName ? systemName : systemLabelName;
                         systemGroup.name = `system-${constellationName}-${systemLabelName}`;
                         systemGroup.position.set(
                             systemPosition.x,
@@ -512,6 +549,31 @@
                         );
                         orbit.rotation.x = Math.PI / 2;
                         systemGroup.add(orbit);
+
+                        systemGroup.userData = {
+                            type: 'starSystem',
+                            galaxy: galaxyName,
+                            constellation: constellationName,
+                            starSystem: systemIdentifier
+                        };
+                        systemGroup.userData.originalScale = systemGroup.scale.clone();
+
+                        orbit.userData = {
+                            type: 'starSystem',
+                            galaxy: galaxyName,
+                            constellation: constellationName,
+                            starSystem: systemIdentifier
+                        };
+                        orbit.userData.originalScale = orbit.scale.clone();
+                        this.pickableObjects.push(orbit);
+
+                        const starSystemKey = `${galaxyName}|${constellationName}|${systemIdentifier}`;
+                        this.starSystemMap.set(starSystemKey, {
+                            group: systemGroup,
+                            orbit,
+                            systemName: systemIdentifier,
+                            data: systemData
+                        });
 
                         const totalStars = Math.max(stars.length, 1);
                         stars.forEach(({ starName, starData }, starIndex) => {
@@ -546,7 +608,7 @@
                                 galaxy: galaxyName,
                                 constellation: constellationName,
                                 star: starName,
-                                starSystem: systemName || null,
+                                starSystem: systemIdentifier || null,
                                 data: starData,
                                 status
                             };
@@ -596,7 +658,77 @@
             this.pickableObjects = [];
             this.galaxyMap.clear();
             this.constellationMap.clear();
+            this.starSystemMap.clear();
             this.starMeshMap.clear();
+        }
+
+        _resolveFocusVector(focusOverride, fallbackVector) {
+            const fallback = fallbackVector ? fallbackVector.clone() : new THREE.Vector3();
+            if (!focusOverride || typeof focusOverride !== 'object') {
+                return fallback;
+            }
+            const toNumber = (value, alt) => (Number.isFinite(value) ? value : alt);
+            const x = toNumber(focusOverride.x, fallback.x);
+            const y = toNumber(focusOverride.y, fallback.y);
+            const z = toNumber(focusOverride.z, fallback.z);
+            return new THREE.Vector3(x, y, z);
+        }
+
+        _maybeAutoAdjustView() {
+            if (this.tweenState) {
+                return;
+            }
+
+            const { galaxy, constellation, starSystem, star } = this.currentSelection;
+            if (!galaxy) {
+                return;
+            }
+
+            const distance = this.camera.position.distanceTo(this.controls.target);
+
+            if (this.currentView === 'stars') {
+                if (star && distance > CAMERA_THRESHOLDS.starToSystem) {
+                    if (starSystem) {
+                        this._focusStarSystem(galaxy, constellation, starSystem);
+                    } else if (constellation) {
+                        this._focusConstellation(galaxy, constellation);
+                    } else {
+                        this._focusGalaxy(galaxy);
+                    }
+                    return;
+                }
+
+                if (!star && starSystem && distance > CAMERA_THRESHOLDS.systemToConstellation) {
+                    if (galaxy) {
+                        this._focusGalaxy(galaxy);
+                    } else {
+                        this._focusUniverse();
+                    }
+                    return;
+                }
+
+                if (!star && !starSystem && distance > CAMERA_THRESHOLDS.constellationToGalaxy) {
+                    if (galaxy) {
+                        this._focusGalaxy(galaxy);
+                    } else {
+                        this._focusUniverse();
+                    }
+                    return;
+                }
+            } else if (this.currentView === 'starSystems') {
+                if (distance > CAMERA_THRESHOLDS.systemToConstellation) {
+                    if (galaxy) {
+                        this._focusGalaxy(galaxy);
+                    } else {
+                        this._focusUniverse();
+                    }
+                    return;
+                }
+            } else if (this.currentView === 'constellations') {
+                if (distance > CAMERA_THRESHOLDS.constellationToGalaxy) {
+                    this._focusUniverse();
+                }
+            }
         }
 
         _applyStarMaterial(mesh, status) {
@@ -617,47 +749,78 @@
 
         _focusUniverse() {
             this.currentView = 'galaxies';
-            this.currentSelection = { galaxy: null, constellation: null, star: null };
+            this.currentSelection = { galaxy: null, constellation: null, starSystem: null, star: null };
             this._setHighlight(null, null);
             this._tweenCameraTo(new THREE.Vector3(0, 0, 0), CAMERA_LEVELS.galaxies);
             this._updateViewUI();
         }
 
-        _focusGalaxy(galaxyName) {
+        _focusGalaxy(galaxyName, focusOverride) {
             const galaxyInfo = this.galaxyMap.get(galaxyName);
             if (!galaxyInfo) {
                 return;
             }
             this.currentView = 'constellations';
-            this.currentSelection = { galaxy: galaxyName, constellation: null, star: null };
+            this.currentSelection = { galaxy: galaxyName, constellation: null, starSystem: null, star: null };
             this._setHighlight(galaxyInfo.mesh, 'galaxy');
-            this._tweenCameraTo(this._getWorldPosition(galaxyInfo.group), CAMERA_LEVELS.constellations);
+            const fallback = this._getWorldPosition(galaxyInfo.group);
+            const target = this._resolveFocusVector(focusOverride, fallback);
+            this._tweenCameraTo(target, CAMERA_LEVELS.constellations);
             this._updateViewUI();
         }
 
-        _focusConstellation(galaxyName, constellationName) {
+        _focusConstellation(galaxyName, constellationName, focusOverride) {
             const constellationInfo = this.constellationMap.get(`${galaxyName}|${constellationName}`);
             if (!constellationInfo) {
                 this._focusGalaxy(galaxyName);
                 return;
             }
-            this.currentView = 'constellations';
-            this.currentSelection = { galaxy: galaxyName, constellation: constellationName, star: null };
+            this.currentView = 'starSystems';
+            this.currentSelection = { galaxy: galaxyName, constellation: constellationName, starSystem: null, star: null };
             this._setHighlight(constellationInfo.mesh, 'constellation');
-            this._tweenCameraTo(this._getWorldPosition(constellationInfo.group), CAMERA_LEVELS.constellations);
+            const fallback = this._getWorldPosition(constellationInfo.group);
+            const target = this._resolveFocusVector(focusOverride, fallback);
+            this._tweenCameraTo(target, CAMERA_LEVELS.starSystems);
             this._updateViewUI();
         }
 
-        _focusStar(galaxyName, constellationName, starName) {
+        _focusStarSystem(galaxyName, constellationName, starSystemName, focusOverride) {
+            const systemKey = `${galaxyName}|${constellationName}|${starSystemName}`;
+            const systemInfo = this.starSystemMap.get(systemKey);
+            if (!systemInfo) {
+                this._focusConstellation(galaxyName, constellationName);
+                return;
+            }
+            this.currentView = 'stars';
+            this.currentSelection = { galaxy: galaxyName, constellation: constellationName, starSystem: starSystemName, star: null };
+            this._setHighlight(systemInfo.group, 'starSystem');
+            const fallback = this._getWorldPosition(systemInfo.group);
+            const target = this._resolveFocusVector(focusOverride, fallback);
+            this._tweenCameraTo(target, CAMERA_LEVELS.starSystems);
+            this._updateViewUI();
+        }
+
+        _focusStar(galaxyName, constellationName, starName, focusOverride) {
             const starMesh = this.starMeshMap.get(`${galaxyName}|${constellationName}|${starName}`);
             if (!starMesh) {
                 this._focusConstellation(galaxyName, constellationName);
                 return;
             }
             this.currentView = 'stars';
-            this.currentSelection = { galaxy: galaxyName, constellation: constellationName, star: starName };
+            let starSystemName = starMesh.userData?.starSystem || null;
+            if (!starSystemName) {
+                const skillTree = this.getSkillTree();
+                const constellationData = skillTree?.[galaxyName]?.constellations?.[constellationName];
+                const starInfo = findStarInConstellation(constellationData, starName, constellationName);
+                if (starInfo && starInfo.starSystemName) {
+                    starSystemName = starInfo.starSystemName;
+                }
+            }
+            this.currentSelection = { galaxy: galaxyName, constellation: constellationName, starSystem: starSystemName || null, star: starName };
             this._setHighlight(starMesh, 'star');
-            this._tweenCameraTo(this._getWorldPosition(starMesh), CAMERA_LEVELS.stars);
+            const fallback = this._getWorldPosition(starMesh);
+            const target = this._resolveFocusVector(focusOverride, fallback);
+            this._tweenCameraTo(target, CAMERA_LEVELS.stars);
             this._updateViewUI();
         }
 
@@ -679,7 +842,13 @@
                 return;
             }
 
-            const scaleMultiplier = type === 'star' ? 1.6 : type === 'constellation' ? 1.3 : 1.2;
+            const scaleMultiplier = type === 'star'
+                ? 1.6
+                : type === 'starSystem'
+                    ? 1.35
+                    : type === 'constellation'
+                        ? 1.25
+                        : 1.2;
             if (!object.userData) {
                 object.userData = {};
             }
@@ -812,6 +981,12 @@
                 this._focusGalaxy(data.galaxy);
             } else if (data.type === 'constellation') {
                 this._focusConstellation(data.galaxy, data.constellation);
+            } else if (data.type === 'starSystem') {
+                if (data.starSystem) {
+                    this._focusStarSystem(data.galaxy, data.constellation, data.starSystem);
+                } else {
+                    this._focusConstellation(data.galaxy, data.constellation);
+                }
             } else if (data.type === 'star') {
                 this._focusStar(data.galaxy, data.constellation, data.star);
                 if (this.onSelectStar) {
@@ -890,6 +1065,7 @@
             }
 
             this.controls.update();
+            this._maybeAutoAdjustView();
             this.render();
         }
 
@@ -897,44 +1073,59 @@
             if (!this.onViewChange) {
                 return;
             }
-            const { galaxy, constellation } = this.currentSelection;
-            if (this.currentView === 'galaxies') {
-                this.onViewChange({
-                    view: 'galaxies',
-                    title: 'Skill Galaxies',
-                    breadcrumbs: ['Galaxies'],
-                    showBack: false
-                });
-            } else if (this.currentView === 'constellations') {
-                const title = constellation || galaxy || 'Constellations';
-                const crumbs = ['Galaxies'];
-                if (galaxy) {
-                    crumbs.push(galaxy);
-                }
-                if (constellation) {
-                    crumbs.push(constellation);
-                }
-                this.onViewChange({
-                    view: 'constellations',
-                    title,
-                    breadcrumbs: crumbs,
-                    showBack: true
-                });
-            } else if (this.currentView === 'stars') {
-                const crumbs = ['Galaxies'];
-                if (galaxy) {
-                    crumbs.push(galaxy);
-                }
-                if (constellation) {
-                    crumbs.push(constellation);
-                }
-                this.onViewChange({
-                    view: 'stars',
-                    title: constellation || 'Star Systems',
-                    breadcrumbs: crumbs,
-                    showBack: true
+            const { galaxy, constellation, starSystem, star } = this.currentSelection;
+            const breadcrumbs = [{ label: 'All Galaxies' }];
+
+            if (galaxy) {
+                breadcrumbs.push({
+                    label: galaxy,
+                    path: { type: 'galaxy', galaxy }
                 });
             }
+
+            if (constellation) {
+                breadcrumbs.push({
+                    label: constellation,
+                    path: { type: 'constellation', galaxy, constellation }
+                });
+            }
+
+            if (starSystem) {
+                breadcrumbs.push({
+                    label: starSystem,
+                    path: { type: 'starSystem', galaxy, constellation, starSystem }
+                });
+            }
+
+            if (star) {
+                breadcrumbs.push({
+                    label: star,
+                    path: { type: 'star', galaxy, constellation, starSystem, star }
+                });
+            }
+
+            let title = 'Skill Galaxies';
+            if (star) {
+                title = star;
+            } else if (starSystem) {
+                title = starSystem;
+            } else if (constellation) {
+                title = constellation;
+            } else if (galaxy) {
+                title = galaxy;
+            }
+
+            let viewName = this.currentView;
+            if (viewName === 'stars' && starSystem && !star) {
+                viewName = 'starSystems';
+            }
+
+            this.onViewChange({
+                view: viewName,
+                title,
+                breadcrumbs,
+                showBack: breadcrumbs.length > 1
+            });
         }
 
         _getContainerSize() {
