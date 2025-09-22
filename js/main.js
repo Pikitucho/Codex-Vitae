@@ -103,6 +103,7 @@ const levelManager = {
         if (characterData.level % 10 === 0) {
             characterData.skillPoints++;
             showToast(`Level ${characterData.level} Milestone! You earned a Perk Point!`);
+            refreshStarAvailability();
         }
     }
 };
@@ -232,6 +233,7 @@ async function loadData(userId) {
             statsToNextLevel: loadedCharacterData.statsToNextLevel || 10,
             skillPoints: loadedCharacterData.skillPoints || 0,
             unlockedPerks: loadedCharacterData.unlockedPerks || [],
+            verifiedProofs: Array.isArray(loadedCharacterData.verifiedProofs) ? loadedCharacterData.verifiedProofs : [],
             monthlyActivityLog: loadedCharacterData.monthlyActivityLog || [],
             activityLogMonth: loadedCharacterData.activityLogMonth || (new Date().getFullYear() + '-' + (new Date().getMonth() + 1)),
             monthlyPerkClaimed: loadedCharacterData.monthlyPerkClaimed || false,
@@ -309,6 +311,7 @@ function logMonthlyActivity() {
             characterData.skillPoints++;
             characterData.monthlyPerkClaimed = true;
             showToast("Monthly Milestone! You earned a Perk Point for your consistency!");
+            refreshStarAvailability();
         }
     }
 }
@@ -340,6 +343,7 @@ function calculateStartingStats() {
         avatarUrl: '',
         skillPoints: 0,
         unlockedPerks: [],
+        verifiedProofs: [],
         monthlyActivityLog: [],
         activityLogMonth: `${now.getFullYear()}-${now.getMonth() + 1}`,
         monthlyPerkClaimed: false,
@@ -480,27 +484,60 @@ function updateDashboard() {
 }
 
 function unlockPerk(perkName, perkData) {
-    if (characterData.skillPoints < 1) {
+    const availableSkillPoints = characterData.skillPoints || 0;
+    const hasSkillPoint = availableSkillPoints > 0;
+    const requiresSkillPoint = perkData?.unlock_type === 'perk';
+    const stats = characterData.stats || {};
+    const verifiedProofs = Array.isArray(characterData.verifiedProofs)
+        ? characterData.verifiedProofs
+        : [];
+    characterData.unlockedPerks = characterData.unlockedPerks || [];
+    const unlockedPerks = characterData.unlockedPerks;
+
+    const requires = perkData?.requires || {};
+    const requiredStat = requires.stat;
+    const requiredValue = requires.value;
+    const hasStatRequirement = requiredStat && requiredValue !== undefined;
+    const statValue = hasStatRequirement ? stats[requiredStat] : null;
+    const meetsStatRequirement = !hasStatRequirement
+        || (typeof statValue === 'number' && statValue >= requiredValue);
+
+    const requiredProof = requires.proof;
+    const hasProofRequirement = typeof requiredProof === 'string' && requiredProof.trim().length > 0;
+    const hasSubmittedProof = verifiedProofs.includes(perkName);
+    const meetsProofRequirement = !hasProofRequirement || hasSubmittedProof;
+
+    if (requiresSkillPoint && !hasSkillPoint) {
         showToast("Not enough Perk Points!");
         return;
     }
-    if (characterData.unlockedPerks.includes(perkName)) {
+    if (unlockedPerks.includes(perkName)) {
         showToast("Perk already unlocked!");
         return;
     }
-    if (characterData.stats[perkData.requires.stat] < perkData.requires.value) {
+    if (!meetsStatRequirement) {
         showToast("Stat requirements not met!");
         return;
     }
-
-    characterData.skillPoints--;
-    characterData.unlockedPerks.push(perkName);
-    showToast(`Perk Unlocked: ${perkName}!`);
-    
-    if (myp5) {
-        myp5.prepareStarData();
+    if (hasProofRequirement && !meetsProofRequirement) {
+        showToast("Required proof not submitted yet!");
+        return;
     }
+
+    if (requiresSkillPoint) {
+        characterData.skillPoints = Math.max(availableSkillPoints - 1, 0);
+    }
+    unlockedPerks.push(perkName);
+    showToast(`Perk Unlocked: ${perkName}!`);
+
+    refreshStarAvailability();
     updateDashboard();
+}
+
+function refreshStarAvailability() {
+    if (myp5 && typeof myp5.refreshStars === 'function') {
+        myp5.refreshStars();
+    }
 }
 
 function openSkillsModal() { 
