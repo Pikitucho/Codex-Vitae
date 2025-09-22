@@ -9,6 +9,13 @@ function sketch(p) {
     // --- Data Holders ---
     let galaxies = [];
     let constellations = [];
+    let constellationOffsetX = 0;
+    let constellationOffsetBounds = { min: 0, max: 0 };
+    let pointerDownInfo = null;
+    let isDraggingConstellations = false;
+
+    const CONSTELLATION_SPACING = 160;
+    const CONSTELLATION_VISIBLE_MARGIN = 100;
     let stars = [];
 
     p.setup = function() {
@@ -35,9 +42,13 @@ function sketch(p) {
     };
 
     p.mousePressed = function() {
-        if (p.mouseX < 0 || p.mouseX > p.width || p.mouseY < 0 || p.mouseY > p.height) {
-            return; // Ignore clicks outside the canvas
+        if (!isMouseInsideCanvas()) {
+            pointerDownInfo = null;
+            return;
         }
+
+        pointerDownInfo = { view: currentView };
+        isDraggingConstellations = false;
 
         if (currentView === 'galaxies') {
             for (const galaxy of galaxies) {
@@ -45,15 +56,6 @@ function sketch(p) {
                     currentView = 'constellations';
                     selectedGalaxy = galaxy.name;
                     prepareConstellationData();
-                    break;
-                }
-            }
-        } else if (currentView === 'constellations') {
-            for (const constellation of constellations) {
-                if (p.dist(p.mouseX, p.mouseY, constellation.x, constellation.y) < constellation.size / 2) {
-                    currentView = 'stars';
-                    selectedConstellation = constellation.name;
-                    p.prepareStarData(); // Use public function
                     break;
                 }
             }
@@ -67,6 +69,41 @@ function sketch(p) {
         }
     };
 
+    p.mouseReleased = function() {
+        if (!pointerDownInfo) {
+            return;
+        }
+
+        if (pointerDownInfo.view === 'constellations' && !isDraggingConstellations && isMouseInsideCanvas()) {
+            for (const constellation of constellations) {
+                if (p.dist(p.mouseX, p.mouseY, constellation.x, constellation.y) < constellation.size / 2) {
+                    currentView = 'stars';
+                    selectedConstellation = constellation.name;
+                    p.prepareStarData(); // Use public function
+                    break;
+                }
+            }
+        }
+
+        pointerDownInfo = null;
+        isDraggingConstellations = false;
+    };
+
+    p.mouseDragged = function() {
+        if (!pointerDownInfo || pointerDownInfo.view !== 'constellations') {
+            return;
+        }
+
+        const deltaX = p.mouseX - p.pmouseX;
+        if (deltaX === 0) {
+            return;
+        }
+
+        isDraggingConstellations = true;
+        setConstellationOffset(constellationOffsetX + deltaX, true);
+        return false;
+    };
+
     // --- Drawing Functions ---
     function drawGalaxies() {
         for (const galaxy of galaxies) {
@@ -75,6 +112,7 @@ function sketch(p) {
     }
 
     function drawConstellations() {
+        applyConstellationOffset();
         for (const constellation of constellations) {
             drawCelestialBody(constellation.name, constellation.x, constellation.y, constellation.size, 'constellation');
         }
@@ -159,9 +197,18 @@ function sketch(p) {
         const constellationData = skillTree[selectedGalaxy].constellations;
         const constellationNames = Object.keys(constellationData);
         constellations = [];
+        constellationOffsetX = 0;
+
+        const beltCenterX = p.width / 2;
+        const centerOffset = (constellationNames.length - 1) / 2;
+
         for (let i = 0; i < constellationNames.length; i++) {
-            constellations.push({ name: constellationNames[i], x: 80 + i * 120, y: p.height / 2, size: 100 });
+            const baseX = beltCenterX + (i - centerOffset) * CONSTELLATION_SPACING;
+            constellations.push({ name: constellationNames[i], baseX: baseX, x: baseX, y: p.height / 2, size: 100 });
         }
+
+        recalculateConstellationBounds();
+        setConstellationOffset(constellationOffsetX, true);
     }
 
     p.prepareStarData = function() {
@@ -195,5 +242,69 @@ function sketch(p) {
         } else if (currentView === 'constellations') {
             currentView = 'galaxies';
         }
+    }
+
+    p.adjustConstellationOffset = function(delta) {
+        if (currentView !== 'constellations' || !constellations.length || typeof delta !== 'number' || delta === 0) {
+            return;
+        }
+        setConstellationOffset(constellationOffsetX + delta, true);
+    };
+
+    function setConstellationOffset(newOffset, forceRedraw = false) {
+        if (!constellations.length) {
+            return;
+        }
+
+        const previousOffset = constellationOffsetX;
+        constellationOffsetX = newOffset;
+        applyConstellationOffset();
+        if (forceRedraw || constellationOffsetX !== previousOffset) {
+            p.redraw();
+        }
+    }
+
+    function applyConstellationOffset() {
+        if (!constellations.length) {
+            return;
+        }
+
+        constellationOffsetX = clampOffsetValue(constellationOffsetX);
+        for (const constellation of constellations) {
+            constellation.x = constellation.baseX + constellationOffsetX;
+        }
+    }
+
+    function clampOffsetValue(value) {
+        if (!constellations.length) {
+            return 0;
+        }
+
+        const min = constellationOffsetBounds.min;
+        const max = constellationOffsetBounds.max;
+        if (typeof min !== 'number' || typeof max !== 'number') {
+            return value;
+        }
+        return p.constrain(value, min, max);
+    }
+
+    function recalculateConstellationBounds() {
+        if (!constellations.length) {
+            constellationOffsetBounds = { min: 0, max: 0 };
+            return;
+        }
+
+        const basePositions = constellations.map(constellation => constellation.baseX);
+        const minBaseX = Math.min(...basePositions);
+        const maxBaseX = Math.max(...basePositions);
+
+        constellationOffsetBounds = {
+            min: -CONSTELLATION_VISIBLE_MARGIN - maxBaseX,
+            max: p.width + CONSTELLATION_VISIBLE_MARGIN - minBaseX
+        };
+    }
+
+    function isMouseInsideCanvas() {
+        return p.mouseX >= 0 && p.mouseX <= p.width && p.mouseY >= 0 && p.mouseY <= p.height;
     }
 }

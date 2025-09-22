@@ -77,6 +77,11 @@ const appScreen = document.getElementById('app-screen');
 const skillsModal = document.getElementById('skills-modal');
 const skillTreeTitle = document.getElementById('skill-tree-title');
 const skillBackBtn = document.getElementById('skill-back-btn');
+const skillTreePanControls = document.getElementById('skill-tree-pan-controls');
+const skillPanLeftBtn = document.getElementById('skill-pan-left');
+const skillPanRightBtn = document.getElementById('skill-pan-right');
+
+const CONSTELLATION_PAN_NUDGE = 80;
 
 // --- Global Data Variables ---
 let characterData = {};
@@ -511,6 +516,17 @@ function updateSkillTreeUI(title, breadcrumbs, showBack) {
     skillTreeTitle.textContent = title;
     document.getElementById('skill-tree-breadcrumbs').textContent = breadcrumbs.join(' > ');
     skillBackBtn.classList.toggle('hidden', !showBack);
+
+    if (skillTreePanControls) {
+        const showPanControls = Array.isArray(breadcrumbs) && breadcrumbs.length === 2;
+        skillTreePanControls.classList.toggle('hidden', !showPanControls);
+        if (skillPanLeftBtn) {
+            skillPanLeftBtn.disabled = !showPanControls;
+        }
+        if (skillPanRightBtn) {
+            skillPanRightBtn.disabled = !showPanControls;
+        }
+    }
 }
 
 function showToast(message) { 
@@ -552,12 +568,26 @@ function setupEventListeners() {
     });
     document.getElementById('codex-logout-btn').addEventListener('click', handleLogout);
     document.getElementById('close-skills-btn').addEventListener('click', () => document.getElementById('skills-modal').classList.add('hidden'));
-    
+
+    const nudgeConstellations = (delta) => {
+        if (myp5 && typeof myp5.adjustConstellationOffset === 'function') {
+            myp5.adjustConstellationOffset(delta);
+        }
+    };
+
+    if (skillPanLeftBtn) {
+        skillPanLeftBtn.addEventListener('click', () => nudgeConstellations(-CONSTELLATION_PAN_NUDGE));
+    }
+
+    if (skillPanRightBtn) {
+        skillPanRightBtn.addEventListener('click', () => nudgeConstellations(CONSTELLATION_PAN_NUDGE));
+    }
+
     skillBackBtn.addEventListener('click', () => {
         if (myp5) {
             myp5.goBack();
         }
-     });
+    });
     document.getElementById('scan-face-btn').addEventListener('click', handleFaceScan);
 
     listenersInitialized = true;
