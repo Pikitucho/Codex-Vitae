@@ -34,7 +34,9 @@ if (!codexConfig || typeof codexConfig !== 'object') {
 }
 
 const firebaseConfig = codexConfig.firebaseConfig;
-const BACKEND_SERVER_URL = codexConfig.backendUrl;
+const BACKEND_SERVER_URL =
+    typeof codexConfig.backendUrl === 'string' ? codexConfig.backendUrl.trim() : '';
+const AI_FEATURES_AVAILABLE = BACKEND_SERVER_URL.length > 0;
 
 if (!firebaseConfig || typeof firebaseConfig !== 'object') {
     displayConfigurationError(
@@ -46,13 +48,9 @@ if (!firebaseConfig || typeof firebaseConfig !== 'object') {
     );
 }
 
-if (typeof BACKEND_SERVER_URL !== 'string' || BACKEND_SERVER_URL.trim().length === 0) {
-    displayConfigurationError(
-        'Backend server URL is missing.',
-        'Set the <code>backendUrl</code> value in config.js so Codex Vitae can reach your AI services.'
-    );
-    throw new Error(
-        'Backend server URL is missing. Ensure config.js exports backendUrl.'
+if (!AI_FEATURES_AVAILABLE) {
+    console.warn(
+        'Codex Vitae backendUrl is not configured. AI-powered features will be disabled until it is set.'
     );
 }
 
@@ -79,19 +77,20 @@ const skillTreeTitle = document.getElementById('skill-tree-title');
 const skillBackBtn = document.getElementById('skill-back-btn');
 const skillSearchForm = document.getElementById('skill-search-form');
 const skillSearchInput = document.getElementById('skill-search-input');
-const skillsModal = document.getElementById('skills-modal');
-const skillTreeTitle = document.getElementById('skill-tree-title');
-const skillBackBtn = document.getElementById('skill-back-btn');
 const skillTreePanControls = document.getElementById('skill-tree-pan-controls');
 const skillPanLeftBtn = document.getElementById('skill-pan-left');
 const skillPanRightBtn = document.getElementById('skill-pan-right');
 
 const CONSTELLATION_PAN_NUDGE = 80;
 
-const skillsModal = document.getElementById('skills-modal');
-const skillTreeTitle = document.getElementById('skill-tree-title');
-const skillBackBtn = document.getElementById('skill-back-btn');
 const starDetailController = createStarDetailController();
+
+if (!AI_FEATURES_AVAILABLE) {
+    const scanFaceButton = document.getElementById('scan-face-btn');
+    if (scanFaceButton) {
+        scanFaceButton.title = 'Configure backendUrl in config.js to enable AI avatar generation.';
+    }
+}
 
 window.handleStarSelection = function(star) {
     starDetailController.show(star);
@@ -153,12 +152,14 @@ let choreManager = {
         if (!text) return;
         
         const classification = await getAIChoreClassification(text);
+        const stat = classification?.stat || 'constitution';
+        const effort = typeof classification?.effort === 'number' ? classification.effort : 10;
 
         const newChore = {
             id: Date.now(),
             text: text,
-            stat: classification.stat,
-            effort: classification.effort,
+            stat,
+            effort,
             completed: false
         };
         this.chores.push(newChore);
@@ -246,32 +247,24 @@ async function loadData(userId) {
             return false;
         }
 
+        const now = new Date();
+        const defaultMonth = `${now.getFullYear()}-${now.getMonth() + 1}`;
+
         characterData = {
             ...loadedCharacterData,
             level: loadedCharacterData.level || 1,
             statProgress: loadedCharacterData.statProgress || 0,
             statsToNextLevel: loadedCharacterData.statsToNextLevel || 10,
             skillPoints: loadedCharacterData.skillPoints || 0,
-            unlockedPerks: loadedCharacterData.unlockedPerks || [],
-            monthlyActivityLog: loadedCharacterData.monthlyActivityLog || [],
-            activityLogMonth: loadedCharacterData.activityLogMonth || (new Date().getFullYear() + '-' + (new Date().getMonth() + 1)),
-            monthlyPerkClaimed: loadedCharacterData.monthlyPerkClaimed || false,
+            unlockedPerks: Array.isArray(loadedCharacterData.unlockedPerks)
+                ? loadedCharacterData.unlockedPerks
+                : [],
+            monthlyActivityLog: Array.isArray(loadedCharacterData.monthlyActivityLog)
+                ? loadedCharacterData.monthlyActivityLog
+                : [],
+            activityLogMonth: loadedCharacterData.activityLogMonth || defaultMonth,
+            monthlyPerkClaimed: Boolean(loadedCharacterData.monthlyPerkClaimed),
             skillSearchTarget: loadedCharacterData.skillSearchTarget || null,
-            choreProgress: {
-                strength: loadedCharacterData.choreProgress?.strength || 0,
-                dexterity: loadedCharacterData.choreProgress?.dexterity || 0,
-                constitution: loadedCharacterData.choreProgress?.constitution || 0,
-                intelligence: loadedCharacterData.choreProgress?.intelligence || 0,
-            verifiedProofs: Array.isArray(loadedCharacterData.verifiedProofs) ? loadedCharacterData.verifiedProofs : [],
-
-            statProgress: loadedCharacterData.statProgress || 0,
-            statsToNextLevel: loadedCharacterData.statsToNextLevel || 10,
-            skillPoints: loadedCharacterData.skillPoints || 0,
-            unlockedPerks: loadedCharacterData.unlockedPerks || [],
-            verifiedCredentials: loadedCharacterData.verifiedCredentials || [],
-            monthlyActivityLog: loadedCharacterData.monthlyActivityLog || [],
-            activityLogMonth: loadedCharacterData.activityLogMonth || (new Date().getFullYear() + '-' + (new Date().getMonth() + 1)),
-            monthlyPerkClaimed: loadedCharacterData.monthlyPerkClaimed || false,
             choreProgress: {
                 strength: loadedCharacterData.choreProgress?.strength || 0,
                 dexterity: loadedCharacterData.choreProgress?.dexterity || 0,
@@ -280,7 +273,13 @@ async function loadData(userId) {
                 wisdom: loadedCharacterData.choreProgress?.wisdom || 0,
                 charisma: loadedCharacterData.choreProgress?.charisma || 0
             },
-            chores: loadedCharacterData.chores || [],
+            chores: Array.isArray(loadedCharacterData.chores) ? loadedCharacterData.chores : [],
+            verifiedCredentials: Array.isArray(loadedCharacterData.verifiedCredentials)
+                ? loadedCharacterData.verifiedCredentials
+                : [],
+            verifiedProofs: Array.isArray(loadedCharacterData.verifiedProofs)
+                ? loadedCharacterData.verifiedProofs
+                : [],
             onboardingComplete: true
         };
 
@@ -309,6 +308,11 @@ async function loadData(userId) {
 
 // --- AI Functions ---
 async function getAIChoreClassification(text) {
+    if (!AI_FEATURES_AVAILABLE) {
+        console.info('AI classification skipped because backendUrl is not configured.');
+        return { stat: 'constitution', effort: 10 };
+    }
+
     try {
         const response = await fetch(`${BACKEND_SERVER_URL}/classify-chore`, {
             method: 'POST',
@@ -444,6 +448,11 @@ async function handleOnboarding(event) {
 }
 
 async function handleFaceScan() {
+    if (!AI_FEATURES_AVAILABLE) {
+        showToast('Avatar generation is currently disabled. Configure backendUrl in config.js to enable it.');
+        return;
+    }
+
     const webcamFeed = document.getElementById('webcam-feed');
     const capturedPhoto = document.getElementById('captured-photo');
     const canvas = document.getElementById('photo-canvas');
@@ -622,45 +631,6 @@ function updateSkillTreeUI(title, breadcrumbs, showBack) {
     skillTreeTitle.textContent = title;
     document.getElementById('skill-tree-breadcrumbs').textContent = breadcrumbs.join(' > ');
     skillBackBtn.classList.toggle('hidden', !showBack);
-}
-
-    if (!characterData || !perkData) {
-        return false;
-    }
-
-    if (!Array.isArray(characterData.unlockedPerks)) {
-        characterData.unlockedPerks = [];
-    }
-
-    if (characterData.unlockedPerks.includes(perkName)) {
-        showToast("Perk already unlocked!");
-        return false;
-    }
-
-    if ((characterData.skillPoints || 0) < 1) {
-        showToast("Not enough Perk Points!");
-        return false;
-    }
-
-    const required = perkData.requires || {};
-    const requiredStat = required.stat;
-    const requiredValue = typeof required.value === 'number' ? required.value : null;
-    const currentValue = requiredStat ? characterData.stats?.[requiredStat] ?? 0 : null;
-
-    if (requiredStat && requiredValue !== null && currentValue < requiredValue) {
-        showToast("Stat requirements not met!");
-        return false;
-    }
-
-    characterData.skillPoints--;
-    characterData.unlockedPerks.push(perkName);
-    showToast(`Perk Unlocked: ${perkName}!`);
-
-    if (myp5) {
-        myp5.prepareStarData();
-    }
-    updateDashboard();
-    return true;
 }
 
 function deriveSkillPathType(path) {

@@ -10,44 +10,47 @@ function sketch(p) {
     let galaxies = [];
     let constellations = [];
     let stars = [];
-    let navigationToken = 0;
-    let pendingNavigationTimeouts = [];
-    let galaxies = [];
-    let constellations = [];
+
+    // --- Interaction State ---
     let constellationOffsetX = 0;
     let constellationOffsetBounds = { min: 0, max: 0 };
     let pointerDownInfo = null;
     let isDraggingConstellations = false;
 
+    // --- Navigation Scheduling ---
+    let navigationToken = 0;
+    let pendingNavigationTimeouts = [];
+
+    // --- Constants ---
     const CONSTELLATION_SPACING = 160;
     const CONSTELLATION_VISIBLE_MARGIN = 100;
     const DRAG_ACTIVATION_THRESHOLD = 4;
     const WHEEL_PAN_MULTIPLIER = 0.5;
-    let stars = [];
+    const STAR_RING_RADIUS = 100;
 
     p.setup = function() {
-      const canvas = p.createCanvas(340, 400);
-      canvas.parent('skill-tree-canvas-container');
-      p.textFont('Segoe UI');
-      p.noLoop();
-      prepareGalaxyData();
-      p.redraw();
+        const canvas = p.createCanvas(340, 400);
+        canvas.parent('skill-tree-canvas-container');
+        p.textFont('Segoe UI');
+        p.noLoop();
+        prepareGalaxyData();
+        p.redraw();
     };
-  
-    p.draw = function() {
-      p.background(45, 52, 54); 
 
-      // State machine for drawing
-      if (currentView === 'galaxies') {
-        drawGalaxies();
-        updateSkillTreeUI("Skill Galaxies", ["Galaxies"], false);
-      } else if (currentView === 'constellations') {
-        drawConstellations();
-        updateSkillTreeUI(selectedGalaxy, ["Galaxies", selectedGalaxy], true);
-      } else if (currentView === 'stars') {
-        drawStars();
-        updateSkillTreeUI(selectedConstellation, ["Galaxies", selectedGalaxy, selectedConstellation], true);
-      }
+    p.draw = function() {
+        p.background(45, 52, 54);
+        p.cursor(p.ARROW);
+
+        if (currentView === 'galaxies') {
+            drawGalaxies();
+            updateSkillTreeUI('Skill Galaxies', ['Galaxies'], false);
+        } else if (currentView === 'constellations') {
+            drawConstellations();
+            updateSkillTreeUI(selectedGalaxy, ['Galaxies', selectedGalaxy], true);
+        } else if (currentView === 'stars') {
+            drawStars();
+            updateSkillTreeUI(selectedConstellation, ['Galaxies', selectedGalaxy, selectedConstellation], true);
+        }
     };
 
     p.mousePressed = function() {
@@ -67,14 +70,24 @@ function sketch(p) {
                 if (p.dist(p.mouseX, p.mouseY, galaxy.x, galaxy.y) < galaxy.size / 2) {
                     currentView = 'constellations';
                     selectedGalaxy = galaxy.name;
+                    selectedConstellation = null;
                     prepareConstellationData();
+                    p.redraw();
                     break;
                 }
             }
         } else if (currentView === 'stars') {
             for (const star of stars) {
-                if (star.status === 'available' && p.dist(p.mouseX, p.mouseY, star.x, star.y) < star.size / 2) {
-                    unlockPerk(star.name, star.data);
+                if (p.dist(p.mouseX, p.mouseY, star.x, star.y) < star.size / 2) {
+                    if (typeof handleStarSelection === 'function') {
+                        handleStarSelection({
+                            name: star.name,
+                            data: star.data,
+                            status: star.status,
+                            constellation: selectedConstellation,
+                            galaxy: selectedGalaxy
+                        });
+                    }
                     break;
                 }
             }
@@ -86,11 +99,16 @@ function sketch(p) {
             return;
         }
 
-        if (pointerDownInfo.view === 'constellations' && !isDraggingConstellations && isMouseInsideCanvas()) {
+        if (
+            pointerDownInfo.view === 'constellations' &&
+            !isDraggingConstellations &&
+            isMouseInsideCanvas()
+        ) {
             for (const constellation of constellations) {
                 if (p.dist(p.mouseX, p.mouseY, constellation.x, constellation.y) < constellation.size / 2) {
                     currentView = 'stars';
                     selectedConstellation = constellation.name;
+                    focusConstellation(constellation.name);
                     p.prepareStarData();
                     break;
                 }
@@ -119,7 +137,7 @@ function sketch(p) {
             isDraggingConstellations = true;
         }
 
-        setConstellationOffset(constellationOffsetX + deltaX);
+        setConstellationOffset(constellationOffsetX + deltaX, true);
         return false;
     };
 
@@ -145,56 +163,15 @@ function sketch(p) {
             return;
         }
 
-        setConstellationOffset(constellationOffsetX - delta * WHEEL_PAN_MULTIPLIER);
+        setConstellationOffset(constellationOffsetX - delta * WHEEL_PAN_MULTIPLIER, true);
         return false;
     };
-    p.mousePressed = function() {
-        if (p.mouseX < 0 || p.mouseX > p.width || p.mouseY < 0 || p.mouseY > p.height) {
-            return; // Ignore clicks outside the canvas
-        }
 
-        if (currentView === 'galaxies') {
-            for (const galaxy of galaxies) {
-                if (p.dist(p.mouseX, p.mouseY, galaxy.x, galaxy.y) < galaxy.size / 2) {
-                    currentView = 'constellations';
-                    selectedGalaxy = galaxy.name;
-                    prepareConstellationData();
-                    break;
-                }
-            }
-        } else if (currentView === 'constellations') {
-            for (const constellation of constellations) {
-                if (p.dist(p.mouseX, p.mouseY, constellation.x, constellation.y) < constellation.size / 2) {
-                    currentView = 'stars';
-                    selectedConstellation = constellation.name;
-                    p.prepareStarData(); // Use public function
-                    break;
-                }
-            }
-        } else if (currentView === 'stars') {
-            for (const star of stars) {
-                const distance = p.dist(p.mouseX, p.mouseY, star.x, star.y);
-                if (distance < star.size / 2) {
-                    if (typeof handleStarSelection === 'function') {
-                        handleStarSelection({
-                            name: star.name,
-                            data: star.data,
-                            status: star.status,
-                            constellation: selectedConstellation,
-                            galaxy: selectedGalaxy
-                        });
-                    }
-                    break;
-                }
-            }
-        }
-    };
-
-    // --- Drawing Functions ---
+    // --- Drawing Helpers ---
     function drawGalaxies() {
         const searchTarget = characterData?.skillSearchTarget;
         for (const galaxy of galaxies) {
-            const isTarget = !!searchTarget && searchTarget.galaxy === galaxy.name;
+            const isTarget = searchTarget?.galaxy === galaxy.name;
             drawCelestialBody(galaxy.name, galaxy.x, galaxy.y, galaxy.size, 'galaxy', 'locked', isTarget);
         }
     }
@@ -202,82 +179,47 @@ function sketch(p) {
     function drawConstellations() {
         const searchTarget = characterData?.skillSearchTarget;
         for (const constellation of constellations) {
-            const isTarget = !!searchTarget
-                && searchTarget.galaxy === selectedGalaxy
-                && searchTarget.constellation === constellation.name;
-            drawCelestialBody(constellation.name, constellation.x, constellation.y, constellation.size, 'constellation', 'locked', isTarget);
+            const isTarget =
+                searchTarget?.galaxy === selectedGalaxy &&
+                searchTarget?.constellation === constellation.name;
+            drawCelestialBody(
+                constellation.name,
+                constellation.x,
+                constellation.y,
+                constellation.size,
+                'constellation',
+                'locked',
+                isTarget
+            );
         }
     }
 
     function drawStars() {
         const searchTarget = characterData?.skillSearchTarget;
-        // Draw connecting lines first to make it look like a constellation
-        p.stroke(245, 246, 250, 50); // Faint, off-white lines
+
+        p.stroke(245, 246, 250, 50);
         p.strokeWeight(1);
-        for(let i = 0; i < stars.length; i++) {
-            let nextIndex = (i + 1) % stars.length; // Connect to the next star, wrapping around
+        for (let i = 0; i < stars.length; i++) {
+            const nextIndex = (i + 1) % stars.length;
             p.line(stars[i].x, stars[i].y, stars[nextIndex].x, stars[nextIndex].y);
         }
 
-        // Then draw the stars on top
         for (const star of stars) {
-            const isTarget = !!searchTarget
-                && searchTarget.galaxy === selectedGalaxy
-                && searchTarget.constellation === selectedConstellation
-                && searchTarget.star === star.name;
+            const isTarget =
+                searchTarget?.galaxy === selectedGalaxy &&
+                searchTarget?.constellation === selectedConstellation &&
+                searchTarget?.star === star.name;
             drawCelestialBody(star.name, star.x, star.y, star.size, 'star', star.status, isTarget);
         }
     }
 
     function drawCelestialBody(name, x, y, size, type, status = 'locked', isTarget = false) {
-        let distance = p.dist(p.mouseX, p.mouseY, x, y);
-
-        // Determine if the cursor should be a hand
-        let isClickable = (type !== 'star' || status === 'available');
-        if (isClickable && distance < size / 2) {
-            p.cursor(p.HAND); 
-        } else { 
-            p.cursor(p.ARROW); 
-
-    function drawGalaxies() {
-        for (const galaxy of galaxies) {
-            drawCelestialBody(galaxy.name, galaxy.x, galaxy.y, galaxy.size, 'galaxy');
-        }
-    }
-
-    function drawConstellations() {
-        for (const constellation of constellations) {
-            drawCelestialBody(constellation.name, constellation.x, constellation.y, constellation.size, 'constellation');
-        }
-    }
-
-    function drawStars() {
-        // Draw connecting lines first to make it look like a constellation
-        p.stroke(245, 246, 250, 50); // Faint, off-white lines
-        p.strokeWeight(1);
-        for(let i = 0; i < stars.length; i++) {
-            let nextIndex = (i + 1) % stars.length; // Connect to the next star, wrapping around
-            p.line(stars[i].x, stars[i].y, stars[nextIndex].x, stars[nextIndex].y);
-        }
-
-        // Then draw the stars on top
-        for (const star of stars) {
-            drawCelestialBody(star.name, star.x, star.y, star.size, 'star', star.status);
-        }
-    }
-
-    function drawCelestialBody(name, x, y, size, type, status = 'locked') {
-        let distance = p.dist(p.mouseX, p.mouseY, x, y);
-        
-        // Determine if the cursor should be a hand
-        let isClickable = (type !== 'star') || (distance < size / 2);
+        const distance = p.dist(p.mouseX, p.mouseY, x, y);
+        const isClickable = type === 'star' || type === 'galaxy' || type === 'constellation';
         if (isClickable && distance < size / 2) {
             p.cursor(p.HAND);
-        } else {
-            p.cursor(p.ARROW);
         }
-        
-        // Default styles
+
         let glowColor = p.color(240, 147, 43, 50);
         let bodyColor = p.color(72, 52, 212, 150);
         let borderColor = p.color(245, 246, 250);
@@ -285,14 +227,14 @@ function sketch(p) {
 
         if (type === 'star') {
             if (status === 'unlocked') {
-                bodyColor = p.color(0, 184, 148, 200); // Success color
+                bodyColor = p.color(0, 184, 148, 200);
                 glowColor = p.color(0, 184, 148, 80);
             } else if (status === 'available') {
-                bodyColor = p.color(45, 52, 54); // Dark background, so the border pops
+                bodyColor = p.color(45, 52, 54);
                 outlineWeight = 3;
-            } else { // locked
+            } else {
                 bodyColor = p.color(45, 52, 54, 150);
-                glowColor = p.color(109, 76, 65, 50); // Muted glow
+                glowColor = p.color(109, 76, 65, 50);
             }
         }
 
@@ -309,17 +251,6 @@ function sketch(p) {
         p.fill(bodyColor);
         p.stroke(borderColor);
         p.strokeWeight(outlineWeight);
-
-        if (type === 'star' && status === 'available') {
-            p.stroke(240, 147, 43); // Accent color for border
-            p.strokeWeight(3);
-        }
-
-        if (isTarget) {
-            p.strokeWeight(Math.max(outlineWeight, 4));
-            p.stroke(p.color(255, 214, 160));
-        }
-
         p.ellipse(x, y, size);
 
         if (isTarget) {
@@ -338,80 +269,132 @@ function sketch(p) {
 
     // --- Data Preparation ---
     function prepareGalaxyData() {
+        const tree = window.skillTree || {};
+        const galaxyNames = Object.keys(tree);
         galaxies = [];
-        const galaxyNames = Object.keys(skillTree);
-        const positions = [ { x: p.width * 0.25, y: p.height * 0.25 }, { x: p.width * 0.75, y: p.height * 0.25 }, { x: p.width * 0.25, y: p.height * 0.75 }, { x: p.width * 0.75, y: p.height * 0.75 } ];
+
+        if (!galaxyNames.length) {
+            return;
+        }
+
+        const centerX = p.width / 2;
+        const centerY = p.height / 2;
+        const radius = Math.min(p.width, p.height) / 3;
+
         for (let i = 0; i < galaxyNames.length; i++) {
-            galaxies.push({ name: galaxyNames[i], x: positions[i].x, y: positions[i].y, size: 120 });
+            const angle = (i / galaxyNames.length) * p.TWO_PI - p.HALF_PI;
+            const x = centerX + radius * Math.cos(angle);
+            const y = centerY + radius * Math.sin(angle);
+            galaxies.push({ name: galaxyNames[i], x, y, size: 120 });
         }
     }
 
     function prepareConstellationData() {
-        if (!selectedGalaxy || !skillTree[selectedGalaxy]) {
-            constellations = [];
+        const galaxyData = (window.skillTree?.[selectedGalaxy]?.constellations) || {};
+        const constellationNames = Object.keys(galaxyData);
+
+        constellations = [];
+        constellationOffsetX = 0;
+        selectedConstellation = null;
+        stars = [];
+
+        if (!constellationNames.length) {
+            recalculateConstellationBounds();
             return;
         }
 
-        const constellationData = skillTree[selectedGalaxy].constellations;
-        const constellationNames = Object.keys(constellationData);
-        constellations = [];
+        const beltCenterX = p.width / 2;
+        const centerOffset = (constellationNames.length - 1) / 2;
+
         for (let i = 0; i < constellationNames.length; i++) {
-            constellations.push({ name: constellationNames[i], x: 80 + i * 120, y: p.height / 2, size: 100 });
+            const baseX = beltCenterX + (i - centerOffset) * CONSTELLATION_SPACING;
+            constellations.push({ name: constellationNames[i], baseX, x: baseX, y: p.height / 2, size: 100 });
         }
+
+        recalculateConstellationBounds();
+        setConstellationOffset(0, true);
+    }
+
+    function focusConstellation(constellationName) {
+        const target = constellations.find(constellation => constellation.name === constellationName);
+        if (!target) {
+            return;
+        }
+        const desiredOffset = p.width / 2 - target.baseX;
+        setConstellationOffset(desiredOffset, true);
     }
 
     p.prepareStarData = function() {
         if (!selectedGalaxy || !selectedConstellation) {
             stars = [];
+            p.redraw();
             return;
         }
 
-        const galaxy = skillTree[selectedGalaxy];
-        const constellation = galaxy?.constellations?.[selectedConstellation];
-
-        if (!constellation || !constellation.stars) {
+        const starData = window.skillTree?.[selectedGalaxy]?.constellations?.[selectedConstellation]?.stars;
+        if (!starData) {
             stars = [];
+            p.redraw();
             return;
         }
 
-        const starData = constellation.stars;
         const starNames = Object.keys(starData);
-        const unlockedPerks = Array.isArray(characterData?.unlockedPerks)
-            ? characterData.unlockedPerks
-            : [];
+        const unlockedPerks = Array.isArray(characterData?.unlockedPerks) ? characterData.unlockedPerks : [];
         const stats = characterData?.stats || {};
+        const verifiedProofs = Array.isArray(characterData?.verifiedProofs) ? characterData.verifiedProofs : [];
+        const hasSkillPoints = (characterData?.skillPoints || 0) > 0;
 
         stars = [];
+
         for (let i = 0; i < starNames.length; i++) {
             const name = starNames[i];
             const data = starData[name];
             let status = 'locked';
 
-            if (unlockedPerks.includes(name)) {
+            if (typeof determineStarStatus === 'function') {
+                status = determineStarStatus(name, data);
+            } else if (unlockedPerks.includes(name)) {
                 status = 'unlocked';
             } else if (data.unlock_type === 'perk') {
                 const requiredStat = data.requires?.stat;
                 const requiredValue = data.requires?.value;
-                const statValue = requiredStat && typeof stats[requiredStat] === 'number'
-                    ? stats[requiredStat]
-                    : null;
-
-                if (statValue !== null && typeof requiredValue === 'number' && statValue >= requiredValue) {
+                const statValue = requiredStat && typeof stats[requiredStat] === 'number' ? stats[requiredStat] : null;
+                if (
+                    hasSkillPoints &&
+                    requiredStat &&
+                    typeof requiredValue === 'number' &&
+                    statValue !== null &&
+                    statValue >= requiredValue
+                ) {
                     status = 'available';
+                }
+            } else if (data.unlock_type === 'credential') {
+                const requiredProof = data.requires?.proof;
+                if (requiredProof && verifiedProofs.includes(name)) {
+                    status = 'unlocked';
                 }
             }
 
-            const angle = p.TWO_PI / starNames.length * i - p.HALF_PI;
-            const radius = 100;
-            const x = p.width / 2 + radius * p.cos(angle);
-            const y = p.height / 2 + radius * p.sin(angle);
+            const angle = (i / starNames.length) * p.TWO_PI - p.HALF_PI;
+            const x = p.width / 2 + STAR_RING_RADIUS * Math.cos(angle);
+            const y = p.height / 2 + STAR_RING_RADIUS * Math.sin(angle);
 
-            stars.push({ name: name, data: data, status: status, x: x, y: y, size: 80 });
+            stars.push({ name, data, status, x, y, size: 80 });
         }
-    }
+
+        p.redraw();
+    };
+
+    p.refreshStars = function() {
+        if (currentView === 'stars') {
+            p.prepareStarData();
+        } else {
+            p.redraw();
+        }
+    };
 
     function resetNavigationQueue() {
-        if (pendingNavigationTimeouts.length > 0) {
+        if (pendingNavigationTimeouts.length) {
             for (const timeoutId of pendingNavigationTimeouts) {
                 clearTimeout(timeoutId);
             }
@@ -419,18 +402,15 @@ function sketch(p) {
         }
     }
 
-    // --- Public function for the back button ---
     p.navigateToPath = function(path) {
-        if (!path || !path.galaxy || !skillTree[path.galaxy]) {
+        if (!path || !path.galaxy || !window.skillTree?.[path.galaxy]) {
             return false;
         }
 
         const wantsConstellation = !!path.constellation;
         const wantsStar = path.type === 'star' && !!path.star;
-        const targetConstellationExists = wantsConstellation && !!skillTree[path.galaxy].constellations?.[path.constellation];
-        const targetStarExists = wantsStar
-            && targetConstellationExists
-            && !!skillTree[path.galaxy].constellations[path.constellation].stars?.[path.star];
+        const targetConstellationExists = wantsConstellation && !!window.skillTree[path.galaxy].constellations?.[path.constellation];
+        const targetStarExists = wantsStar && targetConstellationExists && !!window.skillTree[path.galaxy].constellations[path.constellation].stars?.[path.star];
 
         if ((wantsConstellation && !targetConstellationExists) || (wantsStar && !targetStarExists)) {
             return false;
@@ -448,9 +428,7 @@ function sketch(p) {
                     return;
                 }
                 fn();
-                if (typeof p.redraw === 'function') {
-                    p.redraw();
-                }
+                p.redraw();
             });
         };
 
@@ -488,6 +466,7 @@ function sketch(p) {
             if (wantsConstellation && targetConstellationExists) {
                 scheduleStep(() => {
                     selectedConstellation = path.constellation;
+                    focusConstellation(path.constellation);
                 });
             }
 
@@ -495,22 +474,20 @@ function sketch(p) {
                 scheduleStep(() => {
                     if (!selectedConstellation) {
                         selectedConstellation = path.constellation;
+                        focusConstellation(path.constellation);
                     }
-                    p.prepareStarData();
                     currentView = 'stars';
+                    p.prepareStarData();
                 });
             }
         }
 
-        if (steps.length === 0) {
-            if (typeof p.redraw === 'function') {
-                p.redraw();
-            }
+        if (!steps.length) {
+            p.redraw();
             return true;
         }
 
         steps[0]();
-
         for (let i = 1; i < steps.length; i++) {
             const timeoutId = setTimeout(steps[i], i * stepDelay);
             pendingNavigationTimeouts.push(timeoutId);
@@ -522,165 +499,45 @@ function sketch(p) {
     p.goBack = function() {
         resetNavigationQueue();
         navigationToken++;
-        if (currentView === 'stars') {
-            currentView = 'constellations';
-        } else if (currentView === 'constellations') {
-            currentView = 'galaxies';
-        }
-    }
-}
 
-    function prepareConstellationData() {
-        const galaxyData = skillTree[selectedGalaxy];
-        const constellationData = galaxyData ? galaxyData.constellations : null;
-        const constellationNames = constellationData ? Object.keys(constellationData) : [];
-        constellations = [];
-        selectedConstellation = null;
-        constellationOffsetX = 0;
-
-        if (!constellationNames.length) {
-            constellationOffsetBounds = { min: 0, max: 0 };
-            p.redraw();
-            return;
-        }
-
-        const beltCenterX = p.width / 2;
-        const centerOffset = (constellationNames.length - 1) / 2;
-
-        for (let i = 0; i < constellationNames.length; i++) {
-            const baseX = beltCenterX + (i - centerOffset) * CONSTELLATION_SPACING;
-            constellations.push({ name: constellationNames[i], baseX: baseX, x: baseX, y: p.height / 2, size: 100 });
-        }
-
-        recalculateConstellationBounds();
-        setConstellationOffset(constellationOffsetX, true);
-    }
-
-    p.prepareStarData = function() {
-        const starData = skillTree[selectedGalaxy].constellations[selectedConstellation].stars;
-        const starNames = Object.keys(starData);
-        stars = [];
-        for (let i = 0; i < starNames.length; i++) {
-    function prepareConstellationData() {
-        const constellationData = skillTree[selectedGalaxy].constellations;
-        const constellationNames = Object.keys(constellationData);
-        constellations = [];
-        for (let i = 0; i < constellationNames.length; i++) {
-            constellations.push({ name: constellationNames[i], x: 80 + i * 120, y: p.height / 2, size: 100 });
-        }
-    }
-
-    p.prepareStarData = function() {
-        if (!selectedGalaxy || !selectedConstellation) {
-            return;
-        }
-
-        const galaxy = skillTree[selectedGalaxy];
-        const constellation = galaxy?.constellations?.[selectedConstellation];
-        const starData = constellation?.stars;
-
-        if (!starData) {
-            return;
-        }
-
-        const starNames = Object.keys(starData);
-        const unlockedPerks = characterData.unlockedPerks || [];
-        const stats = characterData.stats || {};
-        const verifiedProofs = Array.isArray(characterData.verifiedProofs)
-            ? characterData.verifiedProofs
-            : [];
-        const hasSkillPoints = (characterData.skillPoints || 0) > 0;
-
-        stars = [];
-      
-    p.prepareStarData = function() {
-        const starData = skillTree[selectedGalaxy].constellations[selectedConstellation].stars;
-        const starNames = Object.keys(starData);
-        stars = [];
-        for (let i = 0; i < starNames.length; i++) {
-            const name = starNames[i];
-            const data = starData[name];
-            let status = 'locked';
-
-            const requires = data.requires || {};
-            const requiredStat = requires.stat;
-            const requiredValue = requires.value;
-            const hasStatRequirement = requiredStat && requiredValue !== undefined;
-            const statValue = hasStatRequirement ? stats[requiredStat] : null;
-            const meetsStatRequirement = !hasStatRequirement
-                || (typeof statValue === 'number' && statValue >= requiredValue);
-
-            const requiredProof = requires.proof;
-            const hasProofRequirement = typeof requiredProof === 'string' && requiredProof.trim().length > 0;
-            const meetsProofRequirement = !hasProofRequirement || verifiedProofs.includes(name);
-
-            const meetsAllRequirements = meetsStatRequirement && meetsProofRequirement;
-            const requiresSkillPoint = data.unlock_type === 'perk';
-
-            if (unlockedPerks.includes(name)) {
-                status = 'unlocked';
-            } else if (requiresSkillPoint) {
-                if (meetsAllRequirements && hasSkillPoints) {
-                    status = 'available';
-                }
-            } else if (meetsAllRequirements) {
-              
-            if (typeof determineStarStatus === 'function') {
-                status = determineStarStatus(name, data);
-            } else if (characterData.unlockedPerks && characterData.unlockedPerks.includes(name)) {
-                status = 'unlocked';
-            } else if (data.unlock_type === 'perk' && characterData.stats && characterData.stats[data.requires.stat] >= data.requires.value) {
-                status = 'available';
-            }
-
-            const angle = p.TWO_PI / starNames.length * i - p.HALF_PI;
-            const radius = 100;
-            const x = p.width / 2 + radius * p.cos(angle);
-            const y = p.height / 2 + radius * p.sin(angle);
-
-            stars.push({ name: name, data: data, status: status, x: x, y: y, size: 80 });
-        }
-
-        p.redraw();
-    }
-
-    // --- Public function for the back button ---
-    p.goBack = function() {
         if (currentView === 'stars') {
             currentView = 'constellations';
             selectedConstellation = null;
-            p.redraw();
+            stars = [];
         } else if (currentView === 'constellations') {
             currentView = 'galaxies';
             selectedGalaxy = null;
             selectedConstellation = null;
             constellations = [];
-            constellationOffsetBounds = { min: 0, max: 0 };
-            constellationOffsetX = 0;
-            p.redraw();
+            stars = [];
         }
-    }
+
+        p.redraw();
+    };
 
     p.adjustConstellationOffset = function(delta) {
         if (currentView !== 'constellations' || !constellations.length || typeof delta !== 'number' || delta === 0) {
             return;
         }
-        setConstellationOffset(constellationOffsetX + delta);
+        setConstellationOffset(constellationOffsetX + delta, true);
     };
 
-    function setConstellationOffset(newOffset, forceUpdate = false) {
+    function setConstellationOffset(newOffset, forceRedraw = false) {
         if (!constellations.length) {
             return;
         }
 
         const clampedOffset = clampOffsetValue(newOffset);
-        if (!forceUpdate && clampedOffset === constellationOffsetX) {
+        if (!forceRedraw && clampedOffset === constellationOffsetX) {
             return;
         }
 
         constellationOffsetX = clampedOffset;
         updateConstellationPositions();
-        p.redraw();
+
+        if (forceRedraw || clampedOffset !== newOffset) {
+            p.redraw();
+        }
     }
 
     function updateConstellationPositions() {
@@ -720,8 +577,8 @@ function sketch(p) {
         const maxOffset = p.width - margin - minReach;
 
         if (minOffset > maxOffset) {
-            const centeredOffset = (minOffset + maxOffset) / 2;
-            constellationOffsetBounds = { min: centeredOffset, max: centeredOffset };
+            const centered = (minOffset + maxOffset) / 2;
+            constellationOffsetBounds = { min: centered, max: centered };
         } else {
             constellationOffsetBounds = { min: minOffset, max: maxOffset };
         }
@@ -729,32 +586,5 @@ function sketch(p) {
 
     function isMouseInsideCanvas() {
         return p.mouseX >= 0 && p.mouseX <= p.width && p.mouseY >= 0 && p.mouseY <= p.height;
-    }
-}
-
-            stars.push({ name: name, data: data, status: status, x: x, y: y, size: 80 });
-        }
-    };
-
-    p.refreshStars = function() {
-        if (currentView === 'stars') {
-            p.prepareStarData();
-        }
-    };
-
-            const x = p.width / 2 + radius * p.cos(angle);
-            const y = p.height / 2 + radius * p.sin(angle);
-
-            stars.push({ name: name, data: data, status: status, x: x, y: y, size: 80 });
-        }
-    }
-
-    // --- Public function for the back button ---
-    p.goBack = function() {
-        if (currentView === 'stars') {
-            currentView = 'constellations';
-        } else if (currentView === 'constellations') {
-            currentView = 'galaxies';
-        }
     }
 }
