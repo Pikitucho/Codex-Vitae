@@ -89,41 +89,115 @@ function updateCapturedPhotoElement(element, imageSrc) {
         return;
     }
 
+    const ensureElementTag = (node, tagName) => {
+        if (!node) {
+            return null;
+        }
+
+        const desiredTag = tagName.toUpperCase();
+        if (node.tagName === desiredTag) {
+            return node;
+        }
+
+        const replacement = document.createElement(tagName.toLowerCase());
+        if (node.id) {
+            replacement.id = node.id;
+        }
+
+        replacement.className = node.className || '';
+
+        if (node.dataset) {
+            for (const [key, value] of Object.entries(node.dataset)) {
+                replacement.dataset[key] = value;
+            }
+        }
+
+        const inlineStyle = node.getAttribute && node.getAttribute('style');
+        if (inlineStyle) {
+            replacement.setAttribute('style', inlineStyle);
+        }
+
+        if (typeof node.replaceWith === 'function') {
+            node.replaceWith(replacement);
+        } else if (node.parentNode) {
+            node.parentNode.insertBefore(replacement, node);
+            node.parentNode.removeChild(node);
+        }
+
+        return replacement;
+    };
+
     const trimmedSrc = typeof imageSrc === 'string' ? imageSrc.trim() : '';
     const lowerSrc = trimmedSrc.toLowerCase();
+    const srcWithoutParams = lowerSrc.split(/[?#]/)[0];
     const isPlaceholderImage = trimmedSrc === AVATAR_PLACEHOLDER_SRC;
     const isPlaceholderModel = trimmedSrc === DEFAULT_AVATAR_MODEL_SRC;
     const hasCustomValue = trimmedSrc.length > 0 && !isPlaceholderImage && !isPlaceholderModel;
-    const isModelSrc = hasCustomValue
-        && AVATAR_MODEL_EXTENSIONS.some(extension => lowerSrc.endsWith(extension));
-    const viewerSrc = isModelSrc ? trimmedSrc : DEFAULT_AVATAR_MODEL_SRC;
-    const posterSrc = hasCustomValue && !isModelSrc ? trimmedSrc : AVATAR_PLACEHOLDER_SRC;
-    const shouldShowPoster = hasCustomValue && !isModelSrc;
-    const revealMode = shouldShowPoster ? 'interaction' : 'auto';
+    const modelExtensionMatch = hasCustomValue
+        && AVATAR_MODEL_EXTENSIONS.some(extension => srcWithoutParams.endsWith(extension));
+    const isDataModel = hasCustomValue && lowerSrc.startsWith('data:model/gltf');
+    const isModelSrc = modelExtensionMatch || isDataModel;
+    const usingCustomImage = hasCustomValue && !isModelSrc;
     const isPlaceholder = !hasCustomValue;
 
-    if (element.getAttribute('src') !== viewerSrc) {
-        element.setAttribute('src', viewerSrc);
+    let activeElement = element;
+
+    if (usingCustomImage) {
+        activeElement = ensureElementTag(activeElement, 'IMG');
+        if (!activeElement) {
+            return;
+        }
+
+        if (activeElement.getAttribute('src') !== trimmedSrc) {
+            activeElement.setAttribute('src', trimmedSrc);
+        }
+
+        activeElement.setAttribute('alt', 'Your Avatar');
+        activeElement.removeAttribute('poster');
+        activeElement.removeAttribute('reveal');
+        activeElement.removeAttribute('camera-controls');
+        activeElement.removeAttribute('auto-rotate');
+        activeElement.removeAttribute('disable-zoom');
+        activeElement.removeAttribute('shadow-intensity');
+        activeElement.removeAttribute('exposure');
+    } else {
+        activeElement = ensureElementTag(activeElement, 'MODEL-VIEWER');
+        if (!activeElement) {
+            return;
+        }
+
+        const viewerSrc = isModelSrc ? trimmedSrc : DEFAULT_AVATAR_MODEL_SRC;
+        if (activeElement.getAttribute('src') !== viewerSrc) {
+            activeElement.setAttribute('src', viewerSrc);
+        }
+
+        if (activeElement.getAttribute('poster') !== AVATAR_PLACEHOLDER_SRC) {
+            activeElement.setAttribute('poster', AVATAR_PLACEHOLDER_SRC);
+        }
+
+        if (activeElement.getAttribute('reveal') !== 'auto') {
+            activeElement.setAttribute('reveal', 'auto');
+        }
+
+        activeElement.setAttribute('alt', 'Your Avatar');
+        activeElement.setAttribute('camera-controls', '');
+        activeElement.setAttribute('disable-zoom', '');
+        activeElement.setAttribute('auto-rotate', '');
+        activeElement.setAttribute('shadow-intensity', '0.3');
+        activeElement.setAttribute('exposure', '1');
+
+        const canShowPoster = typeof activeElement.showPoster === 'function';
+        const canDismissPoster = typeof activeElement.dismissPoster === 'function';
+        if (canDismissPoster) {
+            activeElement.dismissPoster();
+        } else if (canShowPoster) {
+            activeElement.showPoster();
+        }
     }
 
-    if (element.getAttribute('poster') !== posterSrc) {
-        element.setAttribute('poster', posterSrc);
-    }
-
-    if (element.getAttribute('reveal') !== revealMode) {
-        element.setAttribute('reveal', revealMode);
-    }
-
-    const canShowPoster = typeof element.showPoster === 'function';
-    const canDismissPoster = typeof element.dismissPoster === 'function';
-    if (shouldShowPoster && canShowPoster) {
-        element.showPoster();
-    } else if (!shouldShowPoster && canDismissPoster) {
-        element.dismissPoster();
-    }
-
-    element.classList.toggle('avatar-placeholder', isPlaceholder);
-    element.classList.remove('hidden');
+    activeElement.classList.add('avatar-circle');
+    activeElement.classList.toggle('avatar-placeholder', isPlaceholder);
+    activeElement.classList.remove('hidden');
 }
 
 const skillTreeUtils = window.SkillTreeUtils || {};
