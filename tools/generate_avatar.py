@@ -172,6 +172,25 @@ def generate_disk(radius=1.0, segments=48):
     return positions, normals, indices
 
 
+def generate_plane(width=1.0, height=1.0):
+    half_w = width / 2.0
+    half_h = height / 2.0
+    positions = [
+        -half_w,  half_h, 0.0,
+         half_w,  half_h, 0.0,
+        -half_w, -half_h, 0.0,
+         half_w, -half_h, 0.0,
+    ]
+    normals = [
+        0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0,
+    ]
+    indices = [0, 2, 1, 1, 2, 3]
+    return positions, normals, indices
+
+
 def build_avatar(output_path: Path):
     builder = BufferBuilder()
     geometries = {}
@@ -212,6 +231,33 @@ def build_avatar(output_path: Path):
             "INDICES": idx_accessor,
         }
 
+    register_geometry("sphere", generate_uv_sphere(radius=0.5, lat_segments=30, lon_segments=42))
+    register_geometry("cylinder", generate_cylinder(radius_top=0.5, radius_bottom=0.5, height=1.0, segments=42))
+    register_geometry("tapered", generate_cylinder(radius_top=0.38, radius_bottom=0.62, height=1.0, segments=42))
+    register_geometry("disk", generate_disk(radius=1.0, segments=64))
+    register_geometry("plane", generate_plane(width=1.0, height=1.0))
+
+    materials = [
+        {
+            "name": "GroundBase",
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [0.92, 0.88, 0.82, 1.0],
+                "metallicFactor": 0.0,
+                "roughnessFactor": 0.96,
+            },
+        },
+        {
+            "name": "GroundGlow",
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [0.97, 0.84, 0.64, 0.85],
+                "metallicFactor": 0.0,
+                "roughnessFactor": 0.9,
+            },
+        },
+        {
+            "name": "Leather",
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [0.36, 0.24, 0.18, 1.0],
     register_geometry("sphere", generate_uv_sphere(radius=0.5, lat_segments=28, lon_segments=40))
     register_geometry("cylinder", generate_cylinder(radius_top=0.5, radius_bottom=0.5, height=1.0, segments=40))
     register_geometry("tapered", generate_cylinder(radius_top=0.4, radius_bottom=0.6, height=1.0, segments=40))
@@ -235,6 +281,19 @@ def build_avatar(output_path: Path):
             },
         },
         {
+            "name": "Copper",
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [0.84, 0.49, 0.27, 1.0],
+                "metallicFactor": 0.1,
+                "roughnessFactor": 0.4,
+            },
+        },
+        {
+            "name": "MidnightCloth",
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [0.21, 0.35, 0.56, 1.0],
+                "metallicFactor": 0.0,
+                "roughnessFactor": 0.72,
             "name": "Pants",
             "pbrMetallicRoughness": {
                 "baseColorFactor": [0.26, 0.43, 0.62, 1.0],
@@ -245,6 +304,17 @@ def build_avatar(output_path: Path):
         {
             "name": "Tunic",
             "pbrMetallicRoughness": {
+                "baseColorFactor": [0.32, 0.64, 0.62, 1.0],
+                "metallicFactor": 0.0,
+                "roughnessFactor": 0.5,
+            },
+        },
+        {
+            "name": "GildedTrim",
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [0.95, 0.82, 0.48, 1.0],
+                "metallicFactor": 0.15,
+                "roughnessFactor": 0.35,
                 "baseColorFactor": [0.93, 0.74, 0.52, 1.0],
                 "metallicFactor": 0.0,
                 "roughnessFactor": 0.45,
@@ -253,6 +323,7 @@ def build_avatar(output_path: Path):
         {
             "name": "Skin",
             "pbrMetallicRoughness": {
+                "baseColorFactor": [0.98, 0.82, 0.69, 1.0],
                 "baseColorFactor": [0.98, 0.84, 0.72, 1.0],
                 "metallicFactor": 0.0,
                 "roughnessFactor": 0.55,
@@ -261,6 +332,26 @@ def build_avatar(output_path: Path):
         {
             "name": "Hair",
             "pbrMetallicRoughness": {
+                "baseColorFactor": [0.21, 0.16, 0.12, 1.0],
+                "metallicFactor": 0.0,
+                "roughnessFactor": 0.72,
+            },
+        },
+        {
+            "name": "Cape",
+            "doubleSided": True,
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [0.52, 0.17, 0.3, 1.0],
+                "metallicFactor": 0.0,
+                "roughnessFactor": 0.82,
+            },
+        },
+        {
+            "name": "Bracer",
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [0.26, 0.42, 0.6, 1.0],
+                "metallicFactor": 0.05,
+                "roughnessFactor": 0.48,
                 "baseColorFactor": [0.22, 0.17, 0.12, 1.0],
                 "metallicFactor": 0.0,
                 "roughnessFactor": 0.7,
@@ -294,6 +385,29 @@ def build_avatar(output_path: Path):
         return mesh
 
     meshes = [
+        make_mesh("GroundBaseMesh", "disk", 0),
+        make_mesh("GroundGlowMesh", "disk", 1),
+        make_mesh("BootShellMesh", "sphere", 2),
+        make_mesh("BootGuardMesh", "tapered", 3),
+        make_mesh("LowerLegMesh", "cylinder", 4),
+        make_mesh("UpperLegMesh", "tapered", 4),
+        make_mesh("PelvisMesh", "tapered", 5),
+        make_mesh("BeltMesh", "cylinder", 6),
+        make_mesh("LowerTorsoMesh", "tapered", 5),
+        make_mesh("UpperTorsoMesh", "sphere", 5),
+        make_mesh("ChestTrimMesh", "cylinder", 6),
+        make_mesh("CollarMesh", "cylinder", 6),
+        make_mesh("NeckMesh", "cylinder", 7),
+        make_mesh("HeadMesh", "sphere", 7),
+        make_mesh("HairCrownMesh", "sphere", 8),
+        make_mesh("HairBackMesh", "sphere", 8),
+        make_mesh("HairSideMesh", "sphere", 8),
+        make_mesh("CapeMesh", "plane", 9),
+        make_mesh("ShoulderMesh", "sphere", 6),
+        make_mesh("UpperArmMesh", "cylinder", 7),
+        make_mesh("ForearmMesh", "cylinder", 10),
+        make_mesh("GloveMesh", "sphere", 2),
+        make_mesh("HandMesh", "sphere", 7),
         make_mesh("GroundMesh", "disk", 0),
         make_mesh("BootMesh", "sphere", 1),
         make_mesh("PantMesh", "cylinder", 2),
@@ -316,6 +430,277 @@ def build_avatar(output_path: Path):
             math.cos(angle / 2.0),
         ]
 
+    def multiply_quats(a, b):
+        ax, ay, az, aw = a
+        bx, by, bz, bw = b
+        return [
+            aw * bx + ax * bw + ay * bz - az * by,
+            aw * by - ax * bz + ay * bw + az * bx,
+            aw * bz + ax * by - ay * bx + az * bw,
+            aw * bw - ax * bx - ay * by - az * bz,
+        ]
+
+    def combine_quats(*quats):
+        result = [0.0, 0.0, 0.0, 1.0]
+        for quat in quats:
+            if quat is None:
+                continue
+            result = multiply_quats(result, quat)
+        length = math.sqrt(result[0] ** 2 + result[1] ** 2 + result[2] ** 2 + result[3] ** 2)
+        if length > 0:
+            result = [component / length for component in result]
+        return result
+
+    nodes = [
+        {
+            "name": "CodexAvatarRoot",
+            "children": list(range(1, 36)),
+        },
+        {
+            "name": "GroundBase",
+            "mesh": 0,
+            "translation": [0.0, -1.6, 0.0],
+            "scale": [1.6, 0.05, 1.6],
+        },
+        {
+            "name": "GroundGlow",
+            "mesh": 1,
+            "translation": [0.0, -1.58, 0.0],
+            "scale": [1.2, 0.02, 1.2],
+        },
+        {
+            "name": "Cape",
+            "mesh": 17,
+            "translation": [0.0, 1.08, -0.52],
+            "rotation": combine_quats(
+                quat_from_axis_angle([1, 0, 0], -8),
+                quat_from_axis_angle([0, 1, 0], 4),
+            ),
+            "scale": [2.1, 2.2, 1.0],
+        },
+        {
+            "name": "BootLeft",
+            "mesh": 2,
+            "translation": [-0.34, -1.58, 0.34],
+            "scale": [0.24, 0.16, 0.36],
+        },
+        {
+            "name": "BootRight",
+            "mesh": 2,
+            "translation": [0.34, -1.58, 0.34],
+            "scale": [0.24, 0.16, 0.36],
+        },
+        {
+            "name": "BootGuardLeft",
+            "mesh": 3,
+            "translation": [-0.34, -1.34, 0.06],
+            "scale": [0.26, 0.26, 0.26],
+        },
+        {
+            "name": "BootGuardRight",
+            "mesh": 3,
+            "translation": [0.34, -1.34, 0.06],
+            "scale": [0.26, 0.26, 0.26],
+        },
+        {
+            "name": "LowerLegLeft",
+            "mesh": 4,
+            "translation": [-0.32, -0.98, 0.12],
+            "scale": [0.2, 0.82, 0.24],
+        },
+        {
+            "name": "LowerLegRight",
+            "mesh": 4,
+            "translation": [0.32, -0.98, 0.12],
+            "scale": [0.2, 0.82, 0.24],
+        },
+        {
+            "name": "KneeGuardLeft",
+            "mesh": 3,
+            "translation": [-0.32, -0.52, 0.18],
+            "scale": [0.24, 0.2, 0.24],
+        },
+        {
+            "name": "KneeGuardRight",
+            "mesh": 3,
+            "translation": [0.32, -0.52, 0.18],
+            "scale": [0.24, 0.2, 0.24],
+        },
+        {
+            "name": "UpperLegLeft",
+            "mesh": 5,
+            "translation": [-0.28, -0.16, 0.06],
+            "scale": [0.26, 0.94, 0.3],
+        },
+        {
+            "name": "UpperLegRight",
+            "mesh": 5,
+            "translation": [0.28, -0.16, 0.06],
+            "scale": [0.26, 0.94, 0.3],
+        },
+        {
+            "name": "Pelvis",
+            "mesh": 6,
+            "translation": [0.0, 0.48, 0.12],
+            "scale": [0.78, 0.5, 0.62],
+        },
+        {
+            "name": "Belt",
+            "mesh": 7,
+            "translation": [0.0, 0.88, 0.08],
+            "scale": [0.92, 0.16, 0.92],
+        },
+        {
+            "name": "LowerTorso",
+            "mesh": 8,
+            "translation": [0.0, 1.2, 0.16],
+            "scale": [0.72, 0.82, 0.54],
+        },
+        {
+            "name": "UpperTorso",
+            "mesh": 9,
+            "translation": [0.0, 1.86, 0.22],
+            "scale": [0.78, 0.68, 0.56],
+        },
+        {
+            "name": "ChestTrim",
+            "mesh": 10,
+            "translation": [0.0, 1.74, 0.24],
+            "scale": [0.88, 0.2, 0.88],
+        },
+        {
+            "name": "Collar",
+            "mesh": 11,
+            "translation": [0.0, 2.04, 0.16],
+            "scale": [0.6, 0.22, 0.6],
+        },
+        {
+            "name": "Neck",
+            "mesh": 12,
+            "translation": [0.0, 2.28, 0.2],
+            "scale": [0.24, 0.28, 0.24],
+        },
+        {
+            "name": "Head",
+            "mesh": 13,
+            "translation": [0.0, 2.64, 0.32],
+            "scale": [0.54, 0.64, 0.52],
+        },
+        {
+            "name": "HairCrown",
+            "mesh": 14,
+            "translation": [0.0, 2.92, 0.08],
+            "scale": [0.6, 0.42, 0.6],
+        },
+        {
+            "name": "HairBack",
+            "mesh": 15,
+            "translation": [0.0, 2.56, -0.34],
+            "scale": [0.62, 0.7, 0.36],
+        },
+        {
+            "name": "HairSideLeft",
+            "mesh": 16,
+            "translation": [-0.4, 2.62, 0.32],
+            "scale": [0.28, 0.36, 0.26],
+        },
+        {
+            "name": "HairSideRight",
+            "mesh": 16,
+            "translation": [0.4, 2.62, 0.32],
+            "scale": [0.28, 0.36, 0.26],
+        },
+        {
+            "name": "ShoulderLeft",
+            "mesh": 18,
+            "translation": [-0.96, 1.92, 0.2],
+            "scale": [0.28, 0.3, 0.28],
+        },
+        {
+            "name": "ShoulderRight",
+            "mesh": 18,
+            "translation": [0.96, 1.92, 0.2],
+            "scale": [0.28, 0.3, 0.28],
+        },
+        {
+            "name": "UpperArmLeft",
+            "mesh": 19,
+            "translation": [-1.12, 1.54, 0.04],
+            "rotation": combine_quats(
+                quat_from_axis_angle([0, 0, 1], -22),
+                quat_from_axis_angle([1, 0, 0], -10),
+            ),
+            "scale": [0.18, 0.7, 0.22],
+        },
+        {
+            "name": "UpperArmRight",
+            "mesh": 19,
+            "translation": [1.12, 1.54, 0.04],
+            "rotation": combine_quats(
+                quat_from_axis_angle([0, 0, 1], 22),
+                quat_from_axis_angle([1, 0, 0], -10),
+            ),
+            "scale": [0.18, 0.7, 0.22],
+        },
+        {
+            "name": "ForearmLeft",
+            "mesh": 20,
+            "translation": [-1.24, 0.96, 0.06],
+            "rotation": combine_quats(
+                quat_from_axis_angle([0, 0, 1], -18),
+                quat_from_axis_angle([1, 0, 0], -12),
+            ),
+            "scale": [0.16, 0.62, 0.2],
+        },
+        {
+            "name": "ForearmRight",
+            "mesh": 20,
+            "translation": [1.24, 0.96, 0.06],
+            "rotation": combine_quats(
+                quat_from_axis_angle([0, 0, 1], 18),
+                quat_from_axis_angle([1, 0, 0], -12),
+            ),
+            "scale": [0.16, 0.62, 0.2],
+        },
+        {
+            "name": "GloveLeft",
+            "mesh": 21,
+            "translation": [-1.2, 0.6, 0.18],
+            "rotation": combine_quats(
+                quat_from_axis_angle([0, 0, 1], -12),
+                quat_from_axis_angle([1, 0, 0], -6),
+            ),
+            "scale": [0.2, 0.2, 0.26],
+        },
+        {
+            "name": "GloveRight",
+            "mesh": 21,
+            "translation": [1.2, 0.6, 0.18],
+            "rotation": combine_quats(
+                quat_from_axis_angle([0, 0, 1], 12),
+                quat_from_axis_angle([1, 0, 0], -6),
+            ),
+            "scale": [0.2, 0.2, 0.26],
+        },
+        {
+            "name": "HandLeft",
+            "mesh": 22,
+            "translation": [-1.18, 0.42, 0.18],
+            "rotation": combine_quats(
+                quat_from_axis_angle([0, 0, 1], -12),
+                quat_from_axis_angle([1, 0, 0], -4),
+            ),
+            "scale": [0.16, 0.14, 0.2],
+        },
+        {
+            "name": "HandRight",
+            "mesh": 22,
+            "translation": [1.18, 0.42, 0.18],
+            "rotation": combine_quats(
+                quat_from_axis_angle([0, 0, 1], 12),
+                quat_from_axis_angle([1, 0, 0], -4),
+            ),
+            "scale": [0.16, 0.14, 0.2],
     nodes = [
         {
             "name": "CodexAvatarRoot",

@@ -170,6 +170,12 @@ function updateCapturedPhotoElement(element, imageSrc) {
         'camera-controls': '',
         'auto-rotate': '',
         'interaction-prompt': 'none',
+        'camera-target': '0 1.35 0',
+        'camera-orbit': '20deg 70deg 4.5m',
+        'min-camera-orbit': '-140deg 50deg 3.6m',
+        'max-camera-orbit': '140deg 100deg 5.4m',
+        'shadow-intensity': '0.75',
+        exposure: '1.05'
         'camera-target': '0 1.4 0',
         'camera-orbit': '0deg 80deg 2.9m',
         'min-camera-orbit': '-120deg 60deg 2.6m',
