@@ -5,24 +5,37 @@ import { RecalibrationComputationInput } from '../core/types';
 
 function makeStats(value: number): TickComputationState['stats'] {
   return {
-    pwr: { value, confidence: 0.8 },
-    acc: { value, confidence: 0.8 },
-    grt: { value, confidence: 0.8 },
-    cog: { value, confidence: 0.8 },
-    pln: { value, confidence: 0.8 },
-    soc: { value, confidence: 0.8 }
+    pwr: value,
+    acc: value,
+    grt: value,
+    cog: value,
+    pln: value,
+    soc: value
+  };
+}
+
+function makeConfidence(value = 0.8): TickComputationState['confidence'] {
+  return {
+    pwr: value,
+    acc: value,
+    grt: value,
+    cog: value,
+    pln: value,
+    soc: value
   };
 }
 
 describe('tickStats decay and maintenance behaviour', () => {
   it('higher stat loses more than lower stat when idle', () => {
     const highState: TickComputationState = {
-      stats: makeStats(16),
+      stats: makeStats(80),
+      confidence: makeConfidence(),
       dynamics: DEFAULT_DYNAMICS,
       legacyScore: 0
     };
     const lowState: TickComputationState = {
-      stats: makeStats(8),
+      stats: makeStats(40),
+      confidence: makeConfidence(),
       dynamics: DEFAULT_DYNAMICS,
       legacyScore: 0
     };
@@ -30,67 +43,77 @@ describe('tickStats decay and maintenance behaviour', () => {
     let high = highState;
     let low = lowState;
     for (let day = 0; day < 7; day += 1) {
+      const highTick = tickStats(high, { trainingLoad: {}, tokens: [] });
       high = {
         ...high,
-        stats: tickStats(high, { trainingLoad: {}, tokens: [] }).updatedStats
+        stats: highTick.updatedStats,
+        confidence: highTick.updatedConfidence
       };
+      const lowTick = tickStats(low, { trainingLoad: {}, tokens: [] });
       low = {
         ...low,
-        stats: tickStats(low, { trainingLoad: {}, tokens: [] }).updatedStats
+        stats: lowTick.updatedStats,
+        confidence: lowTick.updatedConfidence
       };
     }
 
-    const highLoss = 16 - high.stats.pwr.value;
-    const lowLoss = 8 - low.stats.pwr.value;
+    const highLoss = 80 - high.stats.pwr;
+    const lowLoss = 40 - low.stats.pwr;
 
     expect(highLoss).toBeGreaterThan(lowLoss);
   });
 
   it('maintenance load keeps stats stable while extra load nudges upward', () => {
     const params = DEFAULT_DYNAMICS.pwr;
-    const baseValue = 12;
+    const baseValue = 60;
     const maintenance = params.tl0 + params.beta * Math.max(0, baseValue - params.sfloor);
 
     let maintenanceState: TickComputationState = {
       stats: makeStats(baseValue),
+      confidence: makeConfidence(),
       dynamics: DEFAULT_DYNAMICS,
       legacyScore: 0
     };
     let overloadState: TickComputationState = {
       stats: makeStats(baseValue),
+      confidence: makeConfidence(),
       dynamics: DEFAULT_DYNAMICS,
       legacyScore: 0
     };
 
     for (let day = 0; day < 7; day += 1) {
+      const maintenanceTick = tickStats(maintenanceState, {
+        trainingLoad: { pwr: maintenance },
+        tokens: []
+      });
       maintenanceState = {
         ...maintenanceState,
-        stats: tickStats(maintenanceState, {
-          trainingLoad: { pwr: maintenance },
-          tokens: []
-        }).updatedStats
+        stats: maintenanceTick.updatedStats,
+        confidence: maintenanceTick.updatedConfidence
       };
+      const overloadTick = tickStats(overloadState, {
+        trainingLoad: { pwr: maintenance * 1.5 },
+        tokens: []
+      });
       overloadState = {
         ...overloadState,
-        stats: tickStats(overloadState, {
-          trainingLoad: { pwr: maintenance * 1.5 },
-          tokens: []
-        }).updatedStats
+        stats: overloadTick.updatedStats,
+        confidence: overloadTick.updatedConfidence
       };
     }
 
-    const maintenanceDelta = maintenanceState.stats.pwr.value - baseValue;
-    const overloadDelta = overloadState.stats.pwr.value - baseValue;
+    const maintenanceDelta = maintenanceState.stats.pwr - baseValue;
+    const overloadDelta = overloadState.stats.pwr - baseValue;
 
-    expect(Math.abs(maintenanceDelta)).toBeLessThan(0.6);
+    expect(Math.abs(maintenanceDelta)).toBeLessThan(3);
     expect(overloadDelta).toBeGreaterThan(0);
   });
 });
 
 describe('recalibrateDynamics', () => {
   it('nudges eta0 and tau0 toward observed behaviour', () => {
-    const previousAbility = makeAbilityFromValues({ pwr: 12, acc: 12, grt: 12, cog: 12, pln: 12, soc: 12 });
-    const recentAbility = makeAbilityFromValues({ pwr: 13, acc: 12, grt: 12, cog: 12, pln: 12, soc: 12 });
+    const previousAbility = makeAbilityFromValues({ pwr: 60, acc: 60, grt: 60, cog: 60, pln: 60, soc: 60 });
+    const recentAbility = makeAbilityFromValues({ pwr: 65, acc: 60, grt: 60, cog: 60, pln: 60, soc: 60 });
 
     const input: RecalibrationComputationInput = {
       previousAbility,

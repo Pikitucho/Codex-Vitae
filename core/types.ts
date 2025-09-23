@@ -1,13 +1,9 @@
 export type StatKey = 'pwr' | 'acc' | 'grt' | 'cog' | 'pln' | 'soc';
 
-export interface StatSnapshot {
-  value: number; // 1..20
-  confidence: number; // 0..1
-}
-
 export interface AbilityNow {
-  stats: Record<StatKey, StatSnapshot>;
-  total: number; // 6..120
+  stats: Record<StatKey, number>;
+  confidence: Record<StatKey, number>;
+  total: number; // 0..600
   level0to100: number; // 0..100
   progress01: number; // 0..1
 }
@@ -58,7 +54,8 @@ export interface TickInput {
 export interface TickResult {
   ability: AbilityNow;
   legacy: LegacyState;
-  updatedStats: Record<StatKey, StatSnapshot>;
+  updatedStats: Record<StatKey, number>;
+  updatedConfidence: Record<StatKey, number>;
 }
 
 export interface RecalibrationResult {

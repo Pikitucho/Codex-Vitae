@@ -1,10 +1,8 @@
 import { UserDynamics } from './types';
 
 export const STAT_KEYS = ['pwr', 'acc', 'grt', 'cog', 'pln', 'soc'] as const;
-export const MIN_STAT = 1;
-export const MAX_STAT = 20;
-export const MIN_TOTAL = 6;
-export const MAX_TOTAL = 120;
+export const MIN_STAT = 0;
+export const MAX_STAT = 100;
 export const DEFAULT_HALF_LIFE_SAFEGUARD = 180; // days
 
 export const DEFAULT_DYNAMICS: UserDynamics = {
