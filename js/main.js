@@ -176,6 +176,12 @@ function updateCapturedPhotoElement(element, imageSrc) {
         'max-camera-orbit': '140deg 100deg 5.4m',
         'shadow-intensity': '0.75',
         exposure: '1.05'
+        'camera-target': '0 1.4 0',
+        'camera-orbit': '0deg 80deg 2.9m',
+        'min-camera-orbit': '-120deg 60deg 2.6m',
+        'max-camera-orbit': '120deg 100deg 3.4m',
+        'shadow-intensity': '0.65',
+        exposure: '1.1'
     };
 
     for (const [attribute, value] of Object.entries(viewerAttributes)) {
