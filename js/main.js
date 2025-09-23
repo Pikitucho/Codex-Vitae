@@ -37,8 +37,7 @@ const firebaseConfig = codexConfig.firebaseConfig;
 const BACKEND_SERVER_URL =
     typeof codexConfig.backendUrl === 'string' ? codexConfig.backendUrl.trim() : '';
 const AI_FEATURES_AVAILABLE = BACKEND_SERVER_URL.length > 0;
-const AVATAR_PLACEHOLDER_SRC = 'assets/avatars/heroic-white-male-placeholder.svg';
-const DEFAULT_AVATAR_MODEL_SRC = 'assets/avatars/codex-placeholder-avatar.gltf';
+const DEFAULT_AVATAR_MODEL_SRC = 'assets/avatars/codex-vitae-avatar.gltf';
 const AVATAR_MODEL_EXTENSIONS = ['.glb', '.gltf'];
 
 if (!firebaseConfig || typeof firebaseConfig !== 'object') {
@@ -130,15 +129,12 @@ function updateCapturedPhotoElement(element, imageSrc) {
     const trimmedSrc = typeof imageSrc === 'string' ? imageSrc.trim() : '';
     const lowerSrc = trimmedSrc.toLowerCase();
     const srcWithoutParams = lowerSrc.split(/[?#]/)[0];
-    const isPlaceholderImage = trimmedSrc === AVATAR_PLACEHOLDER_SRC;
-    const isPlaceholderModel = trimmedSrc === DEFAULT_AVATAR_MODEL_SRC;
-    const hasCustomValue = trimmedSrc.length > 0 && !isPlaceholderImage && !isPlaceholderModel;
-    const modelExtensionMatch = hasCustomValue
-        && AVATAR_MODEL_EXTENSIONS.some(extension => srcWithoutParams.endsWith(extension));
-    const isDataModel = hasCustomValue && lowerSrc.startsWith('data:model/gltf');
-    const isModelSrc = modelExtensionMatch || isDataModel;
+    const hasCustomValue = trimmedSrc.length > 0;
+    const isModelSrc = hasCustomValue && (
+        AVATAR_MODEL_EXTENSIONS.some(extension => srcWithoutParams.endsWith(extension))
+        || lowerSrc.startsWith('data:model/gltf')
+    );
     const usingCustomImage = hasCustomValue && !isModelSrc;
-    const isPlaceholder = !hasCustomValue;
 
     let activeElement = element;
 
@@ -153,50 +149,50 @@ function updateCapturedPhotoElement(element, imageSrc) {
         }
 
         activeElement.setAttribute('alt', 'Your Avatar');
-        activeElement.removeAttribute('poster');
-        activeElement.removeAttribute('reveal');
-        activeElement.removeAttribute('camera-controls');
-        activeElement.removeAttribute('auto-rotate');
-        activeElement.removeAttribute('disable-zoom');
-        activeElement.removeAttribute('shadow-intensity');
-        activeElement.removeAttribute('exposure');
-    } else {
-        activeElement = ensureElementTag(activeElement, 'MODEL-VIEWER');
-        if (!activeElement) {
-            return;
-        }
+        activeElement.classList.remove('avatar-circle', 'avatar-placeholder');
+        activeElement.classList.add('avatar-viewer');
+        activeElement.classList.remove('hidden');
+        return;
+    }
 
-        const viewerSrc = isModelSrc ? trimmedSrc : DEFAULT_AVATAR_MODEL_SRC;
-        if (activeElement.getAttribute('src') !== viewerSrc) {
-            activeElement.setAttribute('src', viewerSrc);
-        }
+    activeElement = ensureElementTag(activeElement, 'MODEL-VIEWER');
+    if (!activeElement) {
+        return;
+    }
 
-        if (activeElement.getAttribute('poster') !== AVATAR_PLACEHOLDER_SRC) {
-            activeElement.setAttribute('poster', AVATAR_PLACEHOLDER_SRC);
-        }
+    const viewerSrc = isModelSrc ? trimmedSrc : DEFAULT_AVATAR_MODEL_SRC;
+    if (activeElement.getAttribute('src') !== viewerSrc) {
+        activeElement.setAttribute('src', viewerSrc);
+    }
 
-        if (activeElement.getAttribute('reveal') !== 'auto') {
-            activeElement.setAttribute('reveal', 'auto');
-        }
+    const viewerAttributes = {
+        alt: 'Your Avatar',
+        'camera-controls': '',
+        'auto-rotate': '',
+        'interaction-prompt': 'none',
+        'camera-target': '0 1.35 0',
+        'camera-orbit': '20deg 70deg 4.5m',
+        'min-camera-orbit': '-140deg 50deg 3.6m',
+        'max-camera-orbit': '140deg 100deg 5.4m',
+        'shadow-intensity': '0.75',
+        exposure: '1.05'
+    };
 
-        activeElement.setAttribute('alt', 'Your Avatar');
-        activeElement.setAttribute('camera-controls', '');
-        activeElement.setAttribute('disable-zoom', '');
-        activeElement.setAttribute('auto-rotate', '');
-        activeElement.setAttribute('shadow-intensity', '0.3');
-        activeElement.setAttribute('exposure', '1');
-
-        const canShowPoster = typeof activeElement.showPoster === 'function';
-        const canDismissPoster = typeof activeElement.dismissPoster === 'function';
-        if (canDismissPoster) {
-            activeElement.dismissPoster();
-        } else if (canShowPoster) {
-            activeElement.showPoster();
+    for (const [attribute, value] of Object.entries(viewerAttributes)) {
+        if (value === '') {
+            if (!activeElement.hasAttribute(attribute)) {
+                activeElement.setAttribute(attribute, '');
+            }
+        } else if (activeElement.getAttribute(attribute) !== value) {
+            activeElement.setAttribute(attribute, value);
         }
     }
 
-    activeElement.classList.add('avatar-circle');
-    activeElement.classList.toggle('avatar-placeholder', isPlaceholder);
+    activeElement.removeAttribute('poster');
+    activeElement.removeAttribute('reveal');
+    activeElement.removeAttribute('disable-zoom');
+    activeElement.classList.remove('avatar-circle', 'avatar-placeholder');
+    activeElement.classList.add('avatar-viewer');
     activeElement.classList.remove('hidden');
 }
 
