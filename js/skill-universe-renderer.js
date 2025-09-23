@@ -228,6 +228,9 @@
             this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             this.renderer.outputEncoding = THREE.sRGBEncoding;
             this.renderer.setSize(width, height, false);
+            this.renderer.domElement.style.width = '100%';
+            this.renderer.domElement.style.height = '100%';
+            this.renderer.domElement.style.display = 'block';
             this.renderer.setPixelRatio(global.devicePixelRatio || 1);
             this.renderer.setClearColor(0x02030b, 1);
             this.container.innerHTML = '';
@@ -325,6 +328,8 @@
             this.camera.aspect = width / height;
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(width, height, false);
+            this.renderer.domElement.style.width = '100%';
+            this.renderer.domElement.style.height = '100%';
             this.render();
         }
 
