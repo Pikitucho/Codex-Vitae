@@ -94,6 +94,34 @@ const STAT_KEY_METADATA = {
 
 const STAT_KEYS = Object.keys(STAT_KEY_METADATA);
 const LEGACY_ROLLOVER_THRESHOLD = 1000;
+const QUARTERLY_MILESTONE_GOAL = 60;
+
+function getQuarterIdentifier(date) {
+    const reference = date instanceof Date ? date : new Date(date);
+    if (!(reference instanceof Date) || Number.isNaN(reference.getTime())) {
+        return null;
+    }
+    const quarterIndex = Math.floor(reference.getMonth() / 3) + 1;
+    return `${reference.getFullYear()}-Q${quarterIndex}`;
+}
+
+function convertMonthStringToQuarter(monthString) {
+    if (typeof monthString !== 'string') {
+        return null;
+    }
+    const parts = monthString.split('-');
+    if (parts.length < 2) {
+        return null;
+    }
+    const year = Number(parts[0]);
+    const month = Number(parts[1]);
+    if (!Number.isFinite(year) || !Number.isFinite(month)) {
+        return null;
+    }
+    const normalizedMonth = Math.max(1, Math.min(12, Math.floor(month)));
+    const quarterIndex = Math.floor((normalizedMonth - 1) / 3) + 1;
+    return `${year}-Q${quarterIndex}`;
+}
 
 function createEmptyLegacyStat() {
     return { counter: 0, level: 0, totalEarned: 0 };
@@ -342,16 +370,19 @@ function updatePerkProgressionMeters(summary) {
         (current, goal) => `${Math.round(current)} / ${goal.toLocaleString()} legacy momentum logged from chores.`
     );
 
-    const monthlyActivityLog = Array.isArray(characterData?.monthlyActivityLog)
-        ? characterData.monthlyActivityLog
+    const currentQuarterId = getQuarterIdentifier(new Date());
+    const hasQuarterData = currentQuarterId
+        ? characterData?.activityLogQuarter === currentQuarterId
+        : false;
+    const quarterlyActivityLog = hasQuarterData && Array.isArray(characterData?.quarterlyActivityLog)
+        ? characterData.quarterlyActivityLog
         : [];
-    const monthlyGoal = 25;
     setPerkProgressMeter(
-        'perk-progress-monthly-bar',
-        'perk-progress-monthly-text',
-        monthlyActivityLog.length,
-        monthlyGoal,
-        (current, goal) => `${current} / ${goal} days logged this month.`
+        'perk-progress-quarterly-bar',
+        'perk-progress-quarterly-text',
+        quarterlyActivityLog.length,
+        QUARTERLY_MILESTONE_GOAL,
+        (current, goal) => `${current} / ${goal} days logged this quarter.`
     );
 
     const yearlyGoal = 12000;
@@ -1115,7 +1146,7 @@ let choreManager = {
         }
 
         this.chores.splice(choreIndex, 1);
-        logMonthlyActivity();
+        logQuarterlyActivity();
         updateDashboard();
     }
 };
@@ -1180,10 +1211,26 @@ async function loadData(userId) {
         }
 
         const now = new Date();
-        const defaultMonth = `${now.getFullYear()}-${now.getMonth() + 1}`;
+        const defaultQuarter = getQuarterIdentifier(now) || `${now.getFullYear()}-Q${Math.floor(now.getMonth() / 3) + 1}`;
+        const quarterlyActivityLog = Array.isArray(loadedCharacterData.quarterlyActivityLog)
+            ? loadedCharacterData.quarterlyActivityLog
+            : Array.isArray(loadedCharacterData.monthlyActivityLog)
+                ? loadedCharacterData.monthlyActivityLog
+                : [];
+        const storedQuarter = loadedCharacterData.activityLogQuarter
+            || convertMonthStringToQuarter(loadedCharacterData.activityLogMonth)
+            || defaultQuarter;
+        const quarterlyPerkClaimed = typeof loadedCharacterData.quarterlyPerkClaimed === 'boolean'
+            ? loadedCharacterData.quarterlyPerkClaimed
+            : Boolean(loadedCharacterData.monthlyPerkClaimed);
+
+        const sanitizedLoadedData = { ...loadedCharacterData };
+        delete sanitizedLoadedData.monthlyActivityLog;
+        delete sanitizedLoadedData.activityLogMonth;
+        delete sanitizedLoadedData.monthlyPerkClaimed;
 
         characterData = {
-            ...loadedCharacterData,
+            ...sanitizedLoadedData,
             level: loadedCharacterData.level || 1,
             statProgress: loadedCharacterData.statProgress || 0,
             statsToNextLevel: loadedCharacterData.statsToNextLevel || 10,
@@ -1194,11 +1241,9 @@ async function loadData(userId) {
             unlockedPerks: Array.isArray(loadedCharacterData.unlockedPerks)
                 ? loadedCharacterData.unlockedPerks
                 : [],
-            monthlyActivityLog: Array.isArray(loadedCharacterData.monthlyActivityLog)
-                ? loadedCharacterData.monthlyActivityLog
-                : [],
-            activityLogMonth: loadedCharacterData.activityLogMonth || defaultMonth,
-            monthlyPerkClaimed: Boolean(loadedCharacterData.monthlyPerkClaimed),
+            quarterlyActivityLog,
+            activityLogQuarter: storedQuarter,
+            quarterlyPerkClaimed,
             skillSearchTarget: loadedCharacterData.skillSearchTarget || null,
             choreProgress: {
                 strength: loadedCharacterData.choreProgress?.strength || 0,
@@ -1273,23 +1318,24 @@ async function getAIChoreClassification(text) {
 }
 
 
-function logMonthlyActivity() {
-    if (!characterData.monthlyActivityLog) { characterData.monthlyActivityLog = []; }
+function logQuarterlyActivity() {
+    if (!characterData.quarterlyActivityLog) { characterData.quarterlyActivityLog = []; }
     const now = new Date();
     const today = now.toISOString().split('T')[0];
-    const currentMonth = now.getFullYear() + '-' + (now.getMonth() + 1);
-    if (characterData.activityLogMonth !== currentMonth) {
-        characterData.activityLogMonth = currentMonth;
-        characterData.monthlyActivityLog = [];
-        characterData.monthlyPerkClaimed = false;
+    const currentQuarter = getQuarterIdentifier(now);
+    if (!currentQuarter) { return; }
+    if (characterData.activityLogQuarter !== currentQuarter) {
+        characterData.activityLogQuarter = currentQuarter;
+        characterData.quarterlyActivityLog = [];
+        characterData.quarterlyPerkClaimed = false;
     }
-    if (characterData.monthlyPerkClaimed) { return; }
-    if (!characterData.monthlyActivityLog.includes(today)) {
-        characterData.monthlyActivityLog.push(today);
-        if (characterData.monthlyActivityLog.length >= 25) {
+    if (characterData.quarterlyPerkClaimed) { return; }
+    if (!characterData.quarterlyActivityLog.includes(today)) {
+        characterData.quarterlyActivityLog.push(today);
+        if (characterData.quarterlyActivityLog.length >= QUARTERLY_MILESTONE_GOAL) {
             characterData.skillPoints++;
-            characterData.monthlyPerkClaimed = true;
-            showToast("Monthly Milestone! You earned a Perk Point for your consistency!");
+            characterData.quarterlyPerkClaimed = true;
+            showToast("Quarterly Milestone! You earned a Perk Point for your consistency!");
             refreshStarAvailability();
         }
     }
@@ -1340,9 +1386,9 @@ function calculateStartingStats() {
         unlockedPerks: [],
         verifiedProofs: [],
         verifiedCredentials: [],
-        monthlyActivityLog: [],
-        activityLogMonth: `${now.getFullYear()}-${now.getMonth() + 1}`,
-        monthlyPerkClaimed: false,
+        quarterlyActivityLog: [],
+        activityLogQuarter: getQuarterIdentifier(now) || `${now.getFullYear()}-Q${Math.floor(now.getMonth() / 3) + 1}`,
+        quarterlyPerkClaimed: false,
         skillSearchTarget: null,
         chores: [],
         onboardingComplete: true

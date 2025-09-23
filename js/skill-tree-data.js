@@ -671,7 +671,7 @@ const rawSkillTree = {
                     'Resilience Prime': {
                         type: 'starSystem',
                         stars: {
-                            'Toughness': { unlock_type: 'perk', type: 'support_star', requires: { stat: 'constitution', value: 14 }, description: 'Monthly Milestone requires one less day to complete (24 instead of 25).' },
+                            'Toughness': { unlock_type: 'perk', type: 'support_star', requires: { stat: 'constitution', value: 14 }, description: 'Quarterly Milestone requires one less day to complete (59 instead of 60).' },
                             'Iron Will': { unlock_type: 'perk', type: 'support_star', requires: { stat: 'constitution', value: 20 }, description: 'Provides a chance to maintain a weekly streak even if you miss one day.' }
                         }
                     }
