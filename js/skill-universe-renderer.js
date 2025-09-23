@@ -9,10 +9,10 @@
     const THREE = global.THREE;
 
     const CAMERA_LEVELS = {
-        galaxies: { distance: 1100, height: 320, duration: 1200 },
-        constellations: { distance: 680, height: 240, duration: 1100 },
-        starSystems: { distance: 430, height: 170, duration: 1000 },
-        stars: { distance: 250, height: 120, duration: 900 }
+        galaxies: { distance: 2400, height: 680, duration: 1400 },
+        constellations: { distance: 1400, height: 420, duration: 1200 },
+        starSystems: { distance: 640, height: 260, duration: 1000 },
+        stars: { distance: 360, height: 160, duration: 900 }
     };
 
     const CAMERA_THRESHOLDS = {
@@ -27,16 +27,16 @@
         locked: 0x4b4b4b
     };
 
-    const GALAXY_RADIUS = 360;
-    const CONSTELLATION_RADIUS = 140;
-    const STAR_SYSTEM_RADIUS = 48;
-    const STAR_ORBIT_RADIUS = 18;
+    const GALAXY_RADIUS = 920;
+    const CONSTELLATION_RADIUS = 360;
+    const STAR_SYSTEM_RADIUS = 110;
+    const STAR_ORBIT_RADIUS = 32;
 
     const STARFIELD_CONFIG = {
-        count: 1800,
-        radius: 2800,
-        size: 1.7,
-        opacity: 0.78
+        count: 2400,
+        radius: 4600,
+        size: 1.9,
+        opacity: 0.82
     };
 
     const LABEL_DEFAULTS = {
@@ -221,8 +221,8 @@
             this.starfield = null;
 
             const { width, height } = this._getContainerSize();
-            this.camera = new THREE.PerspectiveCamera(55, width / height, 1, 6000);
-            this.camera.position.set(0, 260, 980);
+            this.camera = new THREE.PerspectiveCamera(55, width / height, 1, 9000);
+            this.camera.position.set(0, CAMERA_LEVELS.galaxies.height, CAMERA_LEVELS.galaxies.distance + 320);
             this.cameraTarget = new THREE.Vector3(0, 0, 0);
 
             this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -241,8 +241,8 @@
             this.controls.enableDamping = true;
             this.controls.dampingFactor = 0.12;
             this.controls.screenSpacePanning = true;
-            this.controls.minDistance = 120;
-            this.controls.maxDistance = 1600;
+            this.controls.minDistance = 160;
+            this.controls.maxDistance = 4400;
             this.controls.enablePan = true;
             this.controls.enableZoom = true;
             this.controls.enableRotate = true;
@@ -555,54 +555,82 @@
                 const galaxyEmissive = resolveColor(galaxyData?.appearance?.emissive, 0x241563);
                 const haloColor = resolveColor(galaxyData?.appearance?.halo, 0x8069ff);
 
+                const constellations = galaxyData.constellations || {};
+                const constellationNames = Object.keys(constellations);
+
                 const group = new THREE.Group();
                 group.name = `galaxy-${galaxyName}`;
                 group.position.set(galaxyPosition.x, galaxyPosition.y, galaxyPosition.z);
 
-                const mesh = new THREE.Mesh(
-                    new THREE.SphereGeometry(28, 48, 48),
+                const configuredRadius = Number.isFinite(galaxyData?.appearance?.areaRadius)
+                    ? galaxyData.appearance.areaRadius
+                    : null;
+                const baseAreaRadius = CONSTELLATION_RADIUS * 1.45;
+                const dynamicRadius = baseAreaRadius * Math.sqrt(Math.max(1, constellationNames.length / 6));
+                const areaRadius = configuredRadius && configuredRadius > 0 ? configuredRadius : dynamicRadius;
+
+                const areaMesh = new THREE.Mesh(
+                    new THREE.CircleGeometry(areaRadius, 96),
                     new THREE.MeshStandardMaterial({
                         color: galaxyColor,
                         emissive: galaxyEmissive,
-                        emissiveIntensity: 0.6,
-                        roughness: 0.2,
-                        metalness: 0.1,
+                        emissiveIntensity: 0.45,
+                        roughness: 0.42,
+                        metalness: 0.08,
                         transparent: true,
-                        opacity: 0.95
+                        opacity: 0.22,
+                        side: THREE.DoubleSide
                     })
                 );
-                mesh.userData = { type: 'galaxy', galaxy: galaxyName };
-                mesh.userData.originalScale = mesh.scale.clone();
-                group.add(mesh);
-                this.pickableObjects.push(mesh);
+                areaMesh.rotation.x = -Math.PI / 2;
+                areaMesh.position.y = -6;
+                areaMesh.userData = { type: 'galaxy', galaxy: galaxyName };
+                areaMesh.userData.originalScale = areaMesh.scale.clone();
+                group.add(areaMesh);
+                this.pickableObjects.push(areaMesh);
 
-                const halo = new THREE.Mesh(
-                    new THREE.RingGeometry(36, 40, 64),
-                    new THREE.MeshBasicMaterial({ color: haloColor, transparent: true, opacity: 0.3, side: THREE.DoubleSide })
+                const rim = new THREE.Mesh(
+                    new THREE.RingGeometry(areaRadius + 12, areaRadius + 28, 96),
+                    new THREE.MeshBasicMaterial({ color: haloColor, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
                 );
-                halo.rotation.x = Math.PI / 2;
-                group.add(halo);
+                rim.rotation.x = -Math.PI / 2;
+                rim.position.y = -5;
+                group.add(rim);
 
-                const label = createLabelSprite(galaxyName, { scale: 0.9 });
-                label.position.set(0, 52, 0);
+                const core = new THREE.Mesh(
+                    new THREE.SphereGeometry(Math.max(32, areaRadius * 0.12), 48, 48),
+                    new THREE.MeshStandardMaterial({
+                        color: galaxyColor,
+                        emissive: galaxyEmissive,
+                        emissiveIntensity: 0.9,
+                        roughness: 0.28,
+                        metalness: 0.18,
+                        transparent: true,
+                        opacity: 0.92
+                    })
+                );
+                core.position.y = 24;
+                group.add(core);
+
+                const labelHeight = Math.max(68, areaRadius * 0.12 + 46);
+                const label = createLabelSprite(galaxyName, { scale: 1.0 });
+                label.position.set(0, labelHeight, 0);
                 group.add(label);
 
                 const orbitGroup = new THREE.Group();
                 orbitGroup.name = `constellations-${galaxyName}`;
+                orbitGroup.position.y = 6;
                 group.add(orbitGroup);
 
                 this.rootGroup.add(group);
 
                 const galaxyInfo = {
                     group,
-                    mesh,
+                    mesh: areaMesh,
                     orbitGroup,
-                    constellationNames: []
+                    areaRadius,
+                    constellationNames
                 };
-
-                const constellations = galaxyData.constellations || {};
-                const constellationNames = Object.keys(constellations);
-                galaxyInfo.constellationNames = constellationNames;
 
                 constellationNames.forEach((constellationName, cIndex) => {
                     const constellationData = constellations[constellationName] || {};
@@ -806,11 +834,7 @@
                     });
                 });
 
-                this.galaxyMap.set(galaxyName, {
-                    group,
-                    mesh,
-                    orbitGroup
-                });
+                this.galaxyMap.set(galaxyName, galaxyInfo);
             });
         }
 
