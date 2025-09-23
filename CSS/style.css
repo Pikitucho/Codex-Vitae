@@ -609,10 +609,116 @@ model-viewer.avatar-viewer {
 }
 
 #skill-tree-canvas-container {
+    position: relative;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 18px;
     overflow: hidden;
     background: radial-gradient(circle at top, rgba(79, 140, 146, 0.35), transparent 70%);
+}
+
+.star-focus-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 32px 24px 48px;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.97);
+    transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s ease;
+    z-index: 3;
+    color: #f6f9fb;
+    text-align: center;
+}
+
+.star-focus-overlay.is-visible {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+}
+
+.star-focus-title {
+    font-size: clamp(1.6rem, 2.4vw + 0.8rem, 2.8rem);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+    margin-top: 24px;
+    padding: 12px 28px;
+    border-radius: 999px;
+    background: linear-gradient(140deg, rgba(22, 32, 54, 0.75), rgba(40, 62, 88, 0.55));
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 24px 48px rgba(4, 10, 20, 0.55);
+    max-width: min(90%, 680px);
+    word-break: break-word;
+}
+
+.star-focus-footer {
+    width: min(520px, 100%);
+    background: linear-gradient(160deg, rgba(10, 18, 32, 0.88), rgba(20, 36, 58, 0.72));
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 24px;
+    padding: 20px 28px 26px;
+    box-shadow: 0 30px 70px rgba(2, 8, 18, 0.65);
+    backdrop-filter: blur(6px);
+}
+
+.star-focus-status {
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+    color: rgba(245, 178, 103, 0.95);
+    text-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+}
+
+.star-focus-overlay[data-status="unlocked"] .star-focus-status {
+    color: #2ecc71;
+}
+
+.star-focus-overlay[data-status="available"] .star-focus-status {
+    color: #f5b267;
+}
+
+.star-focus-overlay[data-status="locked"] .star-focus-status {
+    color: #9fa9b8;
+}
+
+.star-focus-location {
+    font-size: 0.9rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    color: rgba(214, 226, 240, 0.72);
+}
+
+.star-focus-location:empty {
+    display: none;
+}
+
+.star-focus-description {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: rgba(240, 244, 249, 0.92);
+    text-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+}
+
+@media (max-width: 720px) {
+    .star-focus-overlay {
+        padding: 24px 16px 36px;
+    }
+
+    .star-focus-title {
+        font-size: clamp(1.4rem, 3vw + 0.6rem, 2.2rem);
+        padding: 10px 22px;
+    }
+
+    .star-focus-footer {
+        padding: 18px 20px 22px;
+    }
 }
 
 .skill-tree-unavailable {

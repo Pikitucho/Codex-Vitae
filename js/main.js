@@ -525,6 +525,9 @@ function createStarDetailController() {
         panel.classList.add('hidden');
         panel.setAttribute('aria-hidden', 'true');
         delete panel.dataset.status;
+        if (skillRenderer && typeof skillRenderer.clearStarFocus === 'function') {
+            skillRenderer.clearStarFocus();
+        }
         activeStar = null;
         unlockBtn.disabled = false;
         proofBtn.disabled = false;
