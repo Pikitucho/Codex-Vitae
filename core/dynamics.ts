@@ -1,5 +1,6 @@
 import {
   AbilityNow,
+  LegacyState,
   RecalibrationComputationInput,
   RecalibrationResult,
   StatKey,
@@ -8,7 +9,7 @@ import {
 } from './types';
 import { CONFIDENCE_DECAY, DEFAULT_DYNAMICS, DEFAULT_HALF_LIFE_SAFEGUARD, MIN_STAT, STAT_KEYS } from './constants';
 import { calculateAbility, clampConfidence, clampStatValue } from './ability';
-import { updateLegacy } from './legacy';
+import { createEmptyLegacyState } from './legacy';
 
 export interface TickComputationState {
   stats: Record<StatKey, number>;
@@ -72,12 +73,11 @@ export interface TickComputationResult {
   ability: AbilityNow;
   updatedStats: Record<StatKey, number>;
   updatedConfidence: Record<StatKey, number>;
-  legacy: ReturnType<typeof updateLegacy>['state'];
-  legacyDetail: ReturnType<typeof updateLegacy>;
+  legacy: LegacyState;
 }
 
 export function tickStats(state: TickComputationState, input: TickInput): TickComputationResult {
-  const { stats: prevStats, confidence: prevConfidence, dynamics, legacyScore } = state;
+  const { stats: prevStats, confidence: prevConfidence, dynamics } = state;
   const aggregation = aggregateQuality(input.tokens);
   const updatedStats: Record<StatKey, number> = {} as Record<StatKey, number>;
   const updatedConfidence: Record<StatKey, number> = {} as Record<StatKey, number>;
@@ -123,23 +123,12 @@ export function tickStats(state: TickComputationState, input: TickInput): TickCo
   }
 
   const ability = calculateAbility(updatedStats, updatedConfidence);
-  const legacyResult = updateLegacy({
-    abilityHistory: [calculateAbility(prevStats, prevConfidence), ability],
-    trainingLoad: [input.trainingLoad],
-    tokens: input.tokens,
-    prEvents: [],
-    streaks: [],
-    badges: [],
-    previousScore: legacyScore,
-    previousLevel: 0
-  });
 
   return {
     ability,
     updatedStats,
     updatedConfidence,
-    legacy: legacyResult.state,
-    legacyDetail: legacyResult
+    legacy: createEmptyLegacyState()
   };
 }
 
