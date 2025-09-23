@@ -537,8 +537,32 @@ function skillTreeHasGalaxies(skillTree = getCurrentSkillTree()) {
     return Object.keys(skillTree).length > 0;
 }
 
+function ensureSkillTreeLayout(forceLayout = false) {
+    if (!window.SkillTreeUtils || typeof window.SkillTreeUtils.generateProceduralLayout !== 'function') {
+        return false;
+    }
+
+    const currentTree = getCurrentSkillTree();
+    if (!currentTree) {
+        return false;
+    }
+
+    const updatedTree = window.SkillTreeUtils.generateProceduralLayout(currentTree, {
+        clone: true,
+        forceLayout
+    });
+
+    if (updatedTree && typeof updatedTree === 'object') {
+        window.skillTree = updatedTree;
+        return true;
+    }
+
+    return false;
+}
+
 function rebuildSkillUniverseIfReady(options = {}) {
     const { force = false } = options;
+    ensureSkillTreeLayout(force);
     if (!skillRenderer || typeof skillRenderer.rebuildUniverse !== 'function') {
         return false;
     }
@@ -559,6 +583,7 @@ function handleSkillTreeDataReady(event) {
 
 function dispatchSkillTreeDataReady(options = {}) {
     const { force = false } = options;
+    ensureSkillTreeLayout(force);
     if (!skillTreeHasGalaxies()) {
         return false;
     }
@@ -1780,10 +1805,6 @@ function requestSkillPath(path) {
 
 window.requestSkillPath = requestSkillPath;
 
-function setupEventListeners() {
-    if (listenersInitialized) {
-        return;
-    }
 function showToast(message) {
     alert(message);
 }
@@ -1824,55 +1845,99 @@ function setupEventListeners() {
     if (listenersInitialized) {
         return;
     }
-    const choreInput = document.getElementById('chore-input');
 
-    const handleAddChore = async () => {
-        const text = choreInput.value.trim();
-        if(text) {
+    const choreInput = document.getElementById('chore-input');
+    if (choreInput) {
+        const handleAddChore = async () => {
+            const text = choreInput.value.trim();
+            if (!text) {
+                return;
+            }
+
             choreInput.disabled = true;
-            await choreManager.addChore(text);
-            choreInput.value = '';
-            choreInput.disabled = false;
-            choreInput.focus();
+            try {
+                await choreManager.addChore(text);
+                choreInput.value = '';
+            } finally {
+                choreInput.disabled = false;
+                choreInput.focus();
+            }
+        };
+
+        choreInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                handleAddChore();
+            }
+        });
+    }
+
+    const activitySelect = document.getElementById('activity-select');
+    const logActivityBtn = document.getElementById('log-activity-btn');
+    if (logActivityBtn && activitySelect) {
+        logActivityBtn.addEventListener('click', () => {
+            activityManager.logActivity(activitySelect.value);
+        });
+    }
+
+    const codexModal = document.getElementById('codex-modal');
+    const openCodexBtn = document.getElementById('open-codex-btn');
+    const closeCodexBtn = document.getElementById('close-codex-btn');
+    const codexSkillsBtn = document.getElementById('codex-skills-btn');
+    const codexLogoutBtn = document.getElementById('codex-logout-btn');
+
+    if (openCodexBtn && codexModal) {
+        openCodexBtn.addEventListener('click', () => {
+            codexModal.classList.remove('hidden');
+        });
+    }
+
+    if (closeCodexBtn && codexModal) {
+        closeCodexBtn.addEventListener('click', () => {
+            codexModal.classList.add('hidden');
+        });
+    }
+
+    if (codexSkillsBtn && codexModal) {
+        codexSkillsBtn.addEventListener('click', () => {
+            codexModal.classList.add('hidden');
+            openSkillsModal();
+        });
+    }
+
+    if (codexLogoutBtn) {
+        codexLogoutBtn.addEventListener('click', handleLogout);
+    }
+
+    const closeSkillsBtn = document.getElementById('close-skills-btn');
+    if (closeSkillsBtn) {
+        closeSkillsBtn.addEventListener('click', () => {
+            starDetailController.hide();
+            skillsModal.classList.add('hidden');
+        });
+    }
+
+    const nudgeConstellations = (delta) => {
+        if (skillRenderer && typeof skillRenderer.adjustConstellationOffset === 'function') {
+            skillRenderer.adjustConstellationOffset(delta);
         }
     };
 
-    choreInput.addEventListener('keypress', (event) => {
-        if (event.key === 'Enter') {
-            handleAddChore();
-        }
-    });
+    if (skillPanLeftBtn) {
+        skillPanLeftBtn.addEventListener('click', () => nudgeConstellations(-CONSTELLATION_PAN_NUDGE));
+    }
 
-    document.getElementById('log-activity-btn').addEventListener('click', () => {
-        activityManager.logActivity(document.getElementById('activity-select').value);
-    });
-    
-    const codexModal = document.getElementById('codex-modal');
+    if (skillPanRightBtn) {
+        skillPanRightBtn.addEventListener('click', () => nudgeConstellations(CONSTELLATION_PAN_NUDGE));
+    }
 
-    document.getElementById('open-codex-btn').addEventListener('click', () => {
-        codexModal.classList.remove('hidden');
-    });
-
-    document.getElementById('close-codex-btn').addEventListener('click', () => {
-        codexModal.classList.add('hidden');
-    });
-
-    document.getElementById('codex-skills-btn').addEventListener('click', () => {
-        codexModal.classList.add('hidden');
-        openSkillsModal();
-    });
-
-    document.getElementById('codex-logout-btn').addEventListener('click', handleLogout);
-
-    document.getElementById('close-skills-btn').addEventListener('click', () => {
-        skillsModal.classList.add('hidden');
-    });
-    
-    skillBackBtn.addEventListener('click', () => {
-        if (skillRenderer && typeof skillRenderer.goBack === 'function') {
-            skillRenderer.goBack();
-        }
-    });
+    if (skillBackBtn) {
+        skillBackBtn.addEventListener('click', () => {
+            starDetailController.hide();
+            if (skillRenderer && typeof skillRenderer.goBack === 'function') {
+                skillRenderer.goBack();
+            }
+        });
+    }
 
     if (skillSearchForm && skillSearchInput) {
         const toggleSearchFocus = (isActive) => {
@@ -1943,51 +2008,11 @@ function setupEventListeners() {
             }
         });
     }
-    document.getElementById('scan-face-btn').addEventListener('click', handleFaceScan);
 
-    listenersInitialized = true;
-}
-    document.getElementById('open-codex-btn').addEventListener('click', () => document.getElementById('codex-modal').classList.remove('hidden'));
-    document.getElementById('close-codex-btn').addEventListener('click', () => document.getElementById('codex-modal').classList.add('hidden'));
-    document.getElementById('codex-skills-btn').addEventListener('click', () => {
-        document.getElementById('codex-modal').classList.add('hidden');
-        openSkillsModal();
-    });
-    document.getElementById('codex-logout-btn').addEventListener('click', handleLogout);
-    document.getElementById('close-skills-btn').addEventListener('click', () => document.getElementById('skills-modal').classList.add('hidden'));
-
-    const nudgeConstellations = (delta) => {
-        if (skillRenderer && typeof skillRenderer.adjustConstellationOffset === 'function') {
-            skillRenderer.adjustConstellationOffset(delta);
-        }
-    };
-
-    if (skillPanLeftBtn) {
-        skillPanLeftBtn.addEventListener('click', () => nudgeConstellations(-CONSTELLATION_PAN_NUDGE));
+    const scanFaceButton = document.getElementById('scan-face-btn');
+    if (scanFaceButton) {
+        scanFaceButton.addEventListener('click', handleFaceScan);
     }
-
-    if (skillPanRightBtn) {
-        skillPanRightBtn.addEventListener('click', () => nudgeConstellations(CONSTELLATION_PAN_NUDGE));
-    }
-
-    skillBackBtn.addEventListener('click', () => {
-        if (skillRenderer && typeof skillRenderer.goBack === 'function') {
-            skillRenderer.goBack();
-        }
-    });
-    document.getElementById('codex-logout-btn').addEventListener('click', handleLogout);
-    document.getElementById('close-skills-btn').addEventListener('click', () => {
-        starDetailController.hide();
-        document.getElementById('skills-modal').classList.add('hidden');
-    });
-
-    skillBackBtn.addEventListener('click', () => {
-        starDetailController.hide();
-        if (skillRenderer && typeof skillRenderer.goBack === 'function') {
-            skillRenderer.goBack();
-        }
-     });
-    document.getElementById('scan-face-btn').addEventListener('click', handleFaceScan);
 
     listenersInitialized = true;
 }
