@@ -8,6 +8,15 @@
 
     const THREE = global.THREE;
 
+    // Support both legacy Geometry and newer BufferGeometry naming.
+    const CircleGeometryClass = typeof THREE.CircleGeometry === 'function'
+        ? THREE.CircleGeometry
+        : (typeof THREE.CircleBufferGeometry === 'function' ? THREE.CircleBufferGeometry : null);
+
+    const RingGeometryClass = typeof THREE.RingGeometry === 'function'
+        ? THREE.RingGeometry
+        : (typeof THREE.RingBufferGeometry === 'function' ? THREE.RingBufferGeometry : null);
+
     const CAMERA_LEVELS = {
         galaxies: { distance: 2400, height: 680, duration: 1400 },
         constellations: { distance: 1400, height: 420, duration: 1200 },
@@ -569,6 +578,14 @@
                 const dynamicRadius = baseAreaRadius * Math.sqrt(Math.max(1, constellationNames.length / 6));
                 const areaRadius = configuredRadius && configuredRadius > 0 ? configuredRadius : dynamicRadius;
 
+                const circleGeometry = CircleGeometryClass
+                    ? new CircleGeometryClass(areaRadius, 96)
+                    : (RingGeometryClass
+                        ? new RingGeometryClass(0, areaRadius, 96)
+                        : null);
+
+                const areaMesh = new THREE.Mesh(
+                    circleGeometry || new THREE.PlaneGeometry(areaRadius * 2, areaRadius * 2, 1, 1),
                 const areaMesh = new THREE.Mesh(
                     new THREE.CircleGeometry(areaRadius, 96),
                     new THREE.MeshStandardMaterial({
@@ -588,6 +605,33 @@
                 areaMesh.userData.originalScale = areaMesh.scale.clone();
                 group.add(areaMesh);
                 this.pickableObjects.push(areaMesh);
+
+                const rimGeometry = RingGeometryClass
+                    ? new RingGeometryClass(areaRadius + 12, areaRadius + 28, 96)
+                    : new THREE.TorusGeometry(areaRadius + 20, 6, 16, 96);
+
+                const rim = new THREE.Mesh(
+                    rimGeometry,
+                    new THREE.MeshBasicMaterial({ color: haloColor, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
+                );
+                rim.rotation.x = -Math.PI / 2;
+                rim.position.y = -5;
+                group.add(rim);
+
+                const core = new THREE.Mesh(
+                    new THREE.SphereGeometry(Math.max(32, areaRadius * 0.12), 48, 48),
+                    new THREE.MeshStandardMaterial({
+                        color: galaxyColor,
+                        emissive: galaxyEmissive,
+                        emissiveIntensity: 0.9,
+                        roughness: 0.28,
+                        metalness: 0.18,
+                        transparent: true,
+                        opacity: 0.92
+                    })
+                );
+                core.position.y = 24;
+                group.add(core);
 
                 const rim = new THREE.Mesh(
                     new THREE.RingGeometry(areaRadius + 12, areaRadius + 28, 96),
