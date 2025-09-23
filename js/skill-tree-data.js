@@ -1,18 +1,121 @@
 // js/skill-tree-data.js
 
 const DEFAULT_LAYOUT = {
-    galaxies: { radius: 360, vertical: 48 },
-    constellations: { radius: 140, vertical: 26 },
-    starSystems: { radius: 60, vertical: 18 },
-    stars: { radius: 22, vertical: 10 }
+    galaxies: {
+        radius: 360,
+        vertical: 48,
+        jitter: 36,
+        radialJitter: 80,
+        method: 'ring',
+        verticalFrequency: 1.25,
+        verticalJitter: 14
+    },
+    constellations: {
+        radius: 140,
+        vertical: 26,
+        jitter: 18,
+        radialJitter: 32,
+        method: 'ring',
+        verticalFrequency: 2,
+        verticalJitter: 9
+    },
+    starSystems: {
+        radius: 60,
+        vertical: 18,
+        jitter: 12,
+        radialJitter: 18,
+        method: 'spiral',
+        verticalFrequency: 2.6,
+        verticalJitter: 6
+    },
+    stars: {
+        radius: 22,
+        vertical: 10,
+        jitter: 6,
+        radialJitter: 8,
+        method: 'spiral',
+        verticalFrequency: 3.6,
+        verticalJitter: 4
+    }
 };
 
-function createCircularPosition(index, total, radius, verticalAmplitude = 0) {
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+
+function hashSeed(value) {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value >>> 0;
+    }
+    if (typeof value !== 'string') {
+        return 0;
+    }
+    let hash = 0;
+    for (let i = 0; i < value.length; i += 1) {
+        hash = ((hash << 5) - hash + value.charCodeAt(i)) >>> 0;
+    }
+    return hash >>> 0;
+}
+
+function createRandomGenerator(seedValue) {
+    let seed = hashSeed(seedValue) >>> 0;
+    return function nextRandom() {
+        seed = (seed + 0x6d2b79f5) >>> 0;
+        let t = Math.imul(seed ^ (seed >>> 15), seed | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+function mergeLayout(base, overrides = {}) {
+    const merged = {};
+    for (const key of Object.keys(base)) {
+        merged[key] = { ...base[key], ...(overrides[key] || {}) };
+    }
+    return merged;
+}
+
+function buildLayoutOptions(entry, seed) {
+    const safeEntry = entry && typeof entry === 'object' ? entry : {};
+    return {
+        seed,
+        method: safeEntry.method,
+        jitter: safeEntry.jitter,
+        radialJitter: safeEntry.radialJitter,
+        verticalFrequency: safeEntry.verticalFrequency,
+        verticalJitter: safeEntry.verticalJitter
+    };
+}
+
+function createCircularPosition(index, total, radius, verticalAmplitude = 0, options = {}) {
     const safeTotal = Math.max(total || 0, 1);
-    const angle = (index % safeTotal) / safeTotal * Math.PI * 2;
-    const x = Math.cos(angle) * radius;
-    const z = Math.sin(angle) * radius;
-    const y = verticalAmplitude ? Math.sin(angle * 2) * verticalAmplitude : 0;
+    const config = options && typeof options === 'object' ? options : {};
+    const method = config.method === 'spiral' ? 'spiral' : 'ring';
+    const seedInput = config.seed !== undefined ? config.seed : index;
+    const rng = createRandomGenerator(seedInput);
+
+    const normalizedIndex = safeTotal > 1 ? index / Math.max(safeTotal - 1, 1) : 0.5;
+    const baseAngle = method === 'spiral'
+        ? index * GOLDEN_ANGLE
+        : (index % safeTotal) / safeTotal * Math.PI * 2;
+
+    const radialJitter = Number.isFinite(config.radialJitter) ? config.radialJitter : 0;
+    const jitter = Number.isFinite(config.jitter) ? config.jitter : 0;
+    const verticalJitter = Number.isFinite(config.verticalJitter) ? config.verticalJitter : (jitter * 0.5);
+    const verticalFrequency = Number.isFinite(config.verticalFrequency) ? config.verticalFrequency : 2;
+
+    let distance = radius;
+    if (method === 'spiral') {
+        distance = radius * Math.sqrt(Math.max(0, Math.min(1, normalizedIndex)));
+    }
+
+    if (radialJitter > 0) {
+        distance += (rng() - 0.5) * 2 * radialJitter;
+    }
+
+    const x = Math.cos(baseAngle) * distance + (rng() - 0.5) * 2 * jitter;
+    const z = Math.sin(baseAngle) * distance + (rng() - 0.5) * 2 * jitter;
+    const baseY = verticalAmplitude ? Math.sin(baseAngle * verticalFrequency) * verticalAmplitude : 0;
+    const y = baseY + (rng() - 0.5) * 2 * verticalJitter;
+
     return { x, y, z };
 }
 
@@ -30,9 +133,13 @@ function ensureVector3(position, fallback = { x: 0, y: 0, z: 0 }) {
     };
 }
 
-function applyPosition(entity, fallback) {
+function applyPosition(entity, fallback, force = false) {
     if (!entity || typeof entity !== 'object') {
         return ensureVector3(null, fallback);
+    }
+    if (force) {
+        entity.position = ensureVector3(fallback, fallback);
+        return entity.position;
     }
     entity.position = ensureVector3(entity.position, fallback);
     return entity.position;
@@ -75,7 +182,13 @@ function migrateConstellation(constellationName, source) {
 }
 
 function normalizeSkillTreeStructure(tree, options = {}) {
-    const { clone = false } = options;
+    const {
+        clone = false,
+        layout: layoutOverrides = {},
+        forceLayout = false
+    } = options;
+
+    const layout = mergeLayout(DEFAULT_LAYOUT, layoutOverrides);
     const source = tree && typeof tree === 'object' ? tree : {};
     const root = clone ? JSON.parse(JSON.stringify(source)) : source;
 
@@ -85,7 +198,14 @@ function normalizeSkillTreeStructure(tree, options = {}) {
         normalizedGalaxy.type = normalizedGalaxy.type || 'galaxy';
         applyPosition(
             normalizedGalaxy,
-            createCircularPosition(gIndex, galaxyEntries.length, DEFAULT_LAYOUT.galaxies.radius, DEFAULT_LAYOUT.galaxies.vertical)
+            createCircularPosition(
+                gIndex,
+                galaxyEntries.length,
+                layout.galaxies.radius,
+                layout.galaxies.vertical,
+                buildLayoutOptions(layout.galaxies, `${galaxyName || 'galaxy'}-${gIndex}`)
+            ),
+            forceLayout
         );
 
         const rawConstellations = normalizedGalaxy.constellations && typeof normalizedGalaxy.constellations === 'object'
@@ -99,7 +219,14 @@ function normalizeSkillTreeStructure(tree, options = {}) {
             migratedConstellation.type = migratedConstellation.type || 'constellation';
             applyPosition(
                 migratedConstellation,
-                createCircularPosition(cIndex, constellationEntries.length, DEFAULT_LAYOUT.constellations.radius, DEFAULT_LAYOUT.constellations.vertical)
+                createCircularPosition(
+                    cIndex,
+                    constellationEntries.length,
+                    layout.constellations.radius,
+                    layout.constellations.vertical,
+                    buildLayoutOptions(layout.constellations, `${galaxyName || 'galaxy'}|${constellationName || 'constellation'}-${cIndex}`)
+                ),
+                forceLayout
             );
 
             const rawStarSystems = migratedConstellation.starSystems && typeof migratedConstellation.starSystems === 'object'
@@ -113,7 +240,14 @@ function normalizeSkillTreeStructure(tree, options = {}) {
                 systemData.type = systemData.type || 'starSystem';
                 applyPosition(
                     systemData,
-                    createCircularPosition(sIndex, systemEntries.length, DEFAULT_LAYOUT.starSystems.radius, DEFAULT_LAYOUT.starSystems.vertical)
+                    createCircularPosition(
+                        sIndex,
+                        systemEntries.length,
+                        layout.starSystems.radius,
+                        layout.starSystems.vertical,
+                        buildLayoutOptions(layout.starSystems, `${galaxyName || 'galaxy'}|${constellationName || 'constellation'}|${systemName || 'system'}-${sIndex}`)
+                    ),
+                    forceLayout
                 );
 
                 const rawStars = systemData.stars && typeof systemData.stars === 'object' ? systemData.stars : {};
@@ -125,7 +259,14 @@ function normalizeSkillTreeStructure(tree, options = {}) {
                     starData.type = starData.type || 'star';
                     applyPosition(
                         starData,
-                        createCircularPosition(starIndex, starEntries.length, DEFAULT_LAYOUT.stars.radius, DEFAULT_LAYOUT.stars.vertical)
+                        createCircularPosition(
+                            starIndex,
+                            starEntries.length,
+                            layout.stars.radius,
+                            layout.stars.vertical,
+                            buildLayoutOptions(layout.stars, `${galaxyName || 'galaxy'}|${constellationName || 'constellation'}|${systemName || 'system'}|${starName || 'star'}-${starIndex}`)
+                        ),
+                        forceLayout
                     );
                     normalizedStars[starName] = starData;
                 });
@@ -143,6 +284,20 @@ function normalizeSkillTreeStructure(tree, options = {}) {
     });
 
     return root;
+}
+
+function generateProceduralLayout(tree, options = {}) {
+    const {
+        clone = true,
+        forceLayout = false,
+        layout = {}
+    } = options;
+
+    return normalizeSkillTreeStructure(tree, {
+        clone,
+        forceLayout,
+        layout
+    });
 }
 
 function getConstellationStarSystems(constellationData, constellationName = '') {
@@ -273,7 +428,7 @@ function findStarInConstellation(constellationData, starName, constellationName 
 }
 
 function migrateConstellationToStarSystems(constellationName, constellationData, options = {}) {
-    const { clone = true } = options;
+    const { clone = true, layout, forceLayout = false } = options;
     const wrapper = {
         __temp__: {
             type: 'galaxy',
@@ -283,7 +438,7 @@ function migrateConstellationToStarSystems(constellationName, constellationData,
         }
     };
 
-    const normalized = normalizeSkillTreeStructure(wrapper, { clone });
+    const normalized = normalizeSkillTreeStructure(wrapper, { clone, layout, forceLayout });
     const migrated = normalized.__temp__ && normalized.__temp__.constellations
         ? normalized.__temp__.constellations[constellationName]
         : { type: 'constellation', starSystems: {} };
@@ -543,17 +698,19 @@ const rawSkillTree = {
     }
 };
 
-const skillTree = normalizeSkillTreeStructure(rawSkillTree);
+const skillTree = generateProceduralLayout(rawSkillTree, { forceLayout: true });
 
 if (window.skillTree && typeof window.skillTree === 'object') {
-    window.skillTree = normalizeSkillTreeStructure(window.skillTree);
+    window.skillTree = generateProceduralLayout(window.skillTree, { clone: true });
 } else {
     window.skillTree = skillTree;
 }
 
 window.SkillTreeUtils = Object.assign({}, window.SkillTreeUtils, {
+    DEFAULT_LAYOUT,
     normalizeSkillTreeStructure,
-    migrateLegacySkillTree: (legacyTree, options = {}) => normalizeSkillTreeStructure(legacyTree, { ...options, clone: true }),
+    generateProceduralLayout,
+    migrateLegacySkillTree: (legacyTree, options = {}) => generateProceduralLayout(legacyTree, { ...options, clone: true }),
     migrateConstellationToStarSystems,
     getConstellationStarSystems,
     getConstellationStarsMap,

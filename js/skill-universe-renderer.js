@@ -9,10 +9,10 @@
     const THREE = global.THREE;
 
     const CAMERA_LEVELS = {
-        galaxies: { distance: 900, height: 260, duration: 900 },
-        constellations: { distance: 520, height: 200, duration: 900 },
-        starSystems: { distance: 360, height: 150, duration: 900 },
-        stars: { distance: 210, height: 110, duration: 900 }
+        galaxies: { distance: 1100, height: 320, duration: 1200 },
+        constellations: { distance: 680, height: 240, duration: 1100 },
+        starSystems: { distance: 430, height: 170, duration: 1000 },
+        stars: { distance: 250, height: 120, duration: 900 }
     };
 
     const CAMERA_THRESHOLDS = {
@@ -31,6 +31,13 @@
     const CONSTELLATION_RADIUS = 140;
     const STAR_SYSTEM_RADIUS = 48;
     const STAR_ORBIT_RADIUS = 18;
+
+    const STARFIELD_CONFIG = {
+        count: 1800,
+        radius: 2800,
+        size: 1.7,
+        opacity: 0.78
+    };
 
     const LABEL_DEFAULTS = {
         fontSize: 48,
@@ -133,6 +140,59 @@
         return Math.max(min, Math.min(max, value));
     }
 
+    function normalizeColorInput(input) {
+        if (typeof input === 'number' && Number.isFinite(input)) {
+            return input;
+        }
+        if (typeof input === 'string') {
+            const trimmed = input.trim();
+            if (!trimmed) {
+                return null;
+            }
+            if (trimmed.startsWith('#')) {
+                const parsed = parseInt(trimmed.slice(1), 16);
+                return Number.isFinite(parsed) ? parsed : null;
+            }
+            if (/^0x/i.test(trimmed)) {
+                const parsed = parseInt(trimmed, 16);
+                return Number.isFinite(parsed) ? parsed : null;
+            }
+        }
+        if (input && typeof input === 'object') {
+            const { r, g, b } = input;
+            if ([r, g, b].every((component) => Number.isFinite(component))) {
+                const clampChannel = (channel) => Math.max(0, Math.min(255, Math.round(channel)));
+                const red = clampChannel(r);
+                const green = clampChannel(g);
+                const blue = clampChannel(b);
+                return (red << 16) | (green << 8) | blue;
+            }
+        }
+        return null;
+    }
+
+    function resolveColor(input, fallback) {
+        const normalized = normalizeColorInput(input);
+        return normalized !== null ? normalized : fallback;
+    }
+
+    function resolveEntityColor(entity, fallback) {
+        if (!entity || typeof entity !== 'object') {
+            return fallback;
+        }
+        const direct = normalizeColorInput(entity.color ?? entity.tint);
+        if (direct !== null) {
+            return direct;
+        }
+        if (entity.appearance && typeof entity.appearance === 'object') {
+            const appearanceColor = normalizeColorInput(entity.appearance.color ?? entity.appearance.tint);
+            if (appearanceColor !== null) {
+                return appearanceColor;
+            }
+        }
+        return fallback;
+    }
+
     class SkillUniverseRenderer {
         constructor(options = {}) {
             this.container = options.container || document.getElementById('skill-tree-canvas-container');
@@ -157,31 +217,35 @@
                 : null;
 
             this.scene = new THREE.Scene();
-            this.scene.fog = new THREE.FogExp2(0x050505, 0.0012);
+            this.scene.fog = new THREE.FogExp2(0x04070d, 0.00085);
+            this.starfield = null;
 
             const { width, height } = this._getContainerSize();
-            this.camera = new THREE.PerspectiveCamera(55, width / height, 1, 4000);
-            this.camera.position.set(0, 240, 820);
+            this.camera = new THREE.PerspectiveCamera(55, width / height, 1, 6000);
+            this.camera.position.set(0, 260, 980);
             this.cameraTarget = new THREE.Vector3(0, 0, 0);
 
             this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             this.renderer.outputEncoding = THREE.sRGBEncoding;
             this.renderer.setSize(width, height, false);
             this.renderer.setPixelRatio(global.devicePixelRatio || 1);
-            this.renderer.setClearColor(0x000000, 0);
+            this.renderer.setClearColor(0x02030b, 1);
             this.container.innerHTML = '';
             this.container.appendChild(this.renderer.domElement);
             this.renderer.domElement.setAttribute('tabindex', '0');
 
             this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
             this.controls.enableDamping = true;
-            this.controls.dampingFactor = 0.08;
+            this.controls.dampingFactor = 0.12;
             this.controls.screenSpacePanning = true;
             this.controls.minDistance = 120;
             this.controls.maxDistance = 1600;
             this.controls.enablePan = true;
             this.controls.enableZoom = true;
             this.controls.enableRotate = true;
+            this.controls.rotateSpeed = 0.35;
+            this.controls.zoomSpeed = 0.65;
+            this.controls.panSpeed = 0.8;
             this.controls.addEventListener('start', () => this._cancelTween());
             this.controls.addEventListener('change', () => this.render());
 
@@ -190,6 +254,8 @@
 
             this.rootGroup = new THREE.Group();
             this.scene.add(this.rootGroup);
+
+            this._createStarfield();
 
             this.galaxyMap = new Map();
             this.constellationMap = new Map();
@@ -201,6 +267,7 @@
             this.activeHighlight = null;
             this.tweenState = null;
             this.pointerDownInfo = null;
+            this.activeTouchPointers = new Set();
 
             this.currentView = 'galaxies';
             this.currentSelection = { galaxy: null, constellation: null, starSystem: null, star: null };
@@ -367,6 +434,16 @@
 
         destroy() {
             cancelAnimationFrame(this._animationFrame);
+            if (this.starfield) {
+                this.scene.remove(this.starfield);
+                if (this.starfield.geometry) {
+                    this.starfield.geometry.dispose();
+                }
+                if (this.starfield.material) {
+                    this.starfield.material.dispose();
+                }
+                this.starfield = null;
+            }
             this.controls.dispose();
             this.renderer.dispose();
             this.container.innerHTML = '';
@@ -376,17 +453,77 @@
             this.starMeshMap.clear();
         }
 
+        _createStarfield() {
+            if (this.starfield) {
+                this.scene.remove(this.starfield);
+                if (this.starfield.geometry) {
+                    this.starfield.geometry.dispose();
+                }
+                if (this.starfield.material) {
+                    this.starfield.material.dispose();
+                }
+                this.starfield = null;
+            }
+
+            const count = STARFIELD_CONFIG.count;
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+            const baseColor = new THREE.Color(0xffffff);
+
+            for (let i = 0; i < count; i += 1) {
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(Math.max(-1, Math.min(1, (Math.random() * 2) - 1)));
+                const radius = Math.pow(Math.random(), 0.42) * STARFIELD_CONFIG.radius;
+                const sinPhi = Math.sin(phi);
+                const x = sinPhi * Math.cos(theta) * radius;
+                const z = sinPhi * Math.sin(theta) * radius;
+                const y = Math.cos(phi) * STARFIELD_CONFIG.radius * 0.35 + (Math.random() - 0.5) * STARFIELD_CONFIG.radius * 0.25;
+
+                const offset = i * 3;
+                positions[offset] = x;
+                positions[offset + 1] = y;
+                positions[offset + 2] = z;
+
+                const twinkle = 0.6 + Math.random() * 0.4;
+                colors[offset] = baseColor.r * twinkle;
+                colors[offset + 1] = baseColor.g * twinkle;
+                colors[offset + 2] = baseColor.b * twinkle;
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: STARFIELD_CONFIG.size,
+                sizeAttenuation: true,
+                transparent: true,
+                opacity: STARFIELD_CONFIG.opacity,
+                depthWrite: false,
+                vertexColors: true
+            });
+
+            const starfield = new THREE.Points(geometry, material);
+            starfield.renderOrder = -1;
+            this.scene.add(starfield);
+            this.starfield = starfield;
+        }
+
         _setupLights() {
-            const ambient = new THREE.AmbientLight(0x9fb3ff, 0.35);
+            const ambient = new THREE.AmbientLight(0x6e7fff, 0.4);
             this.scene.add(ambient);
 
-            const keyLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            keyLight.position.set(400, 500, 200);
+            const keyLight = new THREE.DirectionalLight(0xffffff, 0.85);
+            keyLight.position.set(420, 520, 260);
             this.scene.add(keyLight);
 
-            const rimLight = new THREE.PointLight(0x3b3bff, 0.6, 2000);
-            rimLight.position.set(-500, -200, -400);
+            const rimLight = new THREE.PointLight(0x2e5fff, 0.55, 2600);
+            rimLight.position.set(-620, -260, -480);
             this.scene.add(rimLight);
+
+            const fillLight = new THREE.PointLight(0xff7eb6, 0.35, 1800);
+            fillLight.position.set(320, -160, -620);
+            this.scene.add(fillLight);
         }
 
         _buildUniverse() {
@@ -409,6 +546,9 @@
                     0
                 );
                 const galaxyPosition = toVector3(galaxyData.position, fallbackGalaxyPosition);
+                const galaxyColor = resolveEntityColor(galaxyData, 0x6c5ce7);
+                const galaxyEmissive = resolveColor(galaxyData?.appearance?.emissive, 0x241563);
+                const haloColor = resolveColor(galaxyData?.appearance?.halo, 0x8069ff);
 
                 const group = new THREE.Group();
                 group.name = `galaxy-${galaxyName}`;
@@ -417,8 +557,8 @@
                 const mesh = new THREE.Mesh(
                     new THREE.SphereGeometry(28, 48, 48),
                     new THREE.MeshStandardMaterial({
-                        color: 0x6c5ce7,
-                        emissive: 0x241563,
+                        color: galaxyColor,
+                        emissive: galaxyEmissive,
                         emissiveIntensity: 0.6,
                         roughness: 0.2,
                         metalness: 0.1,
@@ -433,7 +573,7 @@
 
                 const halo = new THREE.Mesh(
                     new THREE.RingGeometry(36, 40, 64),
-                    new THREE.MeshBasicMaterial({ color: 0x8069ff, transparent: true, opacity: 0.3, side: THREE.DoubleSide })
+                    new THREE.MeshBasicMaterial({ color: haloColor, transparent: true, opacity: 0.3, side: THREE.DoubleSide })
                 );
                 halo.rotation.x = Math.PI / 2;
                 group.add(halo);
@@ -468,6 +608,8 @@
                         14
                     );
                     const constellationPosition = toVector3(constellationData.position, fallbackConstellationPosition);
+                    const constellationColor = resolveEntityColor(constellationData, 0x45aaf2);
+                    const constellationEmissive = resolveColor(constellationData?.appearance?.emissive, 0x0f3054);
 
                     const cGroup = new THREE.Group();
                     cGroup.name = `constellation-${constellationName}`;
@@ -480,8 +622,8 @@
                     const cMesh = new THREE.Mesh(
                         new THREE.IcosahedronGeometry(14, 1),
                         new THREE.MeshStandardMaterial({
-                            color: 0x45aaf2,
-                            emissive: 0x0f3054,
+                            color: constellationColor,
+                            emissive: constellationEmissive,
                             emissiveIntensity: 0.6,
                             transparent: true,
                             opacity: 0.95,
@@ -542,6 +684,8 @@
                             12
                         );
                         const systemPosition = toVector3(systemData?.position, fallbackSystemPosition);
+                        const systemColor = resolveEntityColor(systemData, constellationColor);
+                        const orbitColor = resolveColor(systemData?.appearance?.orbit, systemColor);
 
                         const systemGroup = new THREE.Group();
                         const systemLabelName = systemName || `system-${sIndex}`;
@@ -556,7 +700,7 @@
                         const orbit = new THREE.Mesh(
                             new THREE.RingGeometry(10, 11.2, 32),
                             new THREE.MeshBasicMaterial({
-                                color: 0xffffff,
+                                color: orbitColor,
                                 transparent: true,
                                 opacity: 0.2,
                                 side: THREE.DoubleSide
@@ -885,27 +1029,59 @@
             domElement.addEventListener('pointermove', (event) => this._onPointerMove(event));
             domElement.addEventListener('pointerdown', (event) => this._onPointerDown(event));
             domElement.addEventListener('pointerup', (event) => this._onPointerUp(event));
+            domElement.addEventListener('pointercancel', (event) => this._onPointerCancel(event));
             domElement.addEventListener('click', (event) => this._onClick(event));
         }
 
         _onPointerDown(event) {
+            if (event.pointerType === 'touch') {
+                this.activeTouchPointers.add(event.pointerId);
+                if (this.activeTouchPointers.size > 1) {
+                    this.pointerDownInfo = null;
+                    return;
+                }
+            } else {
+                this.activeTouchPointers.clear();
+            }
             this.pointerDownInfo = {
                 x: event.clientX,
                 y: event.clientY,
-                time: performance.now()
+                time: performance.now(),
+                pointerId: event.pointerId,
+                pointerType: event.pointerType || 'mouse'
             };
         }
 
         _onPointerUp(event) {
-            if (!this.pointerDownInfo) {
+            if (event.pointerType === 'touch') {
+                this.activeTouchPointers.delete(event.pointerId);
+            }
+            const downInfo = this.pointerDownInfo;
+            if (!downInfo || downInfo.pointerId !== event.pointerId) {
+                if (!this.activeTouchPointers.size) {
+                    this.pointerDownInfo = null;
+                }
                 return;
             }
-            const distance = Math.hypot(event.clientX - this.pointerDownInfo.x, event.clientY - this.pointerDownInfo.y);
-            const elapsed = performance.now() - this.pointerDownInfo.time;
+            if (event.pointerType === 'touch' && this.activeTouchPointers.size > 0) {
+                this.pointerDownInfo = null;
+                return;
+            }
+            const distance = Math.hypot(event.clientX - downInfo.x, event.clientY - downInfo.y);
+            const elapsed = performance.now() - downInfo.time;
             if (distance < 6 && elapsed < 400) {
                 this._handleSelection(event);
             }
             this.pointerDownInfo = null;
+        }
+
+        _onPointerCancel(event) {
+            if (event.pointerType === 'touch') {
+                this.activeTouchPointers.delete(event.pointerId);
+            }
+            if (this.pointerDownInfo && this.pointerDownInfo.pointerId === event.pointerId) {
+                this.pointerDownInfo = null;
+            }
         }
 
         _onClick(event) {
@@ -914,6 +1090,9 @@
         }
 
         _onPointerMove(event) {
+            if (event.pointerType === 'touch' && this.activeTouchPointers.size > 1) {
+                return;
+            }
             const rect = this.renderer.domElement.getBoundingClientRect();
             if (!rect.width || !rect.height) {
                 return;
