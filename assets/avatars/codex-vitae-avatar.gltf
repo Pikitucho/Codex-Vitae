@@ -1,0 +1,869 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "Codex Vitae Avatar Builder"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "CodexAvatarRoot",
+      "children": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32
+      ],
+      "rotation": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "translation": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Ground",
+      "mesh": 0,
+      "translation": [
+        0.0,
+        -1.05,
+        0.0
+      ],
+      "scale": [
+        2.6,
+        0.05,
+        2.0
+      ]
+    },
+    {
+      "name": "LeftSock",
+      "mesh": 10,
+      "translation": [
+        -0.32,
+        -0.82,
+        0.04
+      ],
+      "scale": [
+        0.42,
+        0.18,
+        0.46
+      ]
+    },
+    {
+      "name": "RightSock",
+      "mesh": 10,
+      "translation": [
+        0.32,
+        -0.82,
+        0.04
+      ],
+      "scale": [
+        0.42,
+        0.18,
+        0.46
+      ]
+    },
+    {
+      "name": "LeftShoe",
+      "mesh": 1,
+      "translation": [
+        -0.32,
+        -1.05,
+        0.32
+      ],
+      "scale": [
+        0.52,
+        0.22,
+        0.92
+      ]
+    },
+    {
+      "name": "RightShoe",
+      "mesh": 1,
+      "translation": [
+        0.32,
+        -1.05,
+        0.32
+      ],
+      "scale": [
+        0.52,
+        0.22,
+        0.92
+      ]
+    },
+    {
+      "name": "PantBase",
+      "mesh": 3,
+      "translation": [
+        0.0,
+        0.55,
+        0.02
+      ],
+      "scale": [
+        0.9,
+        1.2,
+        0.54
+      ]
+    },
+    {
+      "name": "LeftPant",
+      "mesh": 3,
+      "translation": [
+        -0.32,
+        -0.15,
+        0.02
+      ],
+      "scale": [
+        0.42,
+        1.1,
+        0.46
+      ]
+    },
+    {
+      "name": "RightPant",
+      "mesh": 3,
+      "translation": [
+        0.32,
+        -0.15,
+        0.02
+      ],
+      "scale": [
+        0.42,
+        1.1,
+        0.46
+      ]
+    },
+    {
+      "name": "Belt",
+      "mesh": 6,
+      "translation": [
+        0.0,
+        0.95,
+        0.05
+      ],
+      "scale": [
+        0.94,
+        0.2,
+        0.56
+      ]
+    },
+    {
+      "name": "Torso",
+      "mesh": 2,
+      "translation": [
+        0.0,
+        1.7,
+        0.04
+      ],
+      "scale": [
+        0.98,
+        1.25,
+        0.56
+      ]
+    },
+    {
+      "name": "ShoulderWrap",
+      "mesh": 9,
+      "translation": [
+        0.0,
+        2.32,
+        0.04
+      ],
+      "scale": [
+        1.28,
+        0.42,
+        0.52
+      ]
+    },
+    {
+      "name": "ShirtPlacket",
+      "mesh": 9,
+      "translation": [
+        0.0,
+        1.7,
+        0.34
+      ],
+      "scale": [
+        0.14,
+        1.2,
+        0.1
+      ]
+    },
+    {
+      "name": "ShirtPocket",
+      "mesh": 9,
+      "translation": [
+        0.38,
+        1.95,
+        0.36
+      ],
+      "scale": [
+        0.32,
+        0.32,
+        0.1
+      ]
+    },
+    {
+      "name": "LeftSleeve",
+      "mesh": 2,
+      "translation": [
+        -0.86,
+        1.95,
+        0.04
+      ],
+      "scale": [
+        0.38,
+        0.5,
+        0.4
+      ]
+    },
+    {
+      "name": "RightSleeve",
+      "mesh": 2,
+      "translation": [
+        0.86,
+        1.95,
+        0.04
+      ],
+      "scale": [
+        0.38,
+        0.5,
+        0.4
+      ]
+    },
+    {
+      "name": "LeftSleeveRoll",
+      "mesh": 9,
+      "translation": [
+        -0.86,
+        1.45,
+        0.1
+      ],
+      "scale": [
+        0.4,
+        0.32,
+        0.42
+      ]
+    },
+    {
+      "name": "RightSleeveRoll",
+      "mesh": 9,
+      "translation": [
+        0.86,
+        1.45,
+        0.1
+      ],
+      "scale": [
+        0.4,
+        0.32,
+        0.42
+      ]
+    },
+    {
+      "name": "LeftUpperArm",
+      "mesh": 4,
+      "translation": [
+        -0.86,
+        1.2,
+        0.12
+      ],
+      "scale": [
+        0.3,
+        0.55,
+        0.32
+      ]
+    },
+    {
+      "name": "RightUpperArm",
+      "mesh": 4,
+      "translation": [
+        0.86,
+        1.2,
+        0.12
+      ],
+      "scale": [
+        0.3,
+        0.55,
+        0.32
+      ]
+    },
+    {
+      "name": "LeftForearm",
+      "mesh": 4,
+      "translation": [
+        -0.88,
+        0.55,
+        0.26
+      ],
+      "scale": [
+        0.28,
+        0.52,
+        0.3
+      ]
+    },
+    {
+      "name": "RightForearm",
+      "mesh": 4,
+      "translation": [
+        0.88,
+        0.55,
+        0.26
+      ],
+      "scale": [
+        0.28,
+        0.52,
+        0.3
+      ]
+    },
+    {
+      "name": "LeftHand",
+      "mesh": 4,
+      "translation": [
+        -0.9,
+        0.0,
+        0.34
+      ],
+      "scale": [
+        0.26,
+        0.26,
+        0.36
+      ]
+    },
+    {
+      "name": "RightHand",
+      "mesh": 4,
+      "translation": [
+        0.9,
+        0.0,
+        0.34
+      ],
+      "scale": [
+        0.26,
+        0.26,
+        0.36
+      ]
+    },
+    {
+      "name": "WatchBand",
+      "mesh": 7,
+      "translation": [
+        0.88,
+        0.55,
+        0.42
+      ],
+      "scale": [
+        0.3,
+        0.12,
+        0.36
+      ]
+    },
+    {
+      "name": "WatchFace",
+      "mesh": 8,
+      "translation": [
+        0.88,
+        0.55,
+        0.54
+      ],
+      "scale": [
+        0.24,
+        0.12,
+        0.18
+      ]
+    },
+    {
+      "name": "Neck",
+      "mesh": 4,
+      "translation": [
+        0.0,
+        2.1,
+        0.08
+      ],
+      "scale": [
+        0.3,
+        0.3,
+        0.3
+      ]
+    },
+    {
+      "name": "Head",
+      "mesh": 4,
+      "translation": [
+        0.0,
+        2.62,
+        0.22
+      ],
+      "scale": [
+        0.62,
+        0.72,
+        0.6
+      ]
+    },
+    {
+      "name": "HairTop",
+      "mesh": 5,
+      "translation": [
+        0.0,
+        3.05,
+        0.12
+      ],
+      "scale": [
+        0.78,
+        0.5,
+        0.72
+      ]
+    },
+    {
+      "name": "HairFront",
+      "mesh": 5,
+      "translation": [
+        0.0,
+        2.82,
+        0.58
+      ],
+      "scale": [
+        0.64,
+        0.36,
+        0.34
+      ]
+    },
+    {
+      "name": "HairSideLeft",
+      "mesh": 5,
+      "translation": [
+        -0.38,
+        2.78,
+        0.18
+      ],
+      "scale": [
+        0.28,
+        0.54,
+        0.5
+      ]
+    },
+    {
+      "name": "HairSideRight",
+      "mesh": 5,
+      "translation": [
+        0.38,
+        2.78,
+        0.18
+      ],
+      "scale": [
+        0.28,
+        0.54,
+        0.5
+      ]
+    },
+    {
+      "name": "HairBack",
+      "mesh": 5,
+      "translation": [
+        0.0,
+        2.78,
+        -0.34
+      ],
+      "scale": [
+        0.66,
+        0.46,
+        0.3
+      ]
+    }
+  ],
+  "meshes": [
+    {
+      "name": "GroundMesh",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1
+          },
+          "indices": 2,
+          "material": 0,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "LoafersMesh",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1
+          },
+          "indices": 2,
+          "material": 1,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "ShirtMesh",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1
+          },
+          "indices": 2,
+          "material": 2,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "PantsMesh",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1
+          },
+          "indices": 2,
+          "material": 3,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "SkinMesh",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1
+          },
+          "indices": 2,
+          "material": 4,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "HairMesh",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1
+          },
+          "indices": 2,
+          "material": 5,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "BeltMesh",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1
+          },
+          "indices": 2,
+          "material": 6,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "WatchBandMesh",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1
+          },
+          "indices": 2,
+          "material": 7,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "WatchFaceMesh",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1
+          },
+          "indices": 2,
+          "material": 8,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "ShirtAccentMesh",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1
+          },
+          "indices": 2,
+          "material": 9,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "SockMesh",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1
+          },
+          "indices": 2,
+          "material": 10,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "Ground",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.87,
+          0.8,
+          0.72,
+          1
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.95
+      }
+    },
+    {
+      "name": "Loafers",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.64,
+          0.46,
+          0.3,
+          1
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.88
+      }
+    },
+    {
+      "name": "Shirt",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.95,
+          0.96,
+          0.97,
+          1
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.6
+      }
+    },
+    {
+      "name": "Pants",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.45,
+          0.56,
+          0.63,
+          1
+        ],
+        "metallicFactor": 0.05,
+        "roughnessFactor": 0.75
+      }
+    },
+    {
+      "name": "Skin",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.94,
+          0.79,
+          0.68,
+          1
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.55
+      }
+    },
+    {
+      "name": "Hair",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.14,
+          0.19,
+          0.24,
+          1
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.9
+      }
+    },
+    {
+      "name": "Belt",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.36,
+          0.26,
+          0.18,
+          1
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.85
+      }
+    },
+    {
+      "name": "WatchBand",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.2,
+          0.23,
+          0.28,
+          1
+        ],
+        "metallicFactor": 0.1,
+        "roughnessFactor": 0.7
+      }
+    },
+    {
+      "name": "WatchFace",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.92,
+          0.94,
+          0.96,
+          1
+        ],
+        "metallicFactor": 0.05,
+        "roughnessFactor": 0.3
+      }
+    },
+    {
+      "name": "ShirtAccent",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.88,
+          0.9,
+          0.91,
+          1
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.7
+      }
+    },
+    {
+      "name": "Sock",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.87,
+          0.88,
+          0.86,
+          1
+        ],
+        "metallicFactor": 0.0,
+        "roughnessFactor": 0.8
+      }
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 648,
+      "uri": "data:application/octet-stream;base64,AAAAvwAAAL8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAPwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAD8AAAC/AAAAPwAAAD8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAC/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAC/AAAAvwAAAD8AAAC/AAAAvwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAA/AAAAvwAAAL8AAAA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAABAAIAAAACAAMABAAFAAYABAAGAAcACAAJAAoACAAKAAsADAANAA4ADAAOAA8AEAARABIAEAASABMAFAAVABYAFAAWABcA"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 288,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 288,
+      "byteLength": 288,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 576,
+      "byteLength": 72,
+      "target": 34963
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC3",
+      "max": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "min": [
+        -0.5,
+        -0.5,
+        -0.5
+      ]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5123,
+      "count": 36,
+      "type": "SCALAR"
+    }
+  ]
+}
