@@ -10,7 +10,9 @@
     const STATE = {
         NONE: -1,
         ROTATE: 0,
-        PAN: 1
+        PAN: 1,
+        TOUCH_ROTATE: 2,
+        TOUCH_DOLLY_PAN: 3
     };
 
     class OrbitControls extends THREE.EventDispatcher {
@@ -53,17 +55,26 @@
             this._lastTarget = new THREE.Vector3();
             this._pointer = new THREE.Vector2();
             this._startPointer = new THREE.Vector2();
+            this._touchCenter = new THREE.Vector2();
+            this._touchDistance = 0;
 
             this._onContextMenu = this._onContextMenu.bind(this);
             this._onMouseDown = this._onMouseDown.bind(this);
             this._onMouseMove = this._onMouseMove.bind(this);
             this._onMouseUp = this._onMouseUp.bind(this);
             this._onMouseWheel = this._onMouseWheel.bind(this);
+            this._onTouchStart = this._onTouchStart.bind(this);
+            this._onTouchMove = this._onTouchMove.bind(this);
+            this._onTouchEnd = this._onTouchEnd.bind(this);
 
             this.domElement.style.touchAction = this.domElement.style.touchAction || 'none';
             this.domElement.addEventListener('contextmenu', this._onContextMenu);
             this.domElement.addEventListener('mousedown', this._onMouseDown);
             this.domElement.addEventListener('wheel', this._onMouseWheel, { passive: false });
+            this.domElement.addEventListener('touchstart', this._onTouchStart, { passive: false });
+            this.domElement.addEventListener('touchmove', this._onTouchMove, { passive: false });
+            this.domElement.addEventListener('touchend', this._onTouchEnd);
+            this.domElement.addEventListener('touchcancel', this._onTouchEnd);
         }
 
         dispose() {
@@ -73,6 +84,10 @@
             this.domElement.removeEventListener('contextmenu', this._onContextMenu);
             this.domElement.removeEventListener('mousedown', this._onMouseDown);
             this.domElement.removeEventListener('wheel', this._onMouseWheel);
+            this.domElement.removeEventListener('touchstart', this._onTouchStart);
+            this.domElement.removeEventListener('touchmove', this._onTouchMove);
+            this.domElement.removeEventListener('touchend', this._onTouchEnd);
+            this.domElement.removeEventListener('touchcancel', this._onTouchEnd);
             const doc = this.domElement.ownerDocument || scope.document;
             if (doc) {
                 doc.removeEventListener('mousemove', this._onMouseMove);
@@ -145,6 +160,110 @@
                 this._dollyOut(Math.pow(0.95, this.zoomSpeed));
             }
             this.dispatchEvent({ type: 'change' });
+        }
+
+        _getTouchDistance(touches) {
+            if (!touches || touches.length < 2) {
+                return 0;
+            }
+            const dx = touches[0].pageX - touches[1].pageX;
+            const dy = touches[0].pageY - touches[1].pageY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        _getTouchCenter(touches) {
+            if (!touches || touches.length === 0) {
+                return this._touchCenter.set(0, 0);
+            }
+            let sumX = 0;
+            let sumY = 0;
+            for (let i = 0; i < touches.length; i += 1) {
+                sumX += touches[i].pageX;
+                sumY += touches[i].pageY;
+            }
+            return this._touchCenter.set(sumX / touches.length, sumY / touches.length);
+        }
+
+        _onTouchStart(event) {
+            if (!this.enabled || !event.touches || event.touches.length === 0) {
+                return;
+            }
+            event.preventDefault();
+            if (event.touches.length === 1 && this.enableRotate) {
+                this._state = STATE.TOUCH_ROTATE;
+                this._startPointer.set(event.touches[0].pageX, event.touches[0].pageY);
+            } else if (event.touches.length >= 2) {
+                this._state = STATE.TOUCH_DOLLY_PAN;
+                this._touchDistance = this._getTouchDistance(event.touches);
+                this._startPointer.copy(this._getTouchCenter(event.touches));
+            } else {
+                this._state = STATE.NONE;
+            }
+            this.dispatchEvent({ type: 'start' });
+        }
+
+        _onTouchMove(event) {
+            if (!this.enabled || !event.touches || event.touches.length === 0) {
+                return;
+            }
+            if (this._state === STATE.NONE) {
+                return;
+            }
+            event.preventDefault();
+            if (this._state === STATE.TOUCH_ROTATE && event.touches.length === 1 && this.enableRotate) {
+                this._pointer.set(event.touches[0].pageX, event.touches[0].pageY);
+                const deltaX = this._pointer.x - this._startPointer.x;
+                const deltaY = this._pointer.y - this._startPointer.y;
+                this._handleRotate(deltaX, deltaY);
+                this._startPointer.copy(this._pointer);
+                this.dispatchEvent({ type: 'change' });
+            } else if (this._state === STATE.TOUCH_DOLLY_PAN && event.touches.length >= 2) {
+                const distance = this._getTouchDistance(event.touches);
+                if (this.enableZoom && this._touchDistance > 0 && distance > 0) {
+                    const ratio = distance / this._touchDistance;
+                    if (Number.isFinite(ratio) && ratio !== 1) {
+                        if (ratio > 1) {
+                            this._dollyIn(Math.pow(ratio, this.zoomSpeed));
+                        } else {
+                            this._dollyOut(Math.pow(1 / ratio, this.zoomSpeed));
+                        }
+                    }
+                }
+                if (this.enablePan) {
+                    const center = this._getTouchCenter(event.touches);
+                    const deltaX = center.x - this._startPointer.x;
+                    const deltaY = center.y - this._startPointer.y;
+                    this._handlePan(deltaX, deltaY);
+                    this._startPointer.copy(center);
+                } else {
+                    this._startPointer.copy(this._getTouchCenter(event.touches));
+                }
+                this._touchDistance = distance;
+                this.dispatchEvent({ type: 'change' });
+            }
+        }
+
+        _onTouchEnd(event) {
+            if (!this.enabled) {
+                return;
+            }
+            if (event.touches && event.touches.length > 0) {
+                if (event.touches.length === 1 && this.enableRotate) {
+                    this._state = STATE.TOUCH_ROTATE;
+                    this._startPointer.set(event.touches[0].pageX, event.touches[0].pageY);
+                    this._touchDistance = 0;
+                } else if (event.touches.length >= 2) {
+                    this._state = STATE.TOUCH_DOLLY_PAN;
+                    this._touchDistance = this._getTouchDistance(event.touches);
+                    this._startPointer.copy(this._getTouchCenter(event.touches));
+                } else {
+                    this._state = STATE.NONE;
+                }
+                return;
+            }
+            this._state = STATE.NONE;
+            this._touchDistance = 0;
+            this.dispatchEvent({ type: 'end' });
         }
 
         _handleRotate(deltaX, deltaY) {
