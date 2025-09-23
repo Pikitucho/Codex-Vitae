@@ -94,6 +94,7 @@ const STAT_KEY_METADATA = {
 
 const STAT_KEYS = Object.keys(STAT_KEY_METADATA);
 const LEGACY_ROLLOVER_THRESHOLD = 1000;
+const STATS_PER_PERK_POINT = 10;
 const QUARTERLY_MILESTONE_GOAL = 60;
 
 function getQuarterIdentifier(date) {
@@ -367,6 +368,10 @@ function updatePerkProgressionMeters(summary) {
     })();
 
     const shardGoal = LEGACY_ROLLOVER_THRESHOLD;
+    const rawStatsTowardPerk = typeof characterData?.statCounter === 'number' && Number.isFinite(characterData.statCounter)
+        ? Math.max(0, Math.floor(characterData.statCounter))
+        : 0;
+    const statsTowardPerk = rawStatsTowardPerk % STATS_PER_PERK_POINT;
     const rawStatsTowardPerk = typeof characterData?.legacyStatProgress === 'number' && Number.isFinite(characterData.legacyStatProgress)
         ? Math.max(0, Math.floor(characterData.legacyStatProgress))
         : 0;
@@ -381,6 +386,7 @@ function updatePerkProgressionMeters(summary) {
             const statLabel = shardProgress.statKey
                 ? getModernStatShortLabel(shardProgress.statKey)
                 : 'STAT';
+            return `${Math.round(current)} / ${goal.toLocaleString()} legacy shards toward next ${statLabel} stat. Stat counter: ${statsTowardPerk} / ${STATS_PER_PERK_POINT}.`;
             return `${Math.round(current)} / ${goal.toLocaleString()} legacy shards toward next ${statLabel} stat. ${statsTowardPerk} / ${perkStatGoal} stats toward next perk point.`;
         }
     );
@@ -1162,6 +1168,21 @@ let choreManager = {
             const plural = pointsGained === 1 ? 'level' : 'levels';
             showToast(`Legacy milestone! +${pointsGained} ${statLabel} ${plural}.`);
 
+            const currentStatCounter = typeof characterData.statCounter === 'number' && Number.isFinite(characterData.statCounter)
+                ? characterData.statCounter
+                : 0;
+            const updatedStatCounter = currentStatCounter + pointsGained;
+            characterData.statCounter = updatedStatCounter;
+
+            const perkPointsFromStats = Math.floor(updatedStatCounter / STATS_PER_PERK_POINT);
+            if (perkPointsFromStats > 0) {
+                characterData.statCounter = updatedStatCounter % STATS_PER_PERK_POINT;
+                const existingSkillPoints = typeof characterData.skillPoints === 'number' && Number.isFinite(characterData.skillPoints)
+                    ? characterData.skillPoints
+                    : 0;
+                characterData.skillPoints = existingSkillPoints + perkPointsFromStats;
+                const perkPlural = perkPointsFromStats === 1 ? 'Perk Point' : 'Perk Points';
+                showToast(`Legacy ascension! +${perkPointsFromStats} ${perkPlural}.`);
             const currentLegacyStatProgress = typeof characterData.legacyStatProgress === 'number' && Number.isFinite(characterData.legacyStatProgress)
                 ? characterData.legacyStatProgress
                 : 0;
@@ -1261,9 +1282,17 @@ async function loadData(userId) {
             : Boolean(loadedCharacterData.monthlyPerkClaimed);
 
         const sanitizedLoadedData = { ...loadedCharacterData };
+        const storedStatCounter = typeof sanitizedLoadedData.statCounter === 'number' && Number.isFinite(sanitizedLoadedData.statCounter)
+            ? Math.max(0, Math.floor(sanitizedLoadedData.statCounter))
+            : null;
+        const legacyStatProgressCarry = typeof sanitizedLoadedData.legacyStatProgress === 'number' && Number.isFinite(sanitizedLoadedData.legacyStatProgress)
+            ? Math.max(0, Math.floor(sanitizedLoadedData.legacyStatProgress))
+            : 0;
+        const normalizedStatCounter = (storedStatCounter !== null ? storedStatCounter : legacyStatProgressCarry) % STATS_PER_PERK_POINT;
         delete sanitizedLoadedData.monthlyActivityLog;
         delete sanitizedLoadedData.activityLogMonth;
         delete sanitizedLoadedData.monthlyPerkClaimed;
+        delete sanitizedLoadedData.legacyStatProgress;
 
         characterData = {
             ...sanitizedLoadedData,
@@ -1271,6 +1300,7 @@ async function loadData(userId) {
             statProgress: loadedCharacterData.statProgress || 0,
             statsToNextLevel: loadedCharacterData.statsToNextLevel || 10,
             skillPoints: loadedCharacterData.skillPoints || 0,
+            statCounter: normalizedStatCounter,
             legacyStatProgress: typeof sanitizedLoadedData.legacyStatProgress === 'number' && Number.isFinite(sanitizedLoadedData.legacyStatProgress)
                 ? Math.max(0, Math.floor(sanitizedLoadedData.legacyStatProgress))
                 : 0,
@@ -1422,6 +1452,7 @@ function calculateStartingStats() {
         },
         avatarUrl: '',
         skillPoints: 0,
+        statCounter: 0,
         legacyStatProgress: 0,
         unlockedPerks: [],
         verifiedProofs: [],
