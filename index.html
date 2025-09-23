@@ -31,20 +31,24 @@
         </div>
 
         <div class="avatar-hero">
-            <div class="avatar-display">
-                <video id="webcam-feed" class="avatar-circle hidden" autoplay playsinline></video>
+            <div class="avatar-stage">
                 <model-viewer
                     id="captured-photo"
-                    class="avatar-circle avatar-placeholder"
-                    src="assets/avatars/codex-placeholder-avatar.gltf"
-                    poster="assets/avatars/heroic-white-male-placeholder.svg"
+                    class="avatar-viewer"
+                    src="assets/avatars/codex-vitae-avatar.gltf"
                     alt="Your Avatar"
                     camera-controls
-                    disable-zoom
                     auto-rotate
-                    shadow-intensity="0.3"
-                    exposure="1"
+                    interaction-prompt="none"
+                    camera-orbit="15deg 72deg 3.8m"
+                    camera-target="0 0.9 0"
+                    min-camera-orbit="-140deg 48deg 3.0m"
+                    max-camera-orbit="140deg 96deg 4.4m"
+                    field-of-view="28deg"
+                    shadow-intensity="0.65"
+                    exposure="1.1"
                 ></model-viewer>
+                <video id="webcam-feed" class="avatar-camera hidden" autoplay playsinline></video>
             </div>
             <canvas id="photo-canvas" class="hidden"></canvas>
         </div>
