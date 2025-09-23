@@ -21,7 +21,7 @@
         galaxies: { distance: 2400, height: 680, duration: 1400 },
         constellations: { distance: 1400, height: 420, duration: 1200 },
         starSystems: { distance: 640, height: 260, duration: 1000 },
-        stars: { distance: 360, height: 160, duration: 900 }
+        stars: { distance: 150, height: 70, duration: 1200 }
     };
 
     const CAMERA_THRESHOLDS = {
@@ -34,6 +34,12 @@
         unlocked: 0x00b894,
         available: 0xffc048,
         locked: 0x4b4b4b
+    };
+
+    const STAR_STATUS_LABELS = {
+        unlocked: 'Unlocked',
+        available: 'Available to Unlock',
+        locked: 'Locked'
     };
 
     const GALAXY_RADIUS = 920;
@@ -202,6 +208,34 @@
         return fallback;
     }
 
+    function formatUnlockTypeLabel(type) {
+        if (typeof type !== 'string') {
+            return '';
+        }
+        const trimmed = type.trim();
+        if (!trimmed) {
+            return '';
+        }
+        return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+    }
+
+    function buildStarLocationLabel(userData) {
+        if (!userData || typeof userData !== 'object') {
+            return '';
+        }
+        const parts = [];
+        if (typeof userData.galaxy === 'string' && userData.galaxy.trim()) {
+            parts.push(userData.galaxy.trim());
+        }
+        if (typeof userData.constellation === 'string' && userData.constellation.trim()) {
+            parts.push(userData.constellation.trim());
+        }
+        if (typeof userData.starSystem === 'string' && userData.starSystem.trim()) {
+            parts.push(userData.starSystem.trim());
+        }
+        return parts.join(' • ');
+    }
+
     class SkillUniverseRenderer {
         constructor(options = {}) {
             this.container = options.container || document.getElementById('skill-tree-canvas-container');
@@ -244,13 +278,15 @@
             this.renderer.setClearColor(0x02030b, 1);
             this.container.innerHTML = '';
             this.container.appendChild(this.renderer.domElement);
+            this.starFocusOverlay = this._createStarFocusOverlay();
+            this.starFocusOverlayKey = null;
             this.renderer.domElement.setAttribute('tabindex', '0');
 
             this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
             this.controls.enableDamping = true;
             this.controls.dampingFactor = 0.12;
             this.controls.screenSpacePanning = true;
-            this.controls.minDistance = 160;
+            this.controls.minDistance = 120;
             this.controls.maxDistance = 4400;
             this.controls.enablePan = true;
             this.controls.enableZoom = true;
@@ -258,7 +294,12 @@
             this.controls.rotateSpeed = 0.35;
             this.controls.zoomSpeed = 0.65;
             this.controls.panSpeed = 0.8;
-            this.controls.addEventListener('start', () => this._cancelTween());
+            this.controls.addEventListener('start', () => {
+                this._cancelTween();
+                if (this.currentSelection?.star) {
+                    this._hideStarFocusOverlay();
+                }
+            });
             this.controls.addEventListener('change', () => this.render());
 
             this.raycaster = new THREE.Raycaster();
@@ -328,6 +369,9 @@
                     mesh.userData.starSystem = starInfo.starSystemName || null;
                 }
                 this._applyStarMaterial(mesh, status);
+                if (this.starFocusOverlayKey === key) {
+                    this._updateStarFocusOverlay(mesh.userData);
+                }
             });
             this.render();
         }
@@ -863,6 +907,7 @@
         }
 
         _clearUniverse() {
+            this._hideStarFocusOverlay();
             while (this.rootGroup.children.length) {
                 const child = this.rootGroup.children.pop();
                 this.rootGroup.remove(child);
@@ -959,7 +1004,104 @@
             }
         }
 
+        _createStarFocusOverlay() {
+            const overlay = document.createElement('div');
+            overlay.className = 'star-focus-overlay';
+            overlay.setAttribute('aria-hidden', 'true');
+            overlay.setAttribute('aria-live', 'polite');
+
+            const titleEl = document.createElement('div');
+            titleEl.className = 'star-focus-title';
+            titleEl.setAttribute('role', 'heading');
+            titleEl.setAttribute('aria-level', '3');
+            overlay.appendChild(titleEl);
+
+            const footer = document.createElement('div');
+            footer.className = 'star-focus-footer';
+
+            const statusEl = document.createElement('div');
+            statusEl.className = 'star-focus-status';
+            footer.appendChild(statusEl);
+
+            const locationEl = document.createElement('div');
+            locationEl.className = 'star-focus-location';
+            footer.appendChild(locationEl);
+
+            const descriptionEl = document.createElement('div');
+            descriptionEl.className = 'star-focus-description';
+            footer.appendChild(descriptionEl);
+
+            overlay.appendChild(footer);
+            this.container.appendChild(overlay);
+
+            return {
+                container: overlay,
+                titleEl,
+                statusEl,
+                locationEl,
+                descriptionEl
+            };
+        }
+
+        _updateStarFocusOverlay(userData) {
+            if (!this.starFocusOverlay || !userData) {
+                return;
+            }
+
+            const { container, titleEl, statusEl, locationEl, descriptionEl } = this.starFocusOverlay;
+            const starName = typeof userData.star === 'string' && userData.star.trim()
+                ? userData.star.trim()
+                : 'Unknown Star';
+            titleEl.textContent = starName;
+
+            const statusKey = typeof userData.status === 'string' ? userData.status : 'locked';
+            const statusLabel = STAR_STATUS_LABELS[statusKey] || STAR_STATUS_LABELS.locked;
+            const unlockLabel = formatUnlockTypeLabel(userData.data?.unlock_type);
+            statusEl.textContent = unlockLabel ? `${statusLabel} • ${unlockLabel}` : statusLabel;
+
+            const locationLabel = buildStarLocationLabel(userData);
+            locationEl.textContent = locationLabel;
+
+            const description = typeof userData.data?.description === 'string'
+                ? userData.data.description.trim()
+                : '';
+            descriptionEl.textContent = description || 'No description provided yet.';
+
+            container.dataset.status = statusKey;
+        }
+
+        _showStarFocusOverlay(userData, starKey) {
+            if (!this.starFocusOverlay || !userData) {
+                this._hideStarFocusOverlay();
+                return;
+            }
+
+            if (typeof starKey === 'string') {
+                this.starFocusOverlayKey = starKey;
+            } else {
+                this.starFocusOverlayKey = null;
+            }
+
+            this._updateStarFocusOverlay(userData);
+
+            const { container } = this.starFocusOverlay;
+            container.classList.add('is-visible');
+            container.setAttribute('aria-hidden', 'false');
+        }
+
+        _hideStarFocusOverlay() {
+            if (!this.starFocusOverlay) {
+                return;
+            }
+            this.starFocusOverlayKey = null;
+            const { container } = this.starFocusOverlay;
+            container.classList.remove('is-visible');
+            container.setAttribute('aria-hidden', 'true');
+            delete container.dataset.status;
+        }
+
         _focusUniverse() {
+            this._hideStarFocusOverlay();
             this.currentView = 'galaxies';
             this.currentSelection = { galaxy: null, constellation: null, starSystem: null, star: null };
             this._setHighlight(null, null);
@@ -968,6 +1110,7 @@
         }
 
         _focusGalaxy(galaxyName, focusOverride) {
+            this._hideStarFocusOverlay();
             const galaxyInfo = this.galaxyMap.get(galaxyName);
             if (!galaxyInfo) {
                 return;
@@ -982,6 +1125,7 @@
         }
 
         _focusConstellation(galaxyName, constellationName, focusOverride) {
+            this._hideStarFocusOverlay();
             const constellationInfo = this.constellationMap.get(`${galaxyName}|${constellationName}`);
             if (!constellationInfo) {
                 this._focusGalaxy(galaxyName);
@@ -997,6 +1141,7 @@
         }
 
         _focusStarSystem(galaxyName, constellationName, starSystemName, focusOverride) {
+            this._hideStarFocusOverlay();
             const systemKey = `${galaxyName}|${constellationName}|${starSystemName}`;
             const systemInfo = this.starSystemMap.get(systemKey);
             if (!systemInfo) {
@@ -1033,7 +1178,29 @@
             const fallback = this._getWorldPosition(starMesh);
             const target = this._resolveFocusVector(focusOverride, fallback);
             this._tweenCameraTo(target, CAMERA_LEVELS.stars);
+            const starKey = `${galaxyName}|${constellationName}|${starName}`;
+            this._showStarFocusOverlay(starMesh.userData, starKey);
             this._updateViewUI();
+        }
+
+        clearStarFocus() {
+            if (!this.currentSelection.star) {
+                this._hideStarFocusOverlay();
+                return;
+            }
+
+            const { galaxy, constellation, starSystem } = this.currentSelection;
+            if (!galaxy || !constellation) {
+                this._hideStarFocusOverlay();
+                this._focusUniverse();
+                return;
+            }
+
+            if (starSystem) {
+                this._focusStarSystem(galaxy, constellation, starSystem);
+            } else {
+                this._focusConstellation(galaxy, constellation);
+            }
         }
 
         _getWorldPosition(object3D) {
@@ -1055,7 +1222,7 @@
             }
 
             const scaleMultiplier = type === 'star'
-                ? 1.6
+                ? 2.2
                 : type === 'starSystem'
                     ? 1.35
                     : type === 'constellation'
@@ -1181,8 +1348,13 @@
 
             this.hoveredObject = object;
             if (object && object.userData && object.userData.originalScale) {
-                const hoverMultiplier = object.userData.type === 'star' ? 1.4 : 1.2;
                 const baseMultiplier = object.userData.highlightMultiplier || 1;
+                const isActiveHighlight = this.activeHighlight && this.activeHighlight.object === object;
+                const hoverMultiplier = isActiveHighlight
+                    ? 1
+                    : object.userData.type === 'star'
+                        ? 1.35
+                        : 1.2;
                 this._applyScaledSize(object, hoverMultiplier * baseMultiplier);
                 this.container.style.cursor = 'pointer';
                 if (this.onHoverStar && object.userData.type === 'star') {
