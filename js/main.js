@@ -92,6 +92,28 @@ const STAT_KEY_METADATA = {
     soc: { legacyKey: 'charisma', label: 'SOC • Influence', shortLabel: 'SOC' }
 };
 
+function getModernStatMetadataFromLegacyKey(legacyKey) {
+    const entries = Object.entries(STAT_KEY_METADATA);
+    for (let index = 0; index < entries.length; index += 1) {
+        const [modernKey, metadata] = entries[index];
+        if (metadata.legacyKey === legacyKey) {
+            return { modernKey, ...metadata };
+        }
+    }
+    return null;
+}
+
+function getModernStatShortLabel(legacyKey) {
+    const metadata = getModernStatMetadataFromLegacyKey(legacyKey);
+    if (metadata && metadata.shortLabel) {
+        return metadata.shortLabel;
+    }
+    if (typeof legacyKey === 'string' && legacyKey.length > 0) {
+        return legacyKey.slice(0, 3).toUpperCase();
+    }
+    return 'STAT';
+}
+
 const DEFAULT_DYNAMICS_PARAMS = {
     pwr: { tau0: 28, alpha: 0.08, tl0: 1.0, beta: 0.5, eta0: 1.0, gamma: 0.1, sfloor: 8 },
     acc: { tau0: 21, alpha: 0.07, tl0: 1.0, beta: 0.4, eta0: 0.95, gamma: 0.08, sfloor: 8 },
@@ -103,7 +125,6 @@ const DEFAULT_DYNAMICS_PARAMS = {
 
 const ABILITY_TOTAL_MIN = 6;
 const ABILITY_TOTAL_MAX = 120;
-const ABILITY_RING_CIRCUMFERENCE = 326;
 
 function ensureStatConfidence() {
     if (!characterData.statConfidence) {
@@ -156,37 +177,119 @@ function calculateAbilitySnapshot(stats) {
     };
 }
 
-function updateAbilityCard(ability) {
-    const abilityScore = document.getElementById('ability-score');
-    if (abilityScore) {
-        abilityScore.textContent = ability.level0to100.toString();
+function updateLegacyCard(legacyState) {
+    const level = typeof legacyState?.level === 'number' ? legacyState.level : 0;
+    const rawScore = typeof legacyState?.score === 'number' ? legacyState.score : 0;
+    const score = Math.max(0, Math.round(rawScore));
+    const perkPoints = typeof legacyState?.perkPoints === 'number'
+        ? legacyState.perkPoints
+        : (typeof characterData?.skillPoints === 'number' ? characterData.skillPoints : 0);
+
+    const levelElement = document.getElementById('legacy-level');
+    if (levelElement) {
+        levelElement.textContent = level.toString();
     }
-    const progressText = document.getElementById('ability-progress-text');
+
+    const scoreElement = document.getElementById('legacy-score');
+    if (scoreElement) {
+        scoreElement.textContent = score.toLocaleString();
+    }
+
+    const progressText = document.getElementById('legacy-progress-text');
     if (progressText) {
-        const percentToNext = Math.round(ability.progress01 * 100);
-        progressText.textContent = `Progress ${percentToNext}% toward the next level.`;
+        if (level > 0) {
+            progressText.textContent = `Legacy Level ${level} • Infinite progression`;
+        } else {
+            progressText.textContent = 'Begin your Legacy journey.';
+        }
     }
-    const ringProgress = document.querySelector('.ability-ring-progress');
-    if (ringProgress) {
-        const offset = ABILITY_RING_CIRCUMFERENCE * (1 - Math.max(0, Math.min(1, ability.normalized)));
-        ringProgress.style.strokeDashoffset = offset;
+
+    const progressFill = document.getElementById('legacy-progress-fill');
+    if (progressFill) {
+        const animationSpeed = Math.max(6, 16 - Math.min(level, 12));
+        progressFill.style.setProperty('--legacy-progress-speed', `${animationSpeed}s`);
     }
-    const ringWrapper = document.querySelector('.ability-ring');
-    if (ringWrapper) {
-        ringWrapper.setAttribute('aria-valuenow', ability.level0to100.toString());
+
+    const perkPointsElement = document.getElementById('perk-points-available');
+    if (perkPointsElement) {
+        perkPointsElement.textContent = perkPoints.toString();
+    }
+
+    updatePerkProgressionMeters({ score });
+}
+
+function setPerkProgressMeter(barId, textId, current, goal, textFormatter) {
+    const safeCurrent = typeof current === 'number' && Number.isFinite(current) ? current : 0;
+    const safeGoal = typeof goal === 'number' && goal > 0 ? goal : 1;
+    const percent = Math.max(0, Math.min(1, safeCurrent / safeGoal));
+
+    const bar = document.getElementById(barId);
+    if (bar) {
+        const percentageValue = Math.round(percent * 100);
+        bar.style.width = `${percentageValue}%`;
+        bar.setAttribute('role', 'progressbar');
+        bar.setAttribute('aria-valuemin', '0');
+        bar.setAttribute('aria-valuemax', '100');
+        bar.setAttribute('aria-valuenow', percentageValue.toString());
+    }
+
+    const textElement = document.getElementById(textId);
+    if (textElement) {
+        if (typeof textFormatter === 'function') {
+            textElement.textContent = textFormatter(safeCurrent, safeGoal);
+        } else {
+            textElement.textContent = `${Math.round(safeCurrent)} / ${Math.round(safeGoal)}`;
+        }
     }
 }
 
-function updateLegacyCard(legacyState) {
-    const levelElement = document.getElementById('legacy-level');
-    const scoreElement = document.getElementById('legacy-score');
-    const perkPointsElement = document.getElementById('legacy-perk-points');
-    const score = Math.round(legacyState?.score || 0);
-    const level = legacyState?.level ?? 0;
-    const perkPoints = legacyState?.perkPoints ?? characterData.skillPoints ?? 0;
-    if (levelElement) levelElement.textContent = level.toString();
-    if (scoreElement) scoreElement.textContent = `Score ${score}`;
-    if (perkPointsElement) perkPointsElement.textContent = perkPoints.toString();
+function updatePerkProgressionMeters(summary) {
+    const totalChoreProgress = (() => {
+        if (!characterData || typeof characterData.choreProgress !== 'object') {
+            return 0;
+        }
+        return Object.values(characterData.choreProgress).reduce((sum, value) => {
+            if (typeof value === 'number' && Number.isFinite(value)) {
+                return sum + value;
+            }
+            return sum;
+        }, 0);
+    })();
+
+    const trackedStats = characterData && characterData.choreProgress
+        ? Object.keys(characterData.choreProgress).length
+        : 0;
+    const defaultStatsCount = Object.keys(STAT_KEY_METADATA).length;
+    const choreGoal = Math.max(1, (trackedStats || defaultStatsCount) * 1000);
+    setPerkProgressMeter(
+        'perk-progress-chores-bar',
+        'perk-progress-chores-text',
+        totalChoreProgress,
+        choreGoal,
+        (current, goal) => `${Math.round(current)} / ${goal.toLocaleString()} legacy momentum logged from chores.`
+    );
+
+    const monthlyActivityLog = Array.isArray(characterData?.monthlyActivityLog)
+        ? characterData.monthlyActivityLog
+        : [];
+    const monthlyGoal = 25;
+    setPerkProgressMeter(
+        'perk-progress-monthly-bar',
+        'perk-progress-monthly-text',
+        monthlyActivityLog.length,
+        monthlyGoal,
+        (current, goal) => `${current} / ${goal} days logged this month.`
+    );
+
+    const yearlyGoal = 12000;
+    const score = typeof summary?.score === 'number' ? Math.max(0, Math.round(summary.score)) : 0;
+    setPerkProgressMeter(
+        'perk-progress-yearly-bar',
+        'perk-progress-yearly-text',
+        score,
+        yearlyGoal,
+        (current, goal) => `${current.toLocaleString()} / ${goal.toLocaleString()} legacy score this year.`
+    );
 }
 
 function updateStatRows(stats, legacyShares) {
@@ -887,25 +990,6 @@ const levelManager = {
     }
 };
 
-const activityManager = {
-    activities: {
-        strength: { stat: 'strength', points: 1 },
-        dexterity: { stat: 'dexterity', points: 1 },
-        constitution: { stat: 'constitution', points: 1 },
-        intelligence: { stat: 'intelligence', points: 1 },
-        wisdom: { stat: 'wisdom', points: 1 },
-        charisma: { stat: 'charisma', points: 1 }
-    },
-    logActivity: function(activityKey) {
-        if (this.activities[activityKey]) {
-            const activity = this.activities[activityKey];
-            characterData.stats[activity.stat] += activity.points;
-            levelManager.gainStatProgress(activity.points);
-            logMonthlyActivity();
-        }
-    }
-};
-
 let choreManager = {
     chores: [],
     addChore: async function(text) {
@@ -932,14 +1016,16 @@ let choreManager = {
         const chore = this.chores[choreIndex];
         
         characterData.choreProgress[chore.stat] += chore.effort;
-        showToast(`+${chore.effort} ${chore.stat.slice(0,3).toUpperCase()} Fragments!`);
+        const statLabel = getModernStatShortLabel(chore.stat);
+        showToast(`+${chore.effort} Legacy momentum • ${statLabel}`);
 
         if (characterData.choreProgress[chore.stat] >= 1000) {
             const pointsGained = Math.floor(characterData.choreProgress[chore.stat] / 1000);
             characterData.choreProgress[chore.stat] %= 1000;
             characterData.stats[chore.stat] += pointsGained;
             levelManager.gainStatProgress(pointsGained);
-            showToast(`Mastery increased! +${pointsGained} ${chore.stat.toUpperCase()}`);
+            const plural = pointsGained === 1 ? 'level' : 'levels';
+            showToast(`Legacy milestone! +${pointsGained} ${statLabel} ${plural}.`);
         }
 
         this.chores.splice(choreIndex, 1);
@@ -1271,23 +1357,10 @@ function updateDashboard() {
     const statSnapshots = deriveStatSnapshots(characterData.stats);
     const ability = calculateAbilitySnapshot(statSnapshots);
     characterData.abilityNow = ability;
-    updateAbilityCard(ability);
     updateLegacyCard(characterData.legacy);
     updateStatRows(statSnapshots, characterData.legacy?.perStatShares);
     updateMaintenanceHint(statSnapshots);
     updatePerkPanel();
-
-    for (const stat in characterData.choreProgress) {
-        const progress = characterData.choreProgress[stat];
-        const bar = document.getElementById(`${stat}-chore-bar`);
-        const text = document.getElementById(`${stat}-chore-text`);
-        if (bar) {
-            bar.style.width = `${(progress / 1000) * 100}%`;
-        }
-        if (text) {
-            text.textContent = `${progress} / 1000`;
-        }
-    }
 
     const choreList = document.getElementById('chore-list');
     if (choreList) {
@@ -1297,7 +1370,7 @@ function updateDashboard() {
             li.className = 'chore-item';
             li.innerHTML = `
                 <span>${chore.text}</span>
-                <span class="chore-details">(+${chore.effort} ${chore.stat.slice(0,3).toUpperCase()})</span>
+                <span class="chore-details">(+${chore.effort} ${getModernStatShortLabel(chore.stat)})</span>
                 <button class="complete-chore-btn">✓</button>
             `;
             li.querySelector('.complete-chore-btn').addEventListener('click', () => choreManager.completeChore(chore.id));
@@ -2112,14 +2185,6 @@ function setupEventListeners() {
             if (event.key === 'Enter') {
                 handleAddChore();
             }
-        });
-    }
-
-    const activitySelect = document.getElementById('activity-select');
-    const logActivityBtn = document.getElementById('log-activity-btn');
-    if (logActivityBtn && activitySelect) {
-        logActivityBtn.addEventListener('click', () => {
-            activityManager.logActivity(activitySelect.value);
         });
     }
 

@@ -20,37 +20,23 @@
     <div id="app-screen" class="hidden">
         <h2>Welcome to Your Codex</h2>
 
-        <div class="ability-legacy-panel">
-            <div id="ability-card" class="widget ability-card" role="region" aria-label="Ability Now">
-                <h3>Ability Now</h3>
-                <div class="ability-ring" role="img" aria-label="Ability score">
-                    <svg viewBox="0 0 120 120" class="ability-ring-svg">
-                        <circle class="ability-ring-bg" cx="60" cy="60" r="52"></circle>
-                        <circle class="ability-ring-progress" cx="60" cy="60" r="52"></circle>
-                    </svg>
-                    <div class="ability-ring-label">
-                        <span id="ability-score">0</span>
-                        <p>of 100</p>
-                    </div>
-                </div>
-                <p class="ability-ring-subtext" id="ability-progress-text">Building your current capability</p>
-            </div>
-
-            <div id="legacy-card" class="widget legacy-card" role="region" aria-label="Legacy Progress">
-                <h3>Legacy</h3>
+        <div id="legacy-level-section" class="widget level-card" role="region" aria-label="Legacy Level">
+            <div class="level-card-header">
+                <h3>Legacy Level</h3>
                 <div class="legacy-level-display">
                     <span class="legacy-level-label">Lvl</span>
                     <span id="legacy-level">0</span>
                     <span class="legacy-level-infinity">∞</span>
                 </div>
-                <p id="legacy-score" class="legacy-score">Score 0</p>
-                <div class="legacy-perk-points">
-                    <span>Perk Points</span>
-                    <strong id="legacy-perk-points">0</strong>
-                </div>
-                <div class="legacy-tabs" role="tablist" aria-label="Leaderboards">
-                    <button class="legacy-tab active" data-tab="ability" aria-selected="true">Ability (Now)</button>
-                    <button class="legacy-tab" data-tab="legacy" aria-selected="false">Legacy (Grind)</button>
+            </div>
+            <div class="legacy-progress-track" aria-hidden="true">
+                <div class="legacy-progress-fill" id="legacy-progress-fill"></div>
+            </div>
+            <p id="legacy-progress-text" class="legacy-progress-text">Begin your Legacy journey.</p>
+            <div class="legacy-score-meta">
+                <div class="legacy-score-block">
+                    <span class="meta-label">Legacy Score</span>
+                    <strong id="legacy-score">0</strong>
                 </div>
             </div>
         </div>
@@ -183,94 +169,51 @@
             <p id="maintenance-message">Loading personalized guidance…</p>
         </div>
 
-        <div id="perk-panel" class="widget" role="region" aria-label="Perks">
-            <h3>Perks</h3>
+        <div id="perk-panel" class="widget" role="region" aria-label="Perk Progression">
+            <h3>Perk Progression</h3>
+            <div class="perk-progress-summary">
+                <div class="perk-points-available">
+                    <span class="meta-label">Perk Points Available</span>
+                    <strong id="perk-points-available">0</strong>
+                </div>
+                <div class="perk-progress-grid">
+                    <div class="perk-progress-card">
+                        <h4>Chores</h4>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="perk-progress-chores-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+                        </div>
+                        <p id="perk-progress-chores-text" class="perk-progress-text">Log chores to build momentum.</p>
+                    </div>
+                    <div class="perk-progress-card">
+                        <h4>Monthly</h4>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="perk-progress-monthly-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+                        </div>
+                        <p id="perk-progress-monthly-text" class="perk-progress-text">0 / 25 days logged this month.</p>
+                    </div>
+                    <div class="perk-progress-card">
+                        <h4>Yearly</h4>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="perk-progress-yearly-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+                        </div>
+                        <p id="perk-progress-yearly-text" class="perk-progress-text">Year-long legacy goals are just beginning.</p>
+                    </div>
+                </div>
+            </div>
             <div id="perk-chips" class="perk-chip-row" aria-live="polite">
                 <p class="empty-state">No perks yet. Earn Legacy points to unlock them.</p>
             </div>
         </div>
 
         <div id="chore-section" class="widget">
-            <h4>Chore Effort</h4>
-            <p class="widget-subtitle">Complete chores to gain Stat Fragments. 1,000 Fragments = +1 Stat Point.</p>
-
-            <div id="chore-progress-grid">
-                <div class="chore-stat-tracker">
-                    <div class="flex-between">
-                        <p class="chore-stat-label">Strength</p>
-                        <p class="chore-fragment-text" id="strength-chore-text">0 / 1000</p>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div id="strength-chore-bar" class="progress-bar"></div>
-                    </div>
-                </div>
-                <div class="chore-stat-tracker">
-                    <div class="flex-between">
-                        <p class="chore-stat-label">Dexterity</p>
-                        <p class="chore-fragment-text" id="dexterity-chore-text">0 / 1000</p>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div id="dexterity-chore-bar" class="progress-bar"></div>
-                    </div>
-                </div>
-                <div class="chore-stat-tracker">
-                    <div class="flex-between">
-                        <p class="chore-stat-label">Constitution</p>
-                        <p class="chore-fragment-text" id="constitution-chore-text">0 / 1000</p>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div id="constitution-chore-bar" class="progress-bar"></div>
-                    </div>
-                </div>
-                <div class="chore-stat-tracker">
-                    <div class="flex-between">
-                        <p class="chore-stat-label">Intelligence</p>
-                        <p class="chore-fragment-text" id="intelligence-chore-text">0 / 1000</p>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div id="intelligence-chore-bar" class="progress-bar"></div>
-                    </div>
-                </div>
-                <div class="chore-stat-tracker">
-                    <div class="flex-between">
-                        <p class="chore-stat-label">Wisdom</p>
-                        <p class="chore-fragment-text" id="wisdom-chore-text">0 / 1000</p>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div id="wisdom-chore-bar" class="progress-bar"></div>
-                    </div>
-                </div>
-                <div class="chore-stat-tracker">
-                    <div class="flex-between">
-                        <p class="chore-stat-label">Charisma</p>
-                        <p class="chore-fragment-text" id="charisma-chore-text">0 / 1000</p>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div id="charisma-chore-bar" class="progress-bar"></div>
-                    </div>
-                </div>
-            </div>
+            <h4>Log Your Chores</h4>
+            <p class="widget-subtitle">Record the actions that build your Legacy Level.</p>
 
             <div id="add-chore-input-group" class="input-group">
                 <input type="text" id="chore-input" placeholder="Log a completed chore and press Enter...">
             </div>
 
-            <ul id="chore-list"></ul>
-        </div>
-
-        <div id="activity-log-section" class="widget">
-            <h4>Log a Quick Stat Gain</h4>
-            <div class="input-group">
-                <select id="activity-select">
-                    <option value="strength">+1 Strength</option>
-                    <option value="dexterity">+1 Dexterity</option>
-                    <option value="constitution">+1 Constitution</option>
-                    <option value="intelligence">+1 Intelligence</option>
-                    <option value="wisdom">+1 Wisdom</option>
-                    <option value="charisma">+1 Charisma</option>
-                </select>
-                <button id="log-activity-btn">Log</button>
-            </div>
+            <ul id="chore-list" class="chore-list"></ul>
         </div>
 
         <button id="open-codex-btn">Open Codex</button>

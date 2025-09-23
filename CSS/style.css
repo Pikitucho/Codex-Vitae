@@ -261,10 +261,6 @@ button:active {
     flex-grow: 1;
 }
 
-#activity-log-section .input-group select {
-    flex-grow: 1;
-}
-
 /* --- FACE SCAN & AVATAR --- */
 .avatar-hero {
     position: relative;
@@ -753,26 +749,7 @@ model-viewer.avatar-viewer {
     font-size: 0.9em;
 }
 
-#chore-progress-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    margin-bottom: 20px;
-}
-
-.chore-stat-label {
-    font-weight: 600;
-    font-size: 0.95em;
-    letter-spacing: 0.02em;
-}
-
-.chore-fragment-text {
-    font-size: 0.82em;
-    color: var(--color-text-medium);
-}
-
-/* --- DYNAMIC CHORE LIST --- */
-#chore-list {
+.chore-list {
     list-style: none;
     padding: 0;
     margin-top: 18px;
@@ -850,75 +827,28 @@ model-viewer.avatar-viewer {
     }
 }
 
-/* --- Ability Now & Legacy layout --- */
-.ability-legacy-panel {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+/* --- Legacy Level layout --- */
+.level-card {
+    display: flex;
+    flex-direction: column;
     gap: 18px;
 }
 
-.ability-card,
-.legacy-card {
-    text-align: center;
+.level-card-header {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
     gap: 16px;
 }
 
-.ability-ring {
-    position: relative;
-    width: 140px;
-    height: 140px;
-    margin: 0 auto;
-}
-
-.ability-ring-svg {
-    width: 100%;
-    height: 100%;
-    transform: rotate(-90deg);
-}
-
-.ability-ring-bg {
-    fill: none;
-    stroke: rgba(63, 111, 118, 0.18);
-    stroke-width: 12;
-}
-
-.ability-ring-progress {
-    fill: none;
-    stroke: var(--color-primary);
-    stroke-width: 12;
-    stroke-linecap: round;
-    stroke-dasharray: 326;
-    stroke-dashoffset: 326;
-    transition: stroke-dashoffset 0.5s ease;
-}
-
-.ability-ring-label {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: var(--color-primary-dark);
-    font-weight: 700;
-}
-
-.ability-ring-label span {
-    font-size: 2.6em;
-    line-height: 1;
-}
-
-.ability-ring-subtext {
-    font-size: 0.9em;
-    color: var(--color-text-medium);
+.level-card h3 {
+    margin: 0;
+    text-align: left;
 }
 
 .legacy-level-display {
     display: flex;
     align-items: baseline;
-    justify-content: center;
     gap: 6px;
     font-size: 1.8em;
     font-weight: 700;
@@ -935,38 +865,113 @@ model-viewer.avatar-viewer {
     color: var(--color-text-medium);
 }
 
-.legacy-score {
-    font-size: 0.95em;
+.legacy-progress-track {
+    position: relative;
+    height: 16px;
+    border-radius: 999px;
+    background: rgba(63, 111, 118, 0.12);
+    overflow: hidden;
+}
+
+.legacy-progress-fill {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(90deg, rgba(63, 111, 118, 0.25) 0%, rgba(111, 159, 165, 0.45) 35%, rgba(63, 111, 118, 0.25) 70%);
+    background-size: 240% 100%;
+    animation: legacyFlow var(--legacy-progress-speed, 14s) linear infinite;
+}
+
+@keyframes legacyFlow {
+    from { background-position: 0 0; }
+    to { background-position: -240% 0; }
+}
+
+.legacy-progress-text {
+    font-size: 0.9em;
+    color: var(--color-text-medium);
+    margin: 0;
+    text-align: left;
+}
+
+.legacy-score-meta {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.legacy-score-block {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.meta-label {
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 0.72em;
     color: var(--color-text-medium);
 }
 
-.legacy-perk-points {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    align-items: center;
-}
-
-.legacy-tabs {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-}
-
-.legacy-tab {
-    flex: 1;
-    padding: 10px 12px;
-    border-radius: 12px;
-    background: rgba(63, 111, 118, 0.12);
+.legacy-score-block strong {
+    font-size: 1.3em;
     color: var(--color-primary-dark);
-    border: none;
-    cursor: pointer;
-    font-weight: 600;
 }
 
-.legacy-tab.active {
-    background: var(--color-primary);
-    color: #fff;
+.perk-progress-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.perk-points-available {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.perk-points-available strong {
+    font-size: 1.6em;
+    color: var(--color-primary-dark);
+}
+
+.perk-progress-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+}
+
+.perk-progress-card {
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: rgba(63, 111, 118, 0.08);
+    border: 1px solid rgba(63, 111, 118, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.perk-progress-card h4 {
+    margin: 0;
+    text-align: left;
+    color: var(--color-primary-dark);
+}
+
+.perk-progress-card .progress-bar-container {
+    padding: 2px;
+}
+
+.perk-progress-card .progress-bar {
+    height: 10px;
+    background: linear-gradient(135deg, rgba(63, 111, 118, 0.35) 0%, rgba(63, 111, 118, 0.8) 100%);
+    box-shadow: inset 0 0 4px rgba(63, 111, 118, 0.35);
+}
+
+.perk-progress-text {
+    font-size: 0.82em;
+    color: var(--color-text-medium);
+    margin: 0;
+    text-align: left;
 }
 
 .stat-rows {
@@ -1090,8 +1095,16 @@ model-viewer.avatar-viewer {
 }
 
 @media (max-width: 520px) {
-    .ability-legacy-panel {
-        grid-template-columns: 1fr;
+    .level-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .perk-points-available {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
     }
 
     .stat-row-header {
