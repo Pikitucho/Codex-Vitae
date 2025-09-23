@@ -2,40 +2,40 @@
 
 const DEFAULT_LAYOUT = {
     galaxies: {
-        radius: 360,
-        vertical: 48,
-        jitter: 36,
-        radialJitter: 80,
-        method: 'ring',
+        radius: 920,
+        vertical: 72,
+        jitter: 64,
+        radialJitter: 140,
+        method: 'grid',
         verticalFrequency: 1.25,
-        verticalJitter: 14
+        verticalJitter: 26
     },
     constellations: {
-        radius: 140,
-        vertical: 26,
-        jitter: 18,
-        radialJitter: 32,
-        method: 'ring',
-        verticalFrequency: 2,
-        verticalJitter: 9
+        radius: 360,
+        vertical: 46,
+        jitter: 28,
+        radialJitter: 80,
+        method: 'spiral',
+        verticalFrequency: 2.4,
+        verticalJitter: 16
     },
     starSystems: {
-        radius: 60,
-        vertical: 18,
-        jitter: 12,
-        radialJitter: 18,
+        radius: 110,
+        vertical: 28,
+        jitter: 16,
+        radialJitter: 26,
         method: 'spiral',
-        verticalFrequency: 2.6,
-        verticalJitter: 6
+        verticalFrequency: 2.8,
+        verticalJitter: 8
     },
     stars: {
-        radius: 22,
-        vertical: 10,
-        jitter: 6,
-        radialJitter: 8,
+        radius: 32,
+        vertical: 12,
+        jitter: 8,
+        radialJitter: 10,
         method: 'spiral',
-        verticalFrequency: 3.6,
-        verticalJitter: 4
+        verticalFrequency: 3.8,
+        verticalJitter: 5
     }
 };
 
@@ -88,19 +88,55 @@ function buildLayoutOptions(entry, seed) {
 function createCircularPosition(index, total, radius, verticalAmplitude = 0, options = {}) {
     const safeTotal = Math.max(total || 0, 1);
     const config = options && typeof options === 'object' ? options : {};
-    const method = config.method === 'spiral' ? 'spiral' : 'ring';
+    const method = config.method === 'spiral'
+        ? 'spiral'
+        : config.method === 'grid'
+            ? 'grid'
+            : 'ring';
     const seedInput = config.seed !== undefined ? config.seed : index;
     const rng = createRandomGenerator(seedInput);
 
     const normalizedIndex = safeTotal > 1 ? index / Math.max(safeTotal - 1, 1) : 0.5;
-    const baseAngle = method === 'spiral'
-        ? index * GOLDEN_ANGLE
-        : (index % safeTotal) / safeTotal * Math.PI * 2;
-
     const radialJitter = Number.isFinite(config.radialJitter) ? config.radialJitter : 0;
     const jitter = Number.isFinite(config.jitter) ? config.jitter : 0;
     const verticalJitter = Number.isFinite(config.verticalJitter) ? config.verticalJitter : (jitter * 0.5);
     const verticalFrequency = Number.isFinite(config.verticalFrequency) ? config.verticalFrequency : 2;
+
+    if (method === 'grid') {
+        const columns = Math.ceil(Math.sqrt(safeTotal));
+        const rows = Math.ceil(safeTotal / columns);
+        const columnIndex = index % columns;
+        const rowIndex = Math.floor(index / columns);
+        const centerColumn = (columns - 1) / 2;
+        const centerRow = (rows - 1) / 2;
+        const xSpacing = columns > 1 ? (radius * 2) / (columns - 1) : 0;
+        const zSpacing = rows > 1 ? (radius * 2) / (rows - 1) : 0;
+
+        let x = columns > 1 ? (columnIndex - centerColumn) * xSpacing : 0;
+        let z = rows > 1 ? (rowIndex - centerRow) * zSpacing : 0;
+
+        const jitterAngle = rng() * Math.PI * 2;
+        if (radialJitter > 0) {
+            const radialOffset = rng() * radialJitter;
+            x += Math.cos(jitterAngle) * radialOffset;
+            z += Math.sin(jitterAngle) * radialOffset;
+        }
+
+        if (jitter > 0) {
+            x += (rng() - 0.5) * 2 * jitter;
+            z += (rng() - 0.5) * 2 * jitter;
+        }
+
+        const phase = safeTotal > 0 ? (index / safeTotal) * Math.PI * 2 : 0;
+        const baseY = verticalAmplitude ? Math.sin(phase * verticalFrequency) * verticalAmplitude : 0;
+        const y = baseY + (rng() - 0.5) * 2 * verticalJitter;
+
+        return { x, y, z };
+    }
+
+    const baseAngle = method === 'spiral'
+        ? index * GOLDEN_ANGLE
+        : (index % safeTotal) / safeTotal * Math.PI * 2;
 
     let distance = radius;
     if (method === 'spiral') {
@@ -514,6 +550,66 @@ const rawSkillTree = {
                         }
                     }
                 }
+            },
+            'Innovation & Design': {
+                type: 'constellation',
+                starSystems: {
+                    'Innovation Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Design Thinker': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 16 }, description: 'Unlocks creative problem-solving prompts in planning tools.' },
+                            'Prototype Engineer': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 18 }, description: 'Doubles progress recorded during build or experimentation chores.' },
+                            'Patent Strategist': { unlock_type: 'credential', type: 'star', requires: { proof: 'Patent Filing' }, description: 'Submit proof of being listed on a filed or granted patent.' }
+                        }
+                    }
+                }
+            },
+            'Technology & Data': {
+                type: 'constellation',
+                starSystems: {
+                    'Engineering Core': {
+                        type: 'starSystem',
+                        stars: {
+                            'Code Artisan': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 17 }, description: 'Unlocks advanced automation chores with bonus fragment rewards.' },
+                            'System Integrator': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 19 }, description: 'Improves reliability of long-running build or deploy tasks.' },
+                            'Certified Developer': { unlock_type: 'credential', type: 'star', requires: { proof: 'Certificate Upload' }, description: 'Upload proof of a professional development certification.' }
+                        }
+                    },
+                    'Data Insights': {
+                        type: 'starSystem',
+                        stars: {
+                            'Data Analyst': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 18 }, description: 'Unlocks data review chores that award extra Wisdom fragments.' },
+                            'Machine Learning Specialist': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 22 }, description: 'Occasionally doubles rewards from lengthy analysis sessions.' },
+                            'Data Steward': { unlock_type: 'credential', type: 'star', requires: { proof: 'Portfolio Link' }, description: 'Provide a portfolio demonstrating responsible data governance.' }
+                        }
+                    }
+                }
+            },
+            'Research & Insights': {
+                type: 'constellation',
+                starSystems: {
+                    'Research Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Field Researcher': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 16 }, description: 'Gain extra insights from logged interviews or observations.' },
+                            'White Paper Author': { unlock_type: 'credential', type: 'star', requires: { proof: 'Document Upload' }, description: 'Submit an original research publication or white paper.' },
+                            'Grant Winner': { unlock_type: 'credential', type: 'star', requires: { proof: 'Award Verification' }, description: 'Provide proof of a successful grant or research award.' }
+                        }
+                    }
+                }
+            },
+            'Systems & Optimization': {
+                type: 'constellation',
+                starSystems: {
+                    'Systems Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Process Architect': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 15 }, description: 'Unlocks workflow templates that reduce chore setup time.' },
+                            'Optimization Specialist': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 18 }, description: 'Provides a chance to reroll low fragment rewards.' },
+                            'Continuous Improvement Lead': { unlock_type: 'credential', type: 'star', requires: { proof: 'Case Study Upload' }, description: 'Share a detailed case study demonstrating sustained improvements.' }
+                        }
+                    }
+                }
             }
         }
     },
@@ -580,6 +676,58 @@ const rawSkillTree = {
                         stars: {
                             'Forager': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 13 }, description: 'Ability to identify useful plants and materials.' },
                             'First Aid Certified': { unlock_type: 'credential', type: 'star', requires: { proof: 'Certificate Upload' }, description: 'Upload a valid First Aid/CPR certification.' }
+                        }
+                    }
+                }
+            },
+            'Nutrition & Wellness': {
+                type: 'constellation',
+                starSystems: {
+                    'Nutrition Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Meal Planner': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 13 }, description: 'Log balanced meal plans to gain extra Constitution fragments.' },
+                            'Macro Strategist': { unlock_type: 'perk', type: 'star', requires: { stat: 'constitution', value: 16 }, description: 'Boosts recovery bonuses from endurance-focused chores.' },
+                            'Certified Nutritionist': { unlock_type: 'credential', type: 'star', requires: { proof: 'License Upload' }, description: 'Provide a copy of an accredited nutrition or dietetics license.' }
+                        }
+                    }
+                }
+            },
+            'Combat Arts': {
+                type: 'constellation',
+                starSystems: {
+                    'Combat Arts Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Martial Artist': { unlock_type: 'perk', type: 'star', requires: { stat: 'strength', value: 16 }, description: 'Unlocks combo training chores with improved fragment rewards.' },
+                            'Weapon Specialist': { unlock_type: 'perk', type: 'star', requires: { stat: 'dexterity', value: 17 }, description: 'Provides bonus progress on precision or sparring activities.' },
+                            'Black Belt': { unlock_type: 'credential', type: 'star', requires: { proof: 'Rank Verification' }, description: 'Submit documentation of achieving an advanced martial arts rank.' }
+                        }
+                    }
+                }
+            },
+            'Outdoor Exploration': {
+                type: 'constellation',
+                starSystems: {
+                    'Exploration Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Trailblazer': { unlock_type: 'perk', type: 'star', requires: { stat: 'constitution', value: 15 }, description: 'Earn extra rewards for logging long-distance hikes.' },
+                            'Mountaineer': { unlock_type: 'credential', type: 'star', requires: { proof: 'Summit Log' }, description: 'Provide proof of summiting a notable peak or expedition.' },
+                            'Wilderness Guide': { unlock_type: 'credential', type: 'star', requires: { proof: 'Certification Upload' }, description: 'Upload proof of a certified outdoor or wilderness guide credential.' }
+                        }
+                    }
+                }
+            },
+            'Recovery & Mobility': {
+                type: 'constellation',
+                starSystems: {
+                    'Recovery Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Stretching Guru': { unlock_type: 'perk', type: 'star', requires: { stat: 'dexterity', value: 14 }, description: 'Reduces fatigue penalties after intense physical chores.' },
+                            'Rehab Specialist': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 15 }, description: 'Unlocks targeted recovery plans with bonus healing progress.' },
+                            'Therapeutic Coach': { unlock_type: 'credential', type: 'star', requires: { proof: 'Certification Upload' }, description: 'Provide proof of a physical therapy or mobility coaching certification.' }
                         }
                     }
                 }
@@ -651,6 +799,58 @@ const rawSkillTree = {
                         }
                     }
                 }
+            },
+            'Emotional Intelligence': {
+                type: 'constellation',
+                starSystems: {
+                    'Empathy Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Empath': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 15 }, description: 'Provides bonus rapport when supporting allies in connected games.' },
+                            'Conflict Mediator': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 18 }, description: 'Unlocks diplomatic dialogue options during tense encounters.' },
+                            'Emotional Strategist': { unlock_type: 'credential', type: 'star', requires: { proof: 'Certification Upload' }, description: 'Submit proof of advanced emotional intelligence or coaching training.' }
+                        }
+                    }
+                }
+            },
+            'Spiritual Journey': {
+                type: 'constellation',
+                starSystems: {
+                    'Spiritual Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Pilgrim': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 14 }, description: 'Gain additional insight fragments from reflective journaling chores.' },
+                            'Retreat Leader': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 16 }, description: 'Improves morale rewards for group wellness activities.' },
+                            'Community Chaplain': { unlock_type: 'credential', type: 'star', requires: { proof: 'Ordination Proof' }, description: 'Provide documentation of ordination or recognized spiritual leadership.' }
+                        }
+                    }
+                }
+            },
+            'Narrative & Lore': {
+                type: 'constellation',
+                starSystems: {
+                    'Narrative Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Story Sage': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 17 }, description: 'Unlocks narrative planning tools with bonus inspiration fragments.' },
+                            'World Builder': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 18 }, description: 'Allows crafting of campaign settings that boost allied progress.' },
+                            'Lorekeeper': { unlock_type: 'credential', type: 'star', requires: { proof: 'Publication Link' }, description: 'Share a published work documenting a fictional or historical setting.' }
+                        }
+                    }
+                }
+            },
+            'Legacy & Purpose': {
+                type: 'constellation',
+                starSystems: {
+                    'Legacy Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Vision Architect': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 17 }, description: 'Set long-term goals with improved chance of milestone success.' },
+                            'Life Coach': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 19 }, description: 'Provides bonus support fragments when mentoring others.' },
+                            'Philanthropist': { unlock_type: 'credential', type: 'star', requires: { proof: 'Donation Verification' }, description: 'Document a sustained philanthropic commitment or foundation.' }
+                        }
+                    }
+                }
             }
         }
     },
@@ -690,6 +890,58 @@ const rawSkillTree = {
                         stars: {
                             'Tutor': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 16 }, description: 'Unlocks the ability to help other users in a future update.' },
                             'Mentor': { unlock_type: 'credential', type: 'star', requires: { proof: 'Testimonial' }, description: 'Receive a verified testimonial from a mentee.' }
+                        }
+                    }
+                }
+            },
+            'Entrepreneurship': {
+                type: 'constellation',
+                starSystems: {
+                    'Startup Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Idea Founder': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 16 }, description: 'Unlocks venture planning chores with bonus Inspiration fragments.' },
+                            'Pitch Champion': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 18 }, description: 'Improves success odds when presenting proposals or pitches.' },
+                            'Business Owner': { unlock_type: 'credential', type: 'star', requires: { proof: 'Business Registration' }, description: 'Upload proof of owning or co-founding a registered business.' }
+                        }
+                    }
+                }
+            },
+            'Advocacy & Activism': {
+                type: 'constellation',
+                starSystems: {
+                    'Advocacy Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Cause Organizer': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 15 }, description: 'Boosts the impact of mobilizing volunteers or supporters.' },
+                            'Policy Advocate': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 16 }, description: 'Unlocks policy research chores with bonus Civic fragments.' },
+                            'Change Maker': { unlock_type: 'credential', type: 'star', requires: { proof: 'Impact Report' }, description: 'Document measurable change driven by an advocacy initiative.' }
+                        }
+                    }
+                }
+            },
+            'Education Outreach': {
+                type: 'constellation',
+                starSystems: {
+                    'Education Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Workshop Host': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 17 }, description: 'Award bonus fragments for teaching live sessions or workshops.' },
+                            'Curriculum Designer': { unlock_type: 'perk', type: 'star', requires: { stat: 'intelligence', value: 17 }, description: 'Unlocks curriculum planning templates that accelerate prep work.' },
+                            'Community Professor': { unlock_type: 'credential', type: 'star', requires: { proof: 'Syllabus Upload' }, description: 'Share a syllabus or course plan taught to a community audience.' }
+                        }
+                    }
+                }
+            },
+            'Global Citizenship': {
+                type: 'constellation',
+                starSystems: {
+                    'Global Prime': {
+                        type: 'starSystem',
+                        stars: {
+                            'Language Exchange Host': { unlock_type: 'perk', type: 'star', requires: { stat: 'charisma', value: 16 }, description: 'Gain bonus rewards when organizing cross-cultural meetups.' },
+                            'Cultural Ambassador': { unlock_type: 'perk', type: 'star', requires: { stat: 'wisdom', value: 18 }, description: 'Unlocks diplomacy-oriented quests with increased fragment gains.' },
+                            'International Project Lead': { unlock_type: 'credential', type: 'star', requires: { proof: 'Project Verification' }, description: 'Provide verification of leading an international or cross-border project.' }
                         }
                     }
                 }
