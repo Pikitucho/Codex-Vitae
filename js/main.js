@@ -92,6 +92,81 @@ const STAT_KEY_METADATA = {
     soc: { legacyKey: 'charisma', label: 'SOC • Influence', shortLabel: 'SOC' }
 };
 
+const STAT_KEYS = Object.keys(STAT_KEY_METADATA);
+const LEGACY_ROLLOVER_THRESHOLD = 1000;
+
+function createEmptyLegacyStat() {
+    return { counter: 0, level: 0, totalEarned: 0 };
+}
+
+function createDefaultLegacyState() {
+    const stats = {};
+    STAT_KEYS.forEach(key => {
+        stats[key] = createEmptyLegacyStat();
+    });
+    return {
+        stats,
+        totalLevels: 0,
+        totalEarned: 0,
+        perkPoints: 0
+    };
+}
+
+function normalizeLegacyState(legacyState) {
+    if (!legacyState || typeof legacyState !== 'object') {
+        return createDefaultLegacyState();
+    }
+
+    const stats = {};
+    let totalLevels = 0;
+    let totalEarned = 0;
+
+    STAT_KEYS.forEach(key => {
+        const raw = legacyState.stats && typeof legacyState.stats === 'object' ? legacyState.stats[key] : null;
+        const rawCounter = raw && typeof raw.counter === 'number' && Number.isFinite(raw.counter)
+            ? raw.counter
+            : 0;
+        const rawLevel = raw && typeof raw.level === 'number' && Number.isFinite(raw.level)
+            ? raw.level
+            : 0;
+        const rawTotalEarned = raw && typeof raw.totalEarned === 'number' && Number.isFinite(raw.totalEarned)
+            ? raw.totalEarned
+            : rawLevel * LEGACY_ROLLOVER_THRESHOLD + rawCounter;
+
+        const counter = Math.max(0, Math.min(LEGACY_ROLLOVER_THRESHOLD - 1, Math.floor(rawCounter)));
+        const level = Math.max(0, Math.floor(rawLevel));
+        const totalEarnedValue = Math.max(0, Math.floor(rawTotalEarned));
+
+        stats[key] = { counter, level, totalEarned: totalEarnedValue };
+        totalLevels += level;
+        totalEarned += totalEarnedValue;
+    });
+
+    const fallbackLevel = typeof legacyState.totalLevels === 'number' && Number.isFinite(legacyState.totalLevels)
+        ? Math.max(totalLevels, Math.floor(legacyState.totalLevels))
+        : totalLevels;
+    const fallbackEarned = typeof legacyState.totalEarned === 'number' && Number.isFinite(legacyState.totalEarned)
+        ? Math.max(totalEarned, Math.floor(legacyState.totalEarned))
+        : totalEarned;
+    const legacyLevel = typeof legacyState.level === 'number' && Number.isFinite(legacyState.level)
+        ? Math.max(fallbackLevel, Math.floor(legacyState.level))
+        : fallbackLevel;
+    const legacyScore = typeof legacyState.score === 'number' && Number.isFinite(legacyState.score)
+        ? Math.max(fallbackEarned, Math.floor(legacyState.score))
+        : fallbackEarned;
+
+    const perkPoints = typeof legacyState.perkPoints === 'number' && Number.isFinite(legacyState.perkPoints)
+        ? Math.max(0, Math.floor(legacyState.perkPoints))
+        : Math.floor(legacyLevel / 5);
+
+    return {
+        stats,
+        totalLevels: legacyLevel,
+        totalEarned: legacyScore,
+        perkPoints
+    };
+}
+
 function getModernStatMetadataFromLegacyKey(legacyKey) {
     const entries = Object.entries(STAT_KEY_METADATA);
     for (let index = 0; index < entries.length; index += 1) {
@@ -178,12 +253,10 @@ function calculateAbilitySnapshot(stats) {
 }
 
 function updateLegacyCard(legacyState) {
-    const level = typeof legacyState?.level === 'number' ? legacyState.level : 0;
-    const rawScore = typeof legacyState?.score === 'number' ? legacyState.score : 0;
-    const score = Math.max(0, Math.round(rawScore));
-    const perkPoints = typeof legacyState?.perkPoints === 'number'
-        ? legacyState.perkPoints
-        : (typeof characterData?.skillPoints === 'number' ? characterData.skillPoints : 0);
+    const normalized = normalizeLegacyState(legacyState);
+    const level = normalized.totalLevels;
+    const score = Math.max(0, Math.round(normalized.totalEarned));
+    const perkPoints = normalized.perkPoints;
 
     const levelElement = document.getElementById('legacy-level');
     if (levelElement) {
@@ -292,7 +365,11 @@ function updatePerkProgressionMeters(summary) {
     );
 }
 
-function updateStatRows(stats, legacyShares) {
+function updateStatRows(stats, legacyState) {
+    const normalizedLegacy = normalizeLegacyState(legacyState);
+    const totalEarned = normalizedLegacy.totalEarned;
+    const totalLevels = normalizedLegacy.totalLevels;
+
     Object.entries(STAT_KEY_METADATA).forEach(([key, metadata]) => {
         const snapshot = stats[key];
         const majorBar = document.getElementById(`${key}-major-bar`);
@@ -315,7 +392,16 @@ function updateStatRows(stats, legacyShares) {
         if (confidenceElement) {
             confidenceElement.textContent = `Q ${snapshot.confidence.toFixed(2)}`;
         }
-        const legacyValue = Math.max(0, Math.min(100, legacyShares?.[key] ?? 0));
+        const statLegacy = normalizedLegacy.stats[key] || createEmptyLegacyStat();
+        let legacyValue = 0;
+        if (totalEarned > 0) {
+            legacyValue = (statLegacy.totalEarned / totalEarned) * 100;
+        } else if (totalLevels > 0) {
+            legacyValue = (statLegacy.level / totalLevels) * 100;
+        } else if (statLegacy.counter > 0) {
+            legacyValue = (statLegacy.counter / LEGACY_ROLLOVER_THRESHOLD) * 100;
+        }
+        legacyValue = Math.max(0, Math.min(100, legacyValue));
         if (legacyBar) {
             legacyBar.style.width = `${legacyValue}%`;
             legacyBar.setAttribute('aria-valuenow', legacyValue.toFixed(1));
@@ -1102,7 +1188,7 @@ async function loadData(userId) {
             statProgress: loadedCharacterData.statProgress || 0,
             statsToNextLevel: loadedCharacterData.statsToNextLevel || 10,
             skillPoints: loadedCharacterData.skillPoints || 0,
-            legacy: loadedCharacterData.legacy || { score: 0, level: 0, perkPoints: loadedCharacterData.skillPoints || 0, perStatShares: {} },
+            legacy: normalizeLegacyState(loadedCharacterData.legacy),
             statConfidence: loadedCharacterData.statConfidence || {},
             recentTrainingLoad: loadedCharacterData.recentTrainingLoad || {},
             unlockedPerks: Array.isArray(loadedCharacterData.unlockedPerks)
@@ -1239,7 +1325,7 @@ function calculateStartingStats() {
             charisma: baseStats.soc
         },
         statConfidence,
-        legacy: { score: 0, level: 0, perkPoints: 0, perStatShares: {} },
+        legacy: normalizeLegacyState(),
         recentTrainingLoad: {},
         choreProgress: {
             strength: 0,
@@ -1358,7 +1444,7 @@ function updateDashboard() {
     const ability = calculateAbilitySnapshot(statSnapshots);
     characterData.abilityNow = ability;
     updateLegacyCard(characterData.legacy);
-    updateStatRows(statSnapshots, characterData.legacy?.perStatShares);
+    updateStatRows(statSnapshots, characterData.legacy);
     updateMaintenanceHint(statSnapshots);
     updatePerkPanel();
 

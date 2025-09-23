@@ -8,9 +8,16 @@ export interface AbilityNow {
   progress01: number; // 0..1
 }
 
+export interface LegacyPerStat {
+  counter: number; // 0..1000 before rollover
+  level: number; // >= 0
+  totalEarned: number; // lifetime points contributed to this stat
+}
+
 export interface LegacyState {
-  score: number;
-  level: number;
+  stats: Record<StatKey, LegacyPerStat>;
+  totalLevels: number;
+  totalEarned: number;
   perkPoints: number;
 }
 
@@ -78,31 +85,6 @@ export interface RecalibrationComputationInput {
   recentAbility: AbilityNow;
   observations: DynamicsObservation[];
   prevDynamics: UserDynamics;
-}
-
-export interface LegacyComponentBreakdown {
-  auc: number;
-  work: number;
-  pr: number;
-  consistency: number;
-  badges: number;
-}
-
-export interface LegacyComputationInput {
-  abilityHistory: AbilityNow[];
-  trainingLoad: Partial<Record<StatKey, number>>[];
-  tokens: EvidenceToken[];
-  prEvents: { stat: StatKey; timestamp: string; weight?: number }[];
-  streaks: { stat: StatKey; days: number }[];
-  badges: { stat: StatKey; value: number }[];
-  previousScore: number;
-  previousLevel: number;
-}
-
-export interface LegacyComputationResult {
-  state: LegacyState;
-  components: LegacyComponentBreakdown;
-  perStatShares: Record<StatKey, number>;
 }
 
 export interface PerkDefinition {
