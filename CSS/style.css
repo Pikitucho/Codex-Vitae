@@ -316,6 +316,8 @@ button:active {
 
 .avatar-stage {
     position: relative;
+    width: min(72vw, 320px);
+    aspect-ratio: 5 / 8;
     width: min(78vw, 340px);
     aspect-ratio: 3 / 4;
     border-radius: 32px;
