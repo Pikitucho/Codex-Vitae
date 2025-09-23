@@ -313,7 +313,10 @@ function updateLegacyCard(legacyState) {
 
     const perkPointsElement = document.getElementById('perk-points-available');
     if (perkPointsElement) {
-        perkPointsElement.textContent = perkPoints.toString();
+        const availablePerkPoints = typeof characterData?.skillPoints === 'number' && Number.isFinite(characterData.skillPoints)
+            ? Math.max(0, Math.floor(characterData.skillPoints))
+            : perkPoints;
+        perkPointsElement.textContent = availablePerkPoints.toString();
     }
 
     updatePerkProgressionMeters({ score });
@@ -345,29 +348,41 @@ function setPerkProgressMeter(barId, textId, current, goal, textFormatter) {
 }
 
 function updatePerkProgressionMeters(summary) {
-    const totalChoreProgress = (() => {
+    const shardProgress = (() => {
         if (!characterData || typeof characterData.choreProgress !== 'object') {
-            return 0;
+            return { statKey: null, value: 0 };
         }
-        return Object.values(characterData.choreProgress).reduce((sum, value) => {
-            if (typeof value === 'number' && Number.isFinite(value)) {
-                return sum + value;
+        let leadingStat = null;
+        let leadingValue = 0;
+        Object.entries(characterData.choreProgress).forEach(([statKey, rawValue]) => {
+            const numericValue = typeof rawValue === 'number' && Number.isFinite(rawValue)
+                ? rawValue
+                : 0;
+            if (numericValue > leadingValue) {
+                leadingValue = numericValue;
+                leadingStat = statKey;
             }
-            return sum;
-        }, 0);
+        });
+        return { statKey: leadingStat, value: leadingValue };
     })();
 
-    const trackedStats = characterData && characterData.choreProgress
-        ? Object.keys(characterData.choreProgress).length
+    const shardGoal = LEGACY_ROLLOVER_THRESHOLD;
+    const rawStatsTowardPerk = typeof characterData?.legacyStatProgress === 'number' && Number.isFinite(characterData.legacyStatProgress)
+        ? Math.max(0, Math.floor(characterData.legacyStatProgress))
         : 0;
-    const defaultStatsCount = Object.keys(STAT_KEY_METADATA).length;
-    const choreGoal = Math.max(1, (trackedStats || defaultStatsCount) * 1000);
+    const perkStatGoal = 10;
+    const statsTowardPerk = rawStatsTowardPerk % perkStatGoal;
     setPerkProgressMeter(
         'perk-progress-chores-bar',
         'perk-progress-chores-text',
-        totalChoreProgress,
-        choreGoal,
-        (current, goal) => `${Math.round(current)} / ${goal.toLocaleString()} legacy momentum logged from chores.`
+        shardProgress.value,
+        shardGoal,
+        (current, goal) => {
+            const statLabel = shardProgress.statKey
+                ? getModernStatShortLabel(shardProgress.statKey)
+                : 'STAT';
+            return `${Math.round(current)} / ${goal.toLocaleString()} legacy shards toward next ${statLabel} stat. ${statsTowardPerk} / ${perkStatGoal} stats toward next perk point.`;
+        }
     );
 
     const currentQuarterId = getQuarterIdentifier(new Date());
@@ -1132,17 +1147,38 @@ let choreManager = {
 
         const chore = this.chores[choreIndex];
         
+        if (typeof characterData.choreProgress[chore.stat] !== 'number' || !Number.isFinite(characterData.choreProgress[chore.stat])) {
+            characterData.choreProgress[chore.stat] = 0;
+        }
         characterData.choreProgress[chore.stat] += chore.effort;
         const statLabel = getModernStatShortLabel(chore.stat);
-        showToast(`+${chore.effort} Legacy momentum • ${statLabel}`);
+        showToast(`+${chore.effort} Legacy shards • ${statLabel}`);
 
-        if (characterData.choreProgress[chore.stat] >= 1000) {
-            const pointsGained = Math.floor(characterData.choreProgress[chore.stat] / 1000);
-            characterData.choreProgress[chore.stat] %= 1000;
+        if (characterData.choreProgress[chore.stat] >= LEGACY_ROLLOVER_THRESHOLD) {
+            const pointsGained = Math.floor(characterData.choreProgress[chore.stat] / LEGACY_ROLLOVER_THRESHOLD);
+            characterData.choreProgress[chore.stat] %= LEGACY_ROLLOVER_THRESHOLD;
             characterData.stats[chore.stat] += pointsGained;
             levelManager.gainStatProgress(pointsGained);
             const plural = pointsGained === 1 ? 'level' : 'levels';
             showToast(`Legacy milestone! +${pointsGained} ${statLabel} ${plural}.`);
+
+            const currentLegacyStatProgress = typeof characterData.legacyStatProgress === 'number' && Number.isFinite(characterData.legacyStatProgress)
+                ? characterData.legacyStatProgress
+                : 0;
+            const updatedLegacyStatProgress = currentLegacyStatProgress + pointsGained;
+            characterData.legacyStatProgress = updatedLegacyStatProgress;
+
+            const perkPointsFromShards = Math.floor(updatedLegacyStatProgress / 10);
+            if (perkPointsFromShards > 0) {
+                characterData.legacyStatProgress = updatedLegacyStatProgress % 10;
+                const existingSkillPoints = typeof characterData.skillPoints === 'number' && Number.isFinite(characterData.skillPoints)
+                    ? characterData.skillPoints
+                    : 0;
+                characterData.skillPoints = existingSkillPoints + perkPointsFromShards;
+                const perkPlural = perkPointsFromShards === 1 ? 'Perk Point' : 'Perk Points';
+                showToast(`Legacy ascension! +${perkPointsFromShards} ${perkPlural}.`);
+                refreshStarAvailability();
+            }
         }
 
         this.chores.splice(choreIndex, 1);
@@ -1235,6 +1271,9 @@ async function loadData(userId) {
             statProgress: loadedCharacterData.statProgress || 0,
             statsToNextLevel: loadedCharacterData.statsToNextLevel || 10,
             skillPoints: loadedCharacterData.skillPoints || 0,
+            legacyStatProgress: typeof sanitizedLoadedData.legacyStatProgress === 'number' && Number.isFinite(sanitizedLoadedData.legacyStatProgress)
+                ? Math.max(0, Math.floor(sanitizedLoadedData.legacyStatProgress))
+                : 0,
             legacy: normalizeLegacyState(loadedCharacterData.legacy),
             statConfidence: loadedCharacterData.statConfidence || {},
             recentTrainingLoad: loadedCharacterData.recentTrainingLoad || {},
@@ -1383,6 +1422,7 @@ function calculateStartingStats() {
         },
         avatarUrl: '',
         skillPoints: 0,
+        legacyStatProgress: 0,
         unlockedPerks: [],
         verifiedProofs: [],
         verifiedCredentials: [],
