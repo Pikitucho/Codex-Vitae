@@ -372,6 +372,11 @@ function updatePerkProgressionMeters(summary) {
         ? Math.max(0, Math.floor(characterData.statCounter))
         : 0;
     const statsTowardPerk = rawStatsTowardPerk % STATS_PER_PERK_POINT;
+    const rawStatsTowardPerk = typeof characterData?.legacyStatProgress === 'number' && Number.isFinite(characterData.legacyStatProgress)
+        ? Math.max(0, Math.floor(characterData.legacyStatProgress))
+        : 0;
+    const perkStatGoal = 10;
+    const statsTowardPerk = rawStatsTowardPerk % perkStatGoal;
     setPerkProgressMeter(
         'perk-progress-chores-bar',
         'perk-progress-chores-text',
@@ -382,6 +387,7 @@ function updatePerkProgressionMeters(summary) {
                 ? getModernStatShortLabel(shardProgress.statKey)
                 : 'STAT';
             return `${Math.round(current)} / ${goal.toLocaleString()} legacy shards toward next ${statLabel} stat. Stat counter: ${statsTowardPerk} / ${STATS_PER_PERK_POINT}.`;
+            return `${Math.round(current)} / ${goal.toLocaleString()} legacy shards toward next ${statLabel} stat. ${statsTowardPerk} / ${perkStatGoal} stats toward next perk point.`;
         }
     );
 
@@ -1177,6 +1183,21 @@ let choreManager = {
                 characterData.skillPoints = existingSkillPoints + perkPointsFromStats;
                 const perkPlural = perkPointsFromStats === 1 ? 'Perk Point' : 'Perk Points';
                 showToast(`Legacy ascension! +${perkPointsFromStats} ${perkPlural}.`);
+            const currentLegacyStatProgress = typeof characterData.legacyStatProgress === 'number' && Number.isFinite(characterData.legacyStatProgress)
+                ? characterData.legacyStatProgress
+                : 0;
+            const updatedLegacyStatProgress = currentLegacyStatProgress + pointsGained;
+            characterData.legacyStatProgress = updatedLegacyStatProgress;
+
+            const perkPointsFromShards = Math.floor(updatedLegacyStatProgress / 10);
+            if (perkPointsFromShards > 0) {
+                characterData.legacyStatProgress = updatedLegacyStatProgress % 10;
+                const existingSkillPoints = typeof characterData.skillPoints === 'number' && Number.isFinite(characterData.skillPoints)
+                    ? characterData.skillPoints
+                    : 0;
+                characterData.skillPoints = existingSkillPoints + perkPointsFromShards;
+                const perkPlural = perkPointsFromShards === 1 ? 'Perk Point' : 'Perk Points';
+                showToast(`Legacy ascension! +${perkPointsFromShards} ${perkPlural}.`);
                 refreshStarAvailability();
             }
         }
@@ -1280,6 +1301,9 @@ async function loadData(userId) {
             statsToNextLevel: loadedCharacterData.statsToNextLevel || 10,
             skillPoints: loadedCharacterData.skillPoints || 0,
             statCounter: normalizedStatCounter,
+            legacyStatProgress: typeof sanitizedLoadedData.legacyStatProgress === 'number' && Number.isFinite(sanitizedLoadedData.legacyStatProgress)
+                ? Math.max(0, Math.floor(sanitizedLoadedData.legacyStatProgress))
+                : 0,
             legacy: normalizeLegacyState(loadedCharacterData.legacy),
             statConfidence: loadedCharacterData.statConfidence || {},
             recentTrainingLoad: loadedCharacterData.recentTrainingLoad || {},
@@ -1429,6 +1453,7 @@ function calculateStartingStats() {
         avatarUrl: '',
         skillPoints: 0,
         statCounter: 0,
+        legacyStatProgress: 0,
         unlockedPerks: [],
         verifiedProofs: [],
         verifiedCredentials: [],
