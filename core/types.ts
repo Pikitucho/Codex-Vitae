@@ -16,9 +16,38 @@ export interface LegacyPerStat {
 
 export interface LegacyState {
   stats: Record<StatKey, LegacyPerStat>;
-  totalLevels: number;
   totalEarned: number;
+}
+
+export interface CharacterProgress {
+  characterLevel: number;
+  totalStatPointsEarned: number;
+  lastMilestoneLevel: number;
+}
+
+export type PerkLedgerReason = 'level' | 'quarterly' | 'annual' | 'manual';
+
+export interface PerkLedgerEntry {
+  id: string;
+  reason: PerkLedgerReason;
+  points: number;
+  occurredAt: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PerkCurrency {
   perkPoints: number;
+  ledger: PerkLedgerEntry[];
+}
+
+export interface ActivityLogEntry {
+  date: string;
+  stat?: StatKey;
+  amount?: number;
+}
+
+export interface ActivityLog {
+  entries: ActivityLogEntry[];
 }
 
 export interface DynamicsParams {
