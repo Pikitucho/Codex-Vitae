@@ -586,6 +586,8 @@
 
                 const areaMesh = new THREE.Mesh(
                     circleGeometry || new THREE.PlaneGeometry(areaRadius * 2, areaRadius * 2, 1, 1),
+                const areaMesh = new THREE.Mesh(
+                    new THREE.CircleGeometry(areaRadius, 96),
                     new THREE.MeshStandardMaterial({
                         color: galaxyColor,
                         emissive: galaxyEmissive,
@@ -610,6 +612,29 @@
 
                 const rim = new THREE.Mesh(
                     rimGeometry,
+                    new THREE.MeshBasicMaterial({ color: haloColor, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
+                );
+                rim.rotation.x = -Math.PI / 2;
+                rim.position.y = -5;
+                group.add(rim);
+
+                const core = new THREE.Mesh(
+                    new THREE.SphereGeometry(Math.max(32, areaRadius * 0.12), 48, 48),
+                    new THREE.MeshStandardMaterial({
+                        color: galaxyColor,
+                        emissive: galaxyEmissive,
+                        emissiveIntensity: 0.9,
+                        roughness: 0.28,
+                        metalness: 0.18,
+                        transparent: true,
+                        opacity: 0.92
+                    })
+                );
+                core.position.y = 24;
+                group.add(core);
+
+                const rim = new THREE.Mesh(
+                    new THREE.RingGeometry(areaRadius + 12, areaRadius + 28, 96),
                     new THREE.MeshBasicMaterial({ color: haloColor, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
                 );
                 rim.rotation.x = -Math.PI / 2;
