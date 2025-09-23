@@ -2,10 +2,10 @@ import { makeAbilityFromValues } from '../core/ability';
 
 describe('Ability level mapping', () => {
   it.each([
-    [{ pwr: 1, acc: 1, grt: 1, cog: 1, pln: 1, soc: 1 }, 6, 0],
-    [{ pwr: 10, acc: 10, grt: 10, cog: 10, pln: 10, soc: 10 }, 60, 47],
-    [{ pwr: 15, acc: 15, grt: 15, cog: 15, pln: 15, soc: 15 }, 90, 73],
-    [{ pwr: 20, acc: 20, grt: 20, cog: 20, pln: 20, soc: 20 }, 120, 100]
+    [{ pwr: 0, acc: 0, grt: 0, cog: 0, pln: 0, soc: 0 }, 0, 0],
+    [{ pwr: 50, acc: 50, grt: 50, cog: 50, pln: 50, soc: 50 }, 300, 50],
+    [{ pwr: 75, acc: 75, grt: 75, cog: 75, pln: 75, soc: 75 }, 450, 75],
+    [{ pwr: 100, acc: 100, grt: 100, cog: 100, pln: 100, soc: 100 }, 600, 100]
   ])('maps totals to expected 0-100 levels', (values, expectedTotal, expectedLevel) => {
     const ability = makeAbilityFromValues(values);
     expect(ability.total).toBe(expectedTotal);

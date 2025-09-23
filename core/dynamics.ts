@@ -3,16 +3,16 @@ import {
   RecalibrationComputationInput,
   RecalibrationResult,
   StatKey,
-  StatSnapshot,
   TickInput,
   UserDynamics
 } from './types';
-import { CONFIDENCE_DECAY, DEFAULT_DYNAMICS, DEFAULT_HALF_LIFE_SAFEGUARD, STAT_KEYS } from './constants';
+import { CONFIDENCE_DECAY, DEFAULT_DYNAMICS, DEFAULT_HALF_LIFE_SAFEGUARD, MIN_STAT, STAT_KEYS } from './constants';
 import { calculateAbility, clampConfidence, clampStatValue } from './ability';
 import { updateLegacy } from './legacy';
 
 export interface TickComputationState {
-  stats: Record<StatKey, StatSnapshot>;
+  stats: Record<StatKey, number>;
+  confidence: Record<StatKey, number>;
   dynamics: UserDynamics;
   legacyScore: number;
 }
@@ -70,30 +70,33 @@ function deriveQualitySignal(stat: StatKey, aggregation: QualityAggregation): nu
 
 export interface TickComputationResult {
   ability: AbilityNow;
-  updatedStats: Record<StatKey, StatSnapshot>;
+  updatedStats: Record<StatKey, number>;
+  updatedConfidence: Record<StatKey, number>;
   legacy: ReturnType<typeof updateLegacy>['state'];
   legacyDetail: ReturnType<typeof updateLegacy>;
 }
 
 export function tickStats(state: TickComputationState, input: TickInput): TickComputationResult {
-  const { stats: prevStats, dynamics, legacyScore } = state;
+  const { stats: prevStats, confidence: prevConfidence, dynamics, legacyScore } = state;
   const aggregation = aggregateQuality(input.tokens);
-  const updated: Record<StatKey, StatSnapshot> = { ...prevStats } as Record<StatKey, StatSnapshot>;
+  const updatedStats: Record<StatKey, number> = {} as Record<StatKey, number>;
+  const updatedConfidence: Record<StatKey, number> = {} as Record<StatKey, number>;
 
   for (const key of STAT_KEYS) {
-    const prev = prevStats[key];
+    const prevValue = prevStats[key] ?? MIN_STAT;
+    const prevConf = prevConfidence[key] ?? 0.5;
     const params = dynamics[key] || DEFAULT_DYNAMICS[key];
     const load = input.trainingLoad[key] ?? 0;
     const qualitySignal = deriveQualitySignal(key, aggregation);
 
-    const maintenance = computeMaintenanceThreshold(prev.value, params);
+    const maintenance = computeMaintenanceThreshold(prevValue, params);
     const loadAbove = Math.max(0, load - maintenance);
-    const taper = 1 / (1 + params.gamma * Math.max(0, prev.value - 10));
+    const taper = 1 / (1 + params.gamma * Math.max(0, prevValue - 10));
     const qualityFactor = 0.25 + 0.75 * qualitySignal;
     const gain = loadAbove * params.eta0 * taper * qualityFactor;
 
-    const effectiveTau = computeEffectiveTau(prev.value, params);
-    const baseDecay = (prev.value - params.sfloor) * (1 - Math.pow(0.5, 1 / effectiveTau));
+    const effectiveTau = computeEffectiveTau(prevValue, params);
+    const baseDecay = (prevValue - params.sfloor) * (1 - Math.pow(0.5, 1 / effectiveTau));
 
     const maintenanceGap = maintenance > 0 ? (maintenance - load) / maintenance : 0;
     let decay = baseDecay;
@@ -107,23 +110,21 @@ export function tickStats(state: TickComputationState, input: TickInput): TickCo
       decay *= qualitySignal > 0.4 ? 0.55 : 0.75;
     }
 
-    let value = prev.value + gain - decay;
+    let value = prevValue + gain - decay;
     value = Math.max(params.sfloor, value);
     value = clampStatValue(value);
 
     const confidence = clampConfidence(
-      prev.confidence * CONFIDENCE_DECAY + qualitySignal * 0.5 + Math.min(0.1, loadAbove / 50)
+      prevConf * CONFIDENCE_DECAY + qualitySignal * 0.5 + Math.min(0.1, loadAbove / 50)
     );
 
-    updated[key] = {
-      value,
-      confidence
-    };
+    updatedStats[key] = value;
+    updatedConfidence[key] = confidence;
   }
 
-  const ability = calculateAbility(updated);
+  const ability = calculateAbility(updatedStats, updatedConfidence);
   const legacyResult = updateLegacy({
-    abilityHistory: [calculateAbility(prevStats), ability],
+    abilityHistory: [calculateAbility(prevStats, prevConfidence), ability],
     trainingLoad: [input.trainingLoad],
     tokens: input.tokens,
     prEvents: [],
@@ -135,7 +136,8 @@ export function tickStats(state: TickComputationState, input: TickInput): TickCo
 
   return {
     ability,
-    updatedStats: updated,
+    updatedStats,
+    updatedConfidence,
     legacy: legacyResult.state,
     legacyDetail: legacyResult
   };
@@ -155,7 +157,7 @@ export function recalibrateDynamics(input: RecalibrationComputationInput): Recal
     if (observation.averageLoad > observation.maintenanceGuess) {
       const desiredGain = observedTrend;
       const loadAbove = observation.averageLoad - observation.maintenanceGuess;
-      const taper = 1 / (1 + params.gamma * Math.max(0, recentAbility.stats[observation.stat].value - 10));
+      const taper = 1 / (1 + params.gamma * Math.max(0, recentAbility.stats[observation.stat] - 10));
       const impliedEta = desiredGain / Math.max(0.001, loadAbove * taper);
       const blendedEta = params.eta0 * (1 - 0.3 * qualityWeight) + impliedEta * 0.3 * qualityWeight;
       updated[observation.stat] = {
@@ -167,7 +169,14 @@ export function recalibrateDynamics(input: RecalibrationComputationInput): Recal
 
     // Adjust tau0 when decay observed
     if (observation.averageLoad <= observation.maintenanceGuess && observation.observedDelta < 0) {
-      const targetTau = Math.max(5, Math.min(180, Math.log(0.5) / Math.log(1 + observation.observedDelta / Math.max(1, previousAbility.stats[observation.stat].value))));
+      const targetTau = Math.max(
+        5,
+        Math.min(
+          180,
+          Math.log(0.5) /
+            Math.log(1 + observation.observedDelta / Math.max(1, previousAbility.stats[observation.stat]))
+        )
+      );
       const blendedTau = params.tau0 * (1 - 0.2 * qualityWeight) + targetTau * 0.2 * qualityWeight;
       updated[observation.stat] = {
         ...updated[observation.stat],

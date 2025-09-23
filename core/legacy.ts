@@ -73,7 +73,7 @@ function computePerStatShares(input: LegacyComputationInput, components: LegacyC
   const latestTotal = latestAbility?.total ?? 0;
 
   for (const key of STAT_KEYS) {
-    const base = latestStats ? latestStats[key].value : 0;
+    const base = latestStats ? latestStats[key] ?? 0 : 0;
     const load = input.trainingLoad.reduce((acc, day) => acc + (day[key] ?? 0), 0);
     const tokenQuality = input.tokens
       .filter(token => !token.statHint || token.statHint === key)
