@@ -239,13 +239,16 @@
 
             this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
             this.controls.enableDamping = true;
-            this.controls.dampingFactor = 0.08;
+            this.controls.dampingFactor = 0.12;
             this.controls.screenSpacePanning = true;
             this.controls.minDistance = 120;
             this.controls.maxDistance = 1600;
             this.controls.enablePan = true;
             this.controls.enableZoom = true;
             this.controls.enableRotate = true;
+            this.controls.rotateSpeed = 0.35;
+            this.controls.zoomSpeed = 0.65;
+            this.controls.panSpeed = 0.8;
             this.controls.addEventListener('start', () => this._cancelTween());
             this.controls.addEventListener('change', () => this.render());
 
@@ -267,6 +270,7 @@
             this.activeHighlight = null;
             this.tweenState = null;
             this.pointerDownInfo = null;
+            this.activeTouchPointers = new Set();
 
             this.currentView = 'galaxies';
             this.currentSelection = { galaxy: null, constellation: null, starSystem: null, star: null };
@@ -1030,27 +1034,59 @@
             domElement.addEventListener('pointermove', (event) => this._onPointerMove(event));
             domElement.addEventListener('pointerdown', (event) => this._onPointerDown(event));
             domElement.addEventListener('pointerup', (event) => this._onPointerUp(event));
+            domElement.addEventListener('pointercancel', (event) => this._onPointerCancel(event));
             domElement.addEventListener('click', (event) => this._onClick(event));
         }
 
         _onPointerDown(event) {
+            if (event.pointerType === 'touch') {
+                this.activeTouchPointers.add(event.pointerId);
+                if (this.activeTouchPointers.size > 1) {
+                    this.pointerDownInfo = null;
+                    return;
+                }
+            } else {
+                this.activeTouchPointers.clear();
+            }
             this.pointerDownInfo = {
                 x: event.clientX,
                 y: event.clientY,
-                time: performance.now()
+                time: performance.now(),
+                pointerId: event.pointerId,
+                pointerType: event.pointerType || 'mouse'
             };
         }
 
         _onPointerUp(event) {
-            if (!this.pointerDownInfo) {
+            if (event.pointerType === 'touch') {
+                this.activeTouchPointers.delete(event.pointerId);
+            }
+            const downInfo = this.pointerDownInfo;
+            if (!downInfo || downInfo.pointerId !== event.pointerId) {
+                if (!this.activeTouchPointers.size) {
+                    this.pointerDownInfo = null;
+                }
                 return;
             }
-            const distance = Math.hypot(event.clientX - this.pointerDownInfo.x, event.clientY - this.pointerDownInfo.y);
-            const elapsed = performance.now() - this.pointerDownInfo.time;
+            if (event.pointerType === 'touch' && this.activeTouchPointers.size > 0) {
+                this.pointerDownInfo = null;
+                return;
+            }
+            const distance = Math.hypot(event.clientX - downInfo.x, event.clientY - downInfo.y);
+            const elapsed = performance.now() - downInfo.time;
             if (distance < 6 && elapsed < 400) {
                 this._handleSelection(event);
             }
             this.pointerDownInfo = null;
+        }
+
+        _onPointerCancel(event) {
+            if (event.pointerType === 'touch') {
+                this.activeTouchPointers.delete(event.pointerId);
+            }
+            if (this.pointerDownInfo && this.pointerDownInfo.pointerId === event.pointerId) {
+                this.pointerDownInfo = null;
+            }
         }
 
         _onClick(event) {
@@ -1059,6 +1095,9 @@
         }
 
         _onPointerMove(event) {
+            if (event.pointerType === 'touch' && this.activeTouchPointers.size > 1) {
+                return;
+            }
             const rect = this.renderer.domElement.getBoundingClientRect();
             if (!rect.width || !rect.height) {
                 return;
