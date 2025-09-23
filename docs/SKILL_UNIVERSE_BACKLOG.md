@@ -138,7 +138,7 @@
 #### Star System: Resilience Prime
 | Star | Rarity | Unlock Method | Prerequisites | Career Paths | Bonus / Description |
 | --- | --- | --- | --- | --- | --- |
-| Toughness | Support Star | Perk | Stat: CON 14 | Emergency Services, Military Service, Occupational Health | Support Bonus — Monthly Milestone requires one less day to complete (24 instead of 25). |
+| Toughness | Support Star | Perk | Stat: CON 14 | Emergency Services, Military Service, Occupational Health | Support Bonus — Quarterly Milestone requires one less day to complete (59 instead of 60). |
 | Iron Will | Support Star | Perk | Stat: CON 20 | Emergency Services, Military Service, Occupational Health | Support Bonus — Provides a chance to maintain a weekly streak even if you miss one day. |
 
 ### Craftsmanship
