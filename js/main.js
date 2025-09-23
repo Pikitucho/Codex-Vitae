@@ -165,26 +165,27 @@ function updateCapturedPhotoElement(element, imageSrc) {
         activeElement.setAttribute('src', viewerSrc);
     }
 
-    const viewerAttributes = {
-        alt: 'Your Avatar',
-        'camera-controls': '',
-        'auto-rotate': '',
-        'interaction-prompt': 'none',
-        'camera-target': '0 1.4 0',
-        'camera-orbit': '0deg 80deg 2.9m',
-        'min-camera-orbit': '-120deg 60deg 2.6m',
-        'max-camera-orbit': '120deg 100deg 3.4m',
-        'field-of-view': '28deg',
-        'shadow-intensity': '0.65',
-        exposure: '1.1'
-    };
+    const emptyAttributes = ['camera-controls', 'auto-rotate'];
+    for (const attribute of emptyAttributes) {
+        if (activeElement.getAttribute(attribute) !== '') {
+            activeElement.setAttribute(attribute, '');
+        }
+    }
 
-    for (const [attribute, value] of Object.entries(viewerAttributes)) {
-        if (value === '') {
-            if (!activeElement.hasAttribute(attribute)) {
-                activeElement.setAttribute(attribute, '');
-            }
-        } else if (activeElement.getAttribute(attribute) !== value) {
+    const enforcedAttributes = [
+        ['alt', 'Your Avatar'],
+        ['interaction-prompt', 'none'],
+        ['camera-target', '0 1.4 0'],
+        ['camera-orbit', '0deg 80deg 2.9m'],
+        ['min-camera-orbit', '-120deg 60deg 2.6m'],
+        ['max-camera-orbit', '120deg 100deg 3.4m'],
+        ['field-of-view', '28deg'],
+        ['shadow-intensity', '0.65'],
+        ['exposure', '1.1']
+    ];
+
+    for (const [attribute, value] of enforcedAttributes) {
+        if (activeElement.getAttribute(attribute) !== value) {
             activeElement.setAttribute(attribute, value);
         }
     }
