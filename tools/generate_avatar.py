@@ -58,10 +58,11 @@ class BufferBuilder:
         return len(self.accessors) - 1
 
 
-def generate_uv_sphere(radius=0.5, lat_segments=22, lon_segments=32):
+def generate_uv_sphere(radius=0.5, lat_segments=30, lon_segments=42):
     positions = []
     normals = []
     indices = []
+
     for i in range(lat_segments + 1):
         v = i / lat_segments
         theta = v * math.pi
@@ -77,6 +78,7 @@ def generate_uv_sphere(radius=0.5, lat_segments=22, lon_segments=32):
             z = sin_phi * sin_theta
             positions.extend([radius * x, radius * y, radius * z])
             normals.extend([x, y, z])
+
     stride = lon_segments + 1
     for i in range(lat_segments):
         for j in range(lon_segments):
@@ -90,29 +92,32 @@ def generate_uv_sphere(radius=0.5, lat_segments=22, lon_segments=32):
                 second + 1,
                 first + 1,
             ])
+
     return positions, normals, indices
 
 
-def generate_cylinder(radius_top=0.5, radius_bottom=0.5, height=1.0, segments=32):
+def generate_cylinder(radius_top=0.5, radius_bottom=0.5, height=1.0, segments=42):
     positions = []
     normals = []
     indices = []
     half_height = height / 2.0
     slope = radius_bottom - radius_top
+
     for seg in range(segments + 1):
         angle = 2 * math.pi * seg / segments
         cos_a = math.cos(angle)
         sin_a = math.sin(angle)
-        # bottom ring
+
         positions.extend([radius_bottom * cos_a, -half_height, radius_bottom * sin_a])
         nx = cos_a * height
         ny = slope
         nz = sin_a * height
         length = math.sqrt(nx * nx + ny * ny + nz * nz)
         normals.extend([nx / length, ny / length, nz / length])
-        # top ring
+
         positions.extend([radius_top * cos_a, half_height, radius_top * sin_a])
         normals.extend([nx / length, ny / length, nz / length])
+
     for seg in range(segments):
         base = seg * 2
         next_base = base + 2
@@ -124,7 +129,7 @@ def generate_cylinder(radius_top=0.5, radius_bottom=0.5, height=1.0, segments=32
             next_base,
             next_base + 1,
         ])
-    # top cap
+
     top_center_index = len(positions) // 3
     positions.extend([0.0, half_height, 0.0])
     normals.extend([0.0, 1.0, 0.0])
@@ -138,7 +143,7 @@ def generate_cylinder(radius_top=0.5, radius_bottom=0.5, height=1.0, segments=32
         current = top_center_index + 1 + seg
         nxt = top_center_index + 1 + ((seg + 1) % segments)
         indices.extend([top_center_index, current, nxt])
-    # bottom cap
+
     bottom_center_index = len(positions) // 3
     positions.extend([0.0, -half_height, 0.0])
     normals.extend([0.0, -1.0, 0.0])
@@ -152,10 +157,11 @@ def generate_cylinder(radius_top=0.5, radius_bottom=0.5, height=1.0, segments=32
         current = bottom_center_index + 1 + seg
         nxt = bottom_center_index + 1 + ((seg + 1) % segments)
         indices.extend([bottom_center_index, nxt, current])
+
     return positions, normals, indices
 
 
-def generate_disk(radius=1.0, segments=48):
+def generate_disk(radius=1.0, segments=64):
     positions = [0.0, 0.0, 0.0]
     normals = [0.0, 1.0, 0.0]
     indices = []
@@ -176,10 +182,10 @@ def generate_plane(width=1.0, height=1.0):
     half_w = width / 2.0
     half_h = height / 2.0
     positions = [
-        -half_w,  half_h, 0.0,
-         half_w,  half_h, 0.0,
+        -half_w, half_h, 0.0,
+        half_w, half_h, 0.0,
         -half_w, -half_h, 0.0,
-         half_w, -half_h, 0.0,
+        half_w, -half_h, 0.0,
     ]
     normals = [
         0.0, 0.0, 1.0,
@@ -191,6 +197,40 @@ def generate_plane(width=1.0, height=1.0):
     return positions, normals, indices
 
 
+def quat_from_axis_angle(axis, angle_deg):
+    angle = math.radians(angle_deg)
+    sin_half = math.sin(angle / 2.0)
+    x, y, z = axis
+    quat = [x * sin_half, y * sin_half, z * sin_half, math.cos(angle / 2.0)]
+    length = math.sqrt(sum(component * component for component in quat))
+    if length:
+        quat = [component / length for component in quat]
+    return quat
+
+
+def multiply_quats(a, b):
+    ax, ay, az, aw = a
+    bx, by, bz, bw = b
+    return [
+        aw * bx + ax * bw + ay * bz - az * by,
+        aw * by - ax * bz + ay * bw + az * bx,
+        aw * bz + ax * by - ay * bx + az * bw,
+        aw * bw - ax * bx - ay * by - az * bz,
+    ]
+
+
+def combine_quats(*quats):
+    result = [0.0, 0.0, 0.0, 1.0]
+    for quat in quats:
+        if quat is None:
+            continue
+        result = multiply_quats(result, quat)
+    length = math.sqrt(sum(component * component for component in result))
+    if length:
+        result = [component / length for component in result]
+    return result
+
+
 def build_avatar(output_path: Path):
     builder = BufferBuilder()
     geometries = {}
@@ -200,9 +240,11 @@ def build_avatar(output_path: Path):
         pos_view = builder.add_floats(positions, target=34962)
         norm_view = builder.add_floats(normals, target=34962)
         idx_view = builder.add_indices(indices)
+
         count = len(positions) // 3
         pos_min = [min(positions[i::3]) for i in range(3)]
         pos_max = [max(positions[i::3]) for i in range(3)]
+
         pos_accessor = builder.add_accessor(
             pos_view,
             component_type=5126,
@@ -225,6 +267,7 @@ def build_avatar(output_path: Path):
             min_vals=[int(min(indices))],
             max_vals=[int(max(indices))],
         )
+
         geometries[key] = {
             "POSITION": pos_accessor,
             "NORMAL": norm_accessor,
@@ -255,25 +298,7 @@ def build_avatar(output_path: Path):
             },
         },
         {
-            "name": "Leather",
-            "pbrMetallicRoughness": {
-                "baseColorFactor": [0.36, 0.24, 0.18, 1.0],
-    register_geometry("sphere", generate_uv_sphere(radius=0.5, lat_segments=28, lon_segments=40))
-    register_geometry("cylinder", generate_cylinder(radius_top=0.5, radius_bottom=0.5, height=1.0, segments=40))
-    register_geometry("tapered", generate_cylinder(radius_top=0.4, radius_bottom=0.6, height=1.0, segments=40))
-    register_geometry("disk", generate_disk(radius=1.0, segments=60))
-
-    materials = [
-        {
-            "name": "Ground",
-            "pbrMetallicRoughness": {
-                "baseColorFactor": [0.92, 0.88, 0.82, 1.0],
-                "metallicFactor": 0.0,
-                "roughnessFactor": 0.95,
-            },
-        },
-        {
-            "name": "Boots",
+            "name": "BootShell",
             "pbrMetallicRoughness": {
                 "baseColorFactor": [0.24, 0.29, 0.36, 1.0],
                 "metallicFactor": 0.0,
@@ -281,7 +306,7 @@ def build_avatar(output_path: Path):
             },
         },
         {
-            "name": "Copper",
+            "name": "BootGuard",
             "pbrMetallicRoughness": {
                 "baseColorFactor": [0.84, 0.49, 0.27, 1.0],
                 "metallicFactor": 0.1,
@@ -289,12 +314,7 @@ def build_avatar(output_path: Path):
             },
         },
         {
-            "name": "MidnightCloth",
-            "pbrMetallicRoughness": {
-                "baseColorFactor": [0.21, 0.35, 0.56, 1.0],
-                "metallicFactor": 0.0,
-                "roughnessFactor": 0.72,
-            "name": "Pants",
+            "name": "Armor",
             "pbrMetallicRoughness": {
                 "baseColorFactor": [0.26, 0.43, 0.62, 1.0],
                 "metallicFactor": 0.0,
@@ -315,15 +335,11 @@ def build_avatar(output_path: Path):
                 "baseColorFactor": [0.95, 0.82, 0.48, 1.0],
                 "metallicFactor": 0.15,
                 "roughnessFactor": 0.35,
-                "baseColorFactor": [0.93, 0.74, 0.52, 1.0],
-                "metallicFactor": 0.0,
-                "roughnessFactor": 0.45,
             },
         },
         {
             "name": "Skin",
             "pbrMetallicRoughness": {
-                "baseColorFactor": [0.98, 0.82, 0.69, 1.0],
                 "baseColorFactor": [0.98, 0.84, 0.72, 1.0],
                 "metallicFactor": 0.0,
                 "roughnessFactor": 0.55,
@@ -352,24 +368,13 @@ def build_avatar(output_path: Path):
                 "baseColorFactor": [0.26, 0.42, 0.6, 1.0],
                 "metallicFactor": 0.05,
                 "roughnessFactor": 0.48,
-                "baseColorFactor": [0.22, 0.17, 0.12, 1.0],
-                "metallicFactor": 0.0,
-                "roughnessFactor": 0.7,
-            },
-        },
-        {
-            "name": "Accent",
-            "pbrMetallicRoughness": {
-                "baseColorFactor": [0.85, 0.42, 0.34, 1.0],
-                "metallicFactor": 0.0,
-                "roughnessFactor": 0.5,
             },
         },
     ]
 
     def make_mesh(name, geom_key, material_index):
         geom = geometries[geom_key]
-        mesh = {
+        return {
             "name": name,
             "primitives": [
                 {
@@ -382,7 +387,6 @@ def build_avatar(output_path: Path):
                 }
             ],
         }
-        return mesh
 
     meshes = [
         make_mesh("GroundBaseMesh", "disk", 0),
@@ -408,54 +412,16 @@ def build_avatar(output_path: Path):
         make_mesh("ForearmMesh", "cylinder", 10),
         make_mesh("GloveMesh", "sphere", 2),
         make_mesh("HandMesh", "sphere", 7),
-        make_mesh("GroundMesh", "disk", 0),
-        make_mesh("BootMesh", "sphere", 1),
-        make_mesh("PantMesh", "cylinder", 2),
-        make_mesh("TunicMesh", "tapered", 3),
-        make_mesh("SkinCylinderMesh", "cylinder", 4),
-        make_mesh("SkinSphereMesh", "sphere", 4),
-        make_mesh("HairMesh", "sphere", 5),
-        make_mesh("AccentMesh", "cylinder", 6),
     ]
 
-    # Helper to compute quaternion for axis-angle rotations
-    def quat_from_axis_angle(axis, angle_deg):
-        angle = math.radians(angle_deg)
-        sin_half = math.sin(angle / 2.0)
-        x, y, z = axis
-        return [
-            x * sin_half,
-            y * sin_half,
-            z * sin_half,
-            math.cos(angle / 2.0),
-        ]
-
-    def multiply_quats(a, b):
-        ax, ay, az, aw = a
-        bx, by, bz, bw = b
-        return [
-            aw * bx + ax * bw + ay * bz - az * by,
-            aw * by - ax * bz + ay * bw + az * bx,
-            aw * bz + ax * by - ay * bx + az * bw,
-            aw * bw - ax * bx - ay * by - az * bz,
-        ]
-
-    def combine_quats(*quats):
-        result = [0.0, 0.0, 0.0, 1.0]
-        for quat in quats:
-            if quat is None:
-                continue
-            result = multiply_quats(result, quat)
-        length = math.sqrt(result[0] ** 2 + result[1] ** 2 + result[2] ** 2 + result[3] ** 2)
-        if length > 0:
-            result = [component / length for component in result]
-        return result
+    def rotation_z_x(z_deg, x_deg):
+        return combine_quats(
+            quat_from_axis_angle([0, 0, 1], z_deg),
+            quat_from_axis_angle([1, 0, 0], x_deg),
+        )
 
     nodes = [
-        {
-            "name": "CodexAvatarRoot",
-            "children": list(range(1, 36)),
-        },
+        {"name": "CodexAvatarRoot", "children": []},
         {
             "name": "GroundBase",
             "mesh": 0,
@@ -626,247 +592,61 @@ def build_avatar(output_path: Path):
             "name": "UpperArmLeft",
             "mesh": 19,
             "translation": [-1.12, 1.54, 0.04],
-            "rotation": combine_quats(
-                quat_from_axis_angle([0, 0, 1], -22),
-                quat_from_axis_angle([1, 0, 0], -10),
-            ),
+            "rotation": rotation_z_x(-22, -10),
             "scale": [0.18, 0.7, 0.22],
         },
         {
             "name": "UpperArmRight",
             "mesh": 19,
             "translation": [1.12, 1.54, 0.04],
-            "rotation": combine_quats(
-                quat_from_axis_angle([0, 0, 1], 22),
-                quat_from_axis_angle([1, 0, 0], -10),
-            ),
+            "rotation": rotation_z_x(22, -10),
             "scale": [0.18, 0.7, 0.22],
         },
         {
             "name": "ForearmLeft",
             "mesh": 20,
             "translation": [-1.24, 0.96, 0.06],
-            "rotation": combine_quats(
-                quat_from_axis_angle([0, 0, 1], -18),
-                quat_from_axis_angle([1, 0, 0], -12),
-            ),
+            "rotation": rotation_z_x(-18, -12),
             "scale": [0.16, 0.62, 0.2],
         },
         {
             "name": "ForearmRight",
             "mesh": 20,
             "translation": [1.24, 0.96, 0.06],
-            "rotation": combine_quats(
-                quat_from_axis_angle([0, 0, 1], 18),
-                quat_from_axis_angle([1, 0, 0], -12),
-            ),
+            "rotation": rotation_z_x(18, -12),
             "scale": [0.16, 0.62, 0.2],
         },
         {
             "name": "GloveLeft",
             "mesh": 21,
             "translation": [-1.2, 0.6, 0.18],
-            "rotation": combine_quats(
-                quat_from_axis_angle([0, 0, 1], -12),
-                quat_from_axis_angle([1, 0, 0], -6),
-            ),
+            "rotation": rotation_z_x(-12, -6),
             "scale": [0.2, 0.2, 0.26],
         },
         {
             "name": "GloveRight",
             "mesh": 21,
             "translation": [1.2, 0.6, 0.18],
-            "rotation": combine_quats(
-                quat_from_axis_angle([0, 0, 1], 12),
-                quat_from_axis_angle([1, 0, 0], -6),
-            ),
+            "rotation": rotation_z_x(12, -6),
             "scale": [0.2, 0.2, 0.26],
         },
         {
             "name": "HandLeft",
             "mesh": 22,
             "translation": [-1.18, 0.42, 0.18],
-            "rotation": combine_quats(
-                quat_from_axis_angle([0, 0, 1], -12),
-                quat_from_axis_angle([1, 0, 0], -4),
-            ),
+            "rotation": rotation_z_x(-12, -4),
             "scale": [0.16, 0.14, 0.2],
         },
         {
             "name": "HandRight",
             "mesh": 22,
             "translation": [1.18, 0.42, 0.18],
-            "rotation": combine_quats(
-                quat_from_axis_angle([0, 0, 1], 12),
-                quat_from_axis_angle([1, 0, 0], -4),
-            ),
+            "rotation": rotation_z_x(12, -4),
             "scale": [0.16, 0.14, 0.2],
-    nodes = [
-        {
-            "name": "CodexAvatarRoot",
-            "children": list(range(1, 27)),
-        },
-        {
-            "name": "Ground",
-            "mesh": 0,
-            "translation": [0.0, -1.26, 0.0],
-            "scale": [2.6, 0.05, 2.0],
-        },
-        {
-            "name": "Pelvis",
-            "mesh": 3,
-            "translation": [0.0, -0.05, 0.02],
-            "scale": [0.6, 0.38, 0.46],
-        },
-        {
-            "name": "LowerTorso",
-            "mesh": 3,
-            "translation": [0.0, 0.42, 0.02],
-            "scale": [0.55, 0.65, 0.4],
-        },
-        {
-            "name": "UpperTorso",
-            "mesh": 3,
-            "translation": [0.0, 0.98, 0.02],
-            "scale": [0.6, 0.55, 0.42],
-        },
-        {
-            "name": "ChestBand",
-            "mesh": 7,
-            "translation": [0.0, 1.04, 0.02],
-            "scale": [0.65, 0.18, 0.45],
-        },
-        {
-            "name": "Neck",
-            "mesh": 4,
-            "translation": [0.0, 1.36, 0.02],
-            "scale": [0.18, 0.22, 0.18],
-        },
-        {
-            "name": "Head",
-            "mesh": 5,
-            "translation": [0.0, 1.62, 0.06],
-            "scale": [0.38, 0.46, 0.38],
-        },
-        {
-            "name": "HairCrown",
-            "mesh": 6,
-            "translation": [0.0, 1.82, 0.0],
-            "scale": [0.42, 0.24, 0.42],
-        },
-        {
-            "name": "HairBack",
-            "mesh": 6,
-            "translation": [0.0, 1.6, -0.28],
-            "scale": [0.36, 0.4, 0.24],
-        },
-        {
-            "name": "Fringe",
-            "mesh": 6,
-            "translation": [0.0, 1.75, 0.24],
-            "scale": [0.34, 0.18, 0.18],
-        },
-        {
-            "name": "ShoulderLeft",
-            "mesh": 5,
-            "translation": [-0.54, 1.16, 0.04],
-            "scale": [0.18, 0.2, 0.18],
-        },
-        {
-            "name": "ShoulderRight",
-            "mesh": 5,
-            "translation": [0.54, 1.16, 0.04],
-            "scale": [0.18, 0.2, 0.18],
-        },
-        {
-            "name": "UpperArmLeft",
-            "mesh": 4,
-            "translation": [-0.66, 0.88, 0.04],
-            "rotation": quat_from_axis_angle([0, 0, 1], -12),
-            "scale": [0.14, 0.54, 0.14],
-        },
-        {
-            "name": "UpperArmRight",
-            "mesh": 4,
-            "translation": [0.66, 0.88, 0.04],
-            "rotation": quat_from_axis_angle([0, 0, 1], 12),
-            "scale": [0.14, 0.54, 0.14],
-        },
-        {
-            "name": "ForearmLeft",
-            "mesh": 4,
-            "translation": [-0.68, 0.38, 0.02],
-            "rotation": quat_from_axis_angle([0, 0, 1], -6),
-            "scale": [0.12, 0.48, 0.12],
-        },
-        {
-            "name": "ForearmRight",
-            "mesh": 4,
-            "translation": [0.68, 0.38, 0.02],
-            "rotation": quat_from_axis_angle([0, 0, 1], 6),
-            "scale": [0.12, 0.48, 0.12],
-        },
-        {
-            "name": "PalmLeft",
-            "mesh": 1,
-            "translation": [-0.68, -0.02, 0.02],
-            "scale": [0.12, 0.12, 0.14],
-        },
-        {
-            "name": "PalmRight",
-            "mesh": 1,
-            "translation": [0.68, -0.02, 0.02],
-            "scale": [0.12, 0.12, 0.14],
-        },
-        {
-            "name": "UpperLegLeft",
-            "mesh": 2,
-            "translation": [-0.22, -0.38, 0.02],
-            "scale": [0.18, 0.62, 0.22],
-        },
-        {
-            "name": "UpperLegRight",
-            "mesh": 2,
-            "translation": [0.22, -0.38, 0.02],
-            "scale": [0.18, 0.62, 0.22],
-        },
-        {
-            "name": "LowerLegLeft",
-            "mesh": 2,
-            "translation": [-0.22, -0.96, 0.04],
-            "scale": [0.16, 0.58, 0.2],
-        },
-        {
-            "name": "LowerLegRight",
-            "mesh": 2,
-            "translation": [0.22, -0.96, 0.04],
-            "scale": [0.16, 0.58, 0.2],
-        },
-        {
-            "name": "BootLeft",
-            "mesh": 1,
-            "translation": [-0.22, -1.36, 0.26],
-            "scale": [0.18, 0.12, 0.3],
-        },
-        {
-            "name": "BootRight",
-            "mesh": 1,
-            "translation": [0.22, -1.36, 0.26],
-            "scale": [0.18, 0.12, 0.3],
-        },
-        {
-            "name": "BootRiseLeft",
-            "mesh": 1,
-            "translation": [-0.22, -1.2, -0.02],
-            "scale": [0.16, 0.18, 0.2],
-        },
-        {
-            "name": "BootRiseRight",
-            "mesh": 1,
-            "translation": [0.22, -1.2, -0.02],
-            "scale": [0.16, 0.18, 0.2],
         },
     ]
+
+    nodes[0]["children"] = list(range(1, len(nodes)))
 
     gltf = {
         "asset": {"version": "2.0", "generator": "Codex Vitae Avatar Generator"},
