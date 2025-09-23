@@ -20,13 +20,38 @@
     <div id="app-screen" class="hidden">
         <h2>Welcome to Your Codex</h2>
 
-        <div id="level-xp-display" class="widget">
-            <div class="flex-between">
-                <p>Level <span id="level-value">1</span></p>
-                <p id="xp-text">0 / 10 Stats</p>
+        <div class="ability-legacy-panel">
+            <div id="ability-card" class="widget ability-card" role="region" aria-label="Ability Now">
+                <h3>Ability Now</h3>
+                <div class="ability-ring" role="img" aria-label="Ability score">
+                    <svg viewBox="0 0 120 120" class="ability-ring-svg">
+                        <circle class="ability-ring-bg" cx="60" cy="60" r="52"></circle>
+                        <circle class="ability-ring-progress" cx="60" cy="60" r="52"></circle>
+                    </svg>
+                    <div class="ability-ring-label">
+                        <span id="ability-score">0</span>
+                        <p>of 100</p>
+                    </div>
+                </div>
+                <p class="ability-ring-subtext" id="ability-progress-text">Building your current capability</p>
             </div>
-            <div class="progress-bar-container">
-                <div id="xp-bar" class="progress-bar"></div>
+
+            <div id="legacy-card" class="widget legacy-card" role="region" aria-label="Legacy Progress">
+                <h3>Legacy</h3>
+                <div class="legacy-level-display">
+                    <span class="legacy-level-label">Lvl</span>
+                    <span id="legacy-level">0</span>
+                    <span class="legacy-level-infinity">∞</span>
+                </div>
+                <p id="legacy-score" class="legacy-score">Score 0</p>
+                <div class="legacy-perk-points">
+                    <span>Perk Points</span>
+                    <strong id="legacy-perk-points">0</strong>
+                </div>
+                <div class="legacy-tabs" role="tablist" aria-label="Leaderboards">
+                    <button class="legacy-tab active" data-tab="ability" aria-selected="true">Ability (Now)</button>
+                    <button class="legacy-tab" data-tab="legacy" aria-selected="false">Legacy (Grind)</button>
+                </div>
             </div>
         </div>
 
@@ -57,59 +82,111 @@
             <button id="scan-face-btn">Scan Your Face &amp; Body</button>
         </div>
 
-        <div id="perk-point-display" class="widget">
-            <div class="flex-between">
-                <h3>Perk Points: <span id="pp-total">0</span></h3>
-            </div>
-
-            <div class="milestone-progress">
-                <div class="flex-between">
-                    <p class="milestone-label">Level Milestone</p>
-                    <p id="level-milestone-text">0 / 10</p>
+        <div id="stat-panel" class="widget" role="region" aria-label="Ability stats">
+            <h3>Ability Stats</h3>
+            <div id="stat-rows" class="stat-rows" aria-live="polite">
+                <div class="stat-row" data-stat="pwr">
+                    <div class="stat-row-header">
+                        <span class="stat-row-label">PWR • Force</span>
+                        <span class="stat-row-value" id="pwr-value">--</span>
+                    </div>
+                    <div class="stat-bar major" role="progressbar" aria-valuemin="1" aria-valuemax="20" aria-valuenow="1">
+                        <div class="stat-bar-fill" id="pwr-major-bar"></div>
+                        <span class="stat-bar-text" id="pwr-major-text">--</span>
+                        <span class="stat-confidence" id="pwr-confidence">Q 0.00</span>
+                    </div>
+                    <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div class="stat-bar-fill" id="pwr-legacy-bar"></div>
+                        <span class="stat-bar-text" id="pwr-legacy-text">Legacy 0</span>
+                    </div>
                 </div>
-                <div class="progress-bar-container">
-                    <div id="level-milestone-bar" class="progress-bar"></div>
+                <div class="stat-row" data-stat="acc">
+                    <div class="stat-row-header">
+                        <span class="stat-row-label">ACC • Precision</span>
+                        <span class="stat-row-value" id="acc-value">--</span>
+                    </div>
+                    <div class="stat-bar major" role="progressbar" aria-valuemin="1" aria-valuemax="20" aria-valuenow="1">
+                        <div class="stat-bar-fill" id="acc-major-bar"></div>
+                        <span class="stat-bar-text" id="acc-major-text">--</span>
+                        <span class="stat-confidence" id="acc-confidence">Q 0.00</span>
+                    </div>
+                    <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div class="stat-bar-fill" id="acc-legacy-bar"></div>
+                        <span class="stat-bar-text" id="acc-legacy-text">Legacy 0</span>
+                    </div>
                 </div>
-            </div>
-
-            <div class="milestone-progress">
-                <div class="flex-between">
-                    <p class="milestone-label">Monthly Milestone</p>
-                    <p id="monthly-milestone-text">0 / 25 Days</p>
+                <div class="stat-row" data-stat="grt">
+                    <div class="stat-row-header">
+                        <span class="stat-row-label">GRT • Resilience</span>
+                        <span class="stat-row-value" id="grt-value">--</span>
+                    </div>
+                    <div class="stat-bar major" role="progressbar" aria-valuemin="1" aria-valuemax="20" aria-valuenow="1">
+                        <div class="stat-bar-fill" id="grt-major-bar"></div>
+                        <span class="stat-bar-text" id="grt-major-text">--</span>
+                        <span class="stat-confidence" id="grt-confidence">Q 0.00</span>
+                    </div>
+                    <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div class="stat-bar-fill" id="grt-legacy-bar"></div>
+                        <span class="stat-bar-text" id="grt-legacy-text">Legacy 0</span>
+                    </div>
                 </div>
-                <div class="progress-bar-container">
-                    <div id="monthly-milestone-bar" class="progress-bar"></div>
+                <div class="stat-row" data-stat="cog">
+                    <div class="stat-row-header">
+                        <span class="stat-row-label">COG • Intellect</span>
+                        <span class="stat-row-value" id="cog-value">--</span>
+                    </div>
+                    <div class="stat-bar major" role="progressbar" aria-valuemin="1" aria-valuemax="20" aria-valuenow="1">
+                        <div class="stat-bar-fill" id="cog-major-bar"></div>
+                        <span class="stat-bar-text" id="cog-major-text">--</span>
+                        <span class="stat-confidence" id="cog-confidence">Q 0.00</span>
+                    </div>
+                    <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div class="stat-bar-fill" id="cog-legacy-bar"></div>
+                        <span class="stat-bar-text" id="cog-legacy-text">Legacy 0</span>
+                    </div>
+                </div>
+                <div class="stat-row" data-stat="pln">
+                    <div class="stat-row-header">
+                        <span class="stat-row-label">PLN • Foresight</span>
+                        <span class="stat-row-value" id="pln-value">--</span>
+                    </div>
+                    <div class="stat-bar major" role="progressbar" aria-valuemin="1" aria-valuemax="20" aria-valuenow="1">
+                        <div class="stat-bar-fill" id="pln-major-bar"></div>
+                        <span class="stat-bar-text" id="pln-major-text">--</span>
+                        <span class="stat-confidence" id="pln-confidence">Q 0.00</span>
+                    </div>
+                    <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div class="stat-bar-fill" id="pln-legacy-bar"></div>
+                        <span class="stat-bar-text" id="pln-legacy-text">Legacy 0</span>
+                    </div>
+                </div>
+                <div class="stat-row" data-stat="soc">
+                    <div class="stat-row-header">
+                        <span class="stat-row-label">SOC • Influence</span>
+                        <span class="stat-row-value" id="soc-value">--</span>
+                    </div>
+                    <div class="stat-bar major" role="progressbar" aria-valuemin="1" aria-valuemax="20" aria-valuenow="1">
+                        <div class="stat-bar-fill" id="soc-major-bar"></div>
+                        <span class="stat-bar-text" id="soc-major-text">--</span>
+                        <span class="stat-confidence" id="soc-confidence">Q 0.00</span>
+                    </div>
+                    <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div class="stat-bar-fill" id="soc-legacy-bar"></div>
+                        <span class="stat-bar-text" id="soc-legacy-text">Legacy 0</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div id="dashboard" class="widget">
-            <h3>Core Stats</h3>
-            <div class="dashboard-grid">
-                <div class="stat-card">
-                    <p class="stat-label">Strength</p>
-                    <p id="str-value" class="stat-value">--</p>
-                </div>
-                <div class="stat-card">
-                    <p class="stat-label">Dexterity</p>
-                    <p id="dex-value" class="stat-value">--</p>
-                </div>
-                <div class="stat-card">
-                    <p class="stat-label">Constitution</p>
-                    <p id="con-value" class="stat-value">--</p>
-                </div>
-                <div class="stat-card">
-                    <p class="stat-label">Intelligence</p>
-                    <p id="int-value" class="stat-value">--</p>
-                </div>
-                <div class="stat-card">
-                    <p class="stat-label">Wisdom</p>
-                    <p id="wis-value" class="stat-value">--</p>
-                </div>
-                <div class="stat-card">
-                    <p class="stat-label">Charisma</p>
-                    <p id="cha-value" class="stat-value">--</p>
-                </div>
+        <div id="maintenance-card" class="widget maintenance-card" role="region" aria-live="polite">
+            <h3>Atrophy &amp; Maintenance</h3>
+            <p id="maintenance-message">Loading personalized guidance…</p>
+        </div>
+
+        <div id="perk-panel" class="widget" role="region" aria-label="Perks">
+            <h3>Perks</h3>
+            <div id="perk-chips" class="perk-chip-row" aria-live="polite">
+                <p class="empty-state">No perks yet. Earn Legacy points to unlock them.</p>
             </div>
         </div>
 
