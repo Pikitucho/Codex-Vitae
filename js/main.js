@@ -568,7 +568,6 @@ function updatePerkProgressionMeters(summary) {
         levelElement.textContent = characterLevel.toString();
     }
 
-    const totalStatIncreases = Math.max(0, Math.floor(normalizedLegacy.totalLevels));
     const statsTowardPerk = totalStatIncreases % STATS_PER_PERK_POINT;
     const statsProgressElement = document.getElementById('perk-stats-to-next');
     if (statsProgressElement) {
