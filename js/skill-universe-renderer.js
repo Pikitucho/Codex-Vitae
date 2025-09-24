@@ -70,6 +70,41 @@
         return Math.max(0, Math.min(1, value));
     }
 
+    if (THREE.Color && THREE.Color.prototype && typeof THREE.Color.prototype.lerp !== 'function') {
+        THREE.Color.prototype.lerp = function lerp(targetColor, alpha) {
+            const target = targetColor instanceof THREE.Color
+                ? targetColor
+                : new THREE.Color(targetColor ?? 0xffffff);
+            const t = clamp01(Number.isFinite(alpha) ? alpha : 0);
+            this.r += (target.r - this.r) * t;
+            this.g += (target.g - this.g) * t;
+            this.b += (target.b - this.b) * t;
+            return this;
+        };
+    }
+
+    function ensureColorInstance(input, fallbackHex = 0xffffff) {
+        if (input instanceof THREE.Color) {
+            return input;
+        }
+        const normalized = normalizeColorInput ? normalizeColorInput(input) : null;
+        if (normalized !== null) {
+            return new THREE.Color(normalized);
+        }
+        return new THREE.Color(fallbackHex);
+    }
+
+    function mixColors(colorA, colorB, alpha = 0.5) {
+        const from = ensureColorInstance(colorA);
+        const to = ensureColorInstance(colorB);
+        const t = clamp01(Number.isFinite(alpha) ? alpha : 0);
+        const mixed = new THREE.Color();
+        mixed.r = from.r + (to.r - from.r) * t;
+        mixed.g = from.g + (to.g - from.g) * t;
+        mixed.b = from.b + (to.b - from.b) * t;
+        return mixed;
+    }
+
     function colorToRgbaString(color, alpha = 1) {
         if (!color || typeof color.r !== 'number') {
             return `rgba(255, 255, 255, ${clamp01(alpha)})`;
@@ -100,9 +135,9 @@
         const emissiveColor = new THREE.Color(safeEmissive);
         const white = new THREE.Color(0xffffff);
         const deepSpace = new THREE.Color(0x02030b);
-        const coreColor = baseColor.clone().lerp(white, 0.55);
-        const highlightColor = emissiveColor.clone().lerp(white, 0.4);
-        const outerColor = baseColor.clone().lerp(deepSpace, 0.9);
+        const coreColor = mixColors(baseColor, white, 0.55);
+        const highlightColor = mixColors(emissiveColor, white, 0.4);
+        const outerColor = mixColors(baseColor, deepSpace, 0.9);
 
         const gradient = ctx.createRadialGradient(half, half, GALAXY_TEXTURE_SIZE * 0.06, half, half, GALAXY_TEXTURE_SIZE * 0.5);
         gradient.addColorStop(0, colorToRgbaString(coreColor, 0.95));
@@ -155,7 +190,7 @@
             const starSize = Math.pow(Math.random(), 1.8) * 7 + 1.2;
             const alpha = 0.12 + Math.random() * 0.35;
             const tint = Math.random() < 0.3
-                ? highlightColor.clone().lerp(baseColor, 0.4)
+                ? mixColors(highlightColor, baseColor, 0.4)
                 : white;
             ctx.beginPath();
             ctx.fillStyle = colorToRgbaString(tint, alpha);
@@ -272,7 +307,22 @@
     }
 
     function lerpVectors(start, end, t) {
-        return start.clone().lerp(end, t);
+        if (!start || !end) {
+            return new THREE.Vector3();
+        }
+        const toFinite = (value) => (Number.isFinite(value) ? value : 0);
+        const safeStart = start instanceof THREE.Vector3
+            ? start
+            : new THREE.Vector3(toFinite(start.x), toFinite(start.y), toFinite(start.z));
+        const safeEnd = end instanceof THREE.Vector3
+            ? end
+            : new THREE.Vector3(toFinite(end.x), toFinite(end.y), toFinite(end.z));
+        const factor = clamp01(Number.isFinite(t) ? t : 0);
+        return new THREE.Vector3(
+            safeStart.x + (safeEnd.x - safeStart.x) * factor,
+            safeStart.y + (safeEnd.y - safeStart.y) * factor,
+            safeStart.z + (safeEnd.z - safeStart.z) * factor
+        );
     }
 
     function clamp(value, min, max) {
