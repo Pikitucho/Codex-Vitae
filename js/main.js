@@ -90,6 +90,10 @@ const skillSearchInput = document.getElementById('skill-search-input');
 const skillTreePanControls = document.getElementById('skill-tree-pan-controls');
 const skillPanLeftBtn = document.getElementById('skill-pan-left');
 const skillPanRightBtn = document.getElementById('skill-pan-right');
+const authEmailInput = document.getElementById('email-input');
+const authPasswordInput = document.getElementById('password-input');
+const loginButton = document.getElementById('login-btn');
+const signupButton = document.getElementById('signup-btn');
 
 const STAT_KEY_METADATA = {
     pwr: { legacyKey: 'strength', label: 'PWR • Force', shortLabel: 'PWR' },
@@ -1335,6 +1339,7 @@ let gameManager = {};
 let currentSkillPath = [];
 let listenersInitialized = false;
 let lastAuthAction = null;
+let authRequestInFlight = false;
 let skillRenderer = null;
 const SKILL_TREE_READY_EVENT = 'skillTreeDataReady';
 
@@ -1794,18 +1799,125 @@ let choreManager = {
 };
 
 // --- AUTHENTICATION & DATA FUNCTIONS ---
-function handleSignUp() {
-    const email = document.getElementById('email-input').value;
-    const password = document.getElementById('password-input').value;
-    lastAuthAction = 'signup';
-    auth.createUserWithEmailAndPassword(email, password).catch(error => alert(error.message));
+function sanitizeEmail(value) {
+    return typeof value === 'string' ? value.trim() : '';
 }
 
-function handleLogin() {
-    const email = document.getElementById('email-input').value;
-    const password = document.getElementById('password-input').value;
-    lastAuthAction = 'login';
-    auth.signInWithEmailAndPassword(email, password).catch(error => alert(error.message));
+function getFriendlyAuthError(error, mode) {
+    if (!error) {
+        return 'Something went wrong. Please try again.';
+    }
+
+    const normalizedCode = typeof error.code === 'string' ? error.code.toLowerCase() : '';
+    const fallbackMessage = typeof error.message === 'string' && error.message.trim()
+        ? error.message
+        : 'Unable to complete the request. Please try again.';
+
+    const messageByCode = {
+        'auth/email-already-in-use': 'This email is already registered. Try logging in instead.',
+        'auth/invalid-email': 'Enter a valid email address before continuing.',
+        'auth/operation-not-allowed': 'Email and password sign-in is disabled for this project.',
+        'auth/weak-password': 'Choose a password that is at least 6 characters long.',
+        'auth/user-disabled': 'This account has been disabled. Contact support for help.',
+        'auth/user-not-found': 'No account found for that email. Double-check the address or sign up.',
+        'auth/wrong-password': 'Incorrect password. Please try again.'
+    };
+
+    if (normalizedCode === 'auth/missing-password') {
+        return mode === 'signup'
+            ? 'Create a password that is at least 6 characters long to finish signing up.'
+            : 'Enter your password to log in.';
+    }
+
+    return messageByCode[normalizedCode] || fallbackMessage;
+}
+
+function setButtonState(button, isLoading, loadingLabel) {
+    if (!button) {
+        return;
+    }
+
+    if (isLoading) {
+        if (!button.dataset.originalLabel) {
+            button.dataset.originalLabel = button.textContent;
+        }
+        button.disabled = true;
+        if (loadingLabel) {
+            button.textContent = loadingLabel;
+        }
+    } else {
+        button.disabled = false;
+        if (button.dataset.originalLabel) {
+            button.textContent = button.dataset.originalLabel;
+            delete button.dataset.originalLabel;
+        }
+    }
+}
+
+function toggleAuthButtons(isSubmitting, mode) {
+    const activeButton = mode === 'signup' ? signupButton : loginButton;
+    const passiveButton = mode === 'signup' ? loginButton : signupButton;
+    const loadingLabel = mode === 'signup' ? 'Creating Account…' : 'Logging In…';
+
+    setButtonState(activeButton, isSubmitting, loadingLabel);
+    setButtonState(passiveButton, isSubmitting);
+}
+
+async function submitEmailAuth(mode) {
+    if (authRequestInFlight) {
+        return;
+    }
+
+    const email = sanitizeEmail(authEmailInput ? authEmailInput.value : '');
+    const password = authPasswordInput ? authPasswordInput.value : '';
+
+    if (!email) {
+        showToast('Enter your email address to continue.');
+        if (authEmailInput) {
+            authEmailInput.focus();
+        }
+        return;
+    }
+
+    if (!password || password.length < 6) {
+        showToast('Enter a password that is at least 6 characters long.');
+        if (authPasswordInput) {
+            authPasswordInput.focus();
+        }
+        return;
+    }
+
+    authRequestInFlight = true;
+    lastAuthAction = mode;
+    toggleAuthButtons(true, mode);
+
+    try {
+        if (mode === 'signup') {
+            await auth.createUserWithEmailAndPassword(email, password);
+        } else {
+            await auth.signInWithEmailAndPassword(email, password);
+        }
+    } catch (error) {
+        console.error('Authentication error:', error);
+        showToast(getFriendlyAuthError(error, mode));
+    } finally {
+        authRequestInFlight = false;
+        toggleAuthButtons(false, mode);
+    }
+}
+
+function handleSignUp(event) {
+    if (event) {
+        event.preventDefault();
+    }
+    submitEmailAuth('signup');
+}
+
+function handleLogin(event) {
+    if (event) {
+        event.preventDefault();
+    }
+    submitEmailAuth('login');
 }
 
 function handleLogout() {
@@ -3149,9 +3261,30 @@ auth.onAuthStateChanged(async user => {
     }
 });
 
-document.getElementById('login-btn').addEventListener('click', handleLogin);
-document.getElementById('signup-btn').addEventListener('click', handleSignUp);
-document.getElementById('onboarding-form').addEventListener('submit', handleOnboarding);
+const authInputs = [authEmailInput, authPasswordInput].filter(Boolean);
+authInputs.forEach(input => {
+    input.addEventListener('keydown', event => {
+        if (event.key !== 'Enter') {
+            return;
+        }
+
+        event.preventDefault();
+        submitEmailAuth(event.shiftKey ? 'signup' : 'login');
+    });
+});
+
+if (loginButton) {
+    loginButton.addEventListener('click', handleLogin);
+}
+
+if (signupButton) {
+    signupButton.addEventListener('click', handleSignUp);
+}
+
+const onboardingForm = document.getElementById('onboarding-form');
+if (onboardingForm) {
+    onboardingForm.addEventListener('submit', handleOnboarding);
+}
 
 
 const skillTreeContainer = document.getElementById('skill-tree-canvas-container');

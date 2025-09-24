@@ -13,8 +13,8 @@
         <h1>Codex Vitae</h1>
         <input type="email" id="email-input" placeholder="Email">
         <input type="password" id="password-input" placeholder="Password">
-        <button id="login-btn">Login</button>
-        <button id="signup-btn">Sign Up</button>
+        <button id="login-btn" type="button">Login</button>
+        <button id="signup-btn" type="button">Sign Up</button>
     </div>
 
     <div id="app-screen" class="hidden">
@@ -42,6 +42,14 @@
         </div>
 
         <div class="avatar-hero">
+            <div class="avatar-stage is-placeholder">
+                <img
+                    id="captured-photo"
+                    class="avatar-placeholder"
+                    src="assets/avatars/codex-vitae-avatar-placeholder.svg"
+                    alt="Avatar placeholder"
+                    decoding="async"
+                />
             <div class="avatar-stage is-placeholder">
                 <img
                     id="captured-photo"
@@ -321,6 +329,14 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 
     <!-- Cache-bust core app scripts so browsers pull the latest Skill Universe fixes. -->
+    <script src="js/vendor/three.min.js?v=20240610"></script>
+    <script src="js/vendor/OrbitControls.js?v=20240610"></script>
+
+    <script src="js/skill-tree-data.js?v=20240610"></script>
+    <script src="js/skill-universe-renderer.js?v=20240610"></script>
+    <!-- Configuration values (firebase config, backend URL) -->
+    <script src="config.js?v=20240610"></script>
+    <script src="js/main.js?v=20240610"></script>
     <script src="js/vendor/three.min.js?v=20240610"></script>
     <script src="js/vendor/OrbitControls.js?v=20240610"></script>
 
