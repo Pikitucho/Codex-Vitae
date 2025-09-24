@@ -28,11 +28,10 @@ describe('stat row layout', () => {
   });
 
   it('includes perk progression overview metrics with unique identifiers', () => {
-    expect(document.getElementById('perk-character-level')).not.toBeNull();
     expect(document.getElementById('perk-stats-to-next')).not.toBeNull();
-    expect(document.getElementById('perk-leading-stat')).not.toBeNull();
-
-    expect(document.querySelectorAll('#perk-progress-legacy-bar')).toHaveLength(1);
-    expect(document.querySelectorAll('#perk-progress-legacy-text')).toHaveLength(1);
+    expect(document.querySelectorAll('#perk-progress-quarterly-bar')).toHaveLength(1);
+    expect(document.querySelectorAll('#perk-progress-quarterly-text')).toHaveLength(1);
+    expect(document.querySelectorAll('#perk-progress-yearly-bar')).toHaveLength(1);
+    expect(document.querySelectorAll('#perk-progress-yearly-text')).toHaveLength(1);
   });
 });
