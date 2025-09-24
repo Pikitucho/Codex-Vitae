@@ -38,6 +38,8 @@ const BACKEND_SERVER_URL =
     typeof codexConfig.backendUrl === 'string' ? codexConfig.backendUrl.trim() : '';
 const AI_FEATURES_AVAILABLE = BACKEND_SERVER_URL.length > 0;
 const DEFAULT_AVATAR_MODEL_SRC = 'assets/avatars/codex-vitae-avatar.gltf';
+const DEFAULT_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/avatar-placeholder-casual-park.jpg';
+const LEGACY_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/codex-vitae-avatar-placeholder.svg';
 const AVATAR_MODEL_EXTENSIONS = ['.glb', '.gltf'];
 
 if (!firebaseConfig || typeof firebaseConfig !== 'object') {
@@ -760,6 +762,24 @@ function updateCapturedPhotoElement(element, imageSrc) {
         return;
     }
 
+    const stageElement = typeof element.closest === 'function'
+        ? element.closest('.avatar-stage')
+        : (element.parentElement && element.parentElement.classList && element.parentElement.classList.contains('avatar-stage'))
+            ? element.parentElement
+            : null;
+
+    const applyStageState = (isPlaceholder) => {
+        if (!stageElement) {
+            return;
+        }
+
+        if (isPlaceholder) {
+            stageElement.classList.add('is-placeholder');
+        } else {
+            stageElement.classList.remove('is-placeholder');
+        }
+    };
+
     const ensureElementTag = (node, tagName) => {
         if (!node) {
             return null;
@@ -824,11 +844,47 @@ function updateCapturedPhotoElement(element, imageSrc) {
         activeElement.classList.remove('avatar-circle', 'avatar-placeholder');
         activeElement.classList.add('avatar-viewer');
         activeElement.classList.remove('hidden');
+        applyStageState(false);
         return;
     }
 
     activeElement = ensureElementTag(activeElement, 'MODEL-VIEWER');
     if (!activeElement) {
+        return;
+    }
+
+    if (!isModelSrc && !hasCustomValue) {
+        activeElement = ensureElementTag(activeElement, 'IMG');
+        if (!activeElement) {
+            return;
+        }
+
+        const ensurePlaceholderLoaded = (imgElement) => {
+            if (!imgElement || imgElement.dataset.placeholderPrepared === 'true') {
+                if (imgElement && imgElement.getAttribute('src') !== DEFAULT_AVATAR_PLACEHOLDER_SRC) {
+                    imgElement.setAttribute('src', DEFAULT_AVATAR_PLACEHOLDER_SRC);
+                }
+                return;
+            }
+
+            const handleError = () => {
+                if (imgElement.getAttribute('src') === DEFAULT_AVATAR_PLACEHOLDER_SRC) {
+                    imgElement.setAttribute('src', LEGACY_AVATAR_PLACEHOLDER_SRC);
+                }
+            };
+
+            imgElement.addEventListener('error', handleError);
+            imgElement.dataset.placeholderPrepared = 'true';
+            imgElement.setAttribute('src', DEFAULT_AVATAR_PLACEHOLDER_SRC);
+        };
+
+        ensurePlaceholderLoaded(activeElement);
+
+        activeElement.setAttribute('alt', 'Avatar placeholder');
+        activeElement.classList.remove('avatar-circle', 'avatar-viewer');
+        activeElement.classList.add('avatar-placeholder');
+        activeElement.classList.remove('hidden');
+        applyStageState(true);
         return;
     }
 
@@ -868,6 +924,7 @@ function updateCapturedPhotoElement(element, imageSrc) {
     activeElement.classList.remove('avatar-circle', 'avatar-placeholder');
     activeElement.classList.add('avatar-viewer');
     activeElement.classList.remove('hidden');
+    applyStageState(false);
 }
 
 const skillTreeUtils = window.SkillTreeUtils || {};
