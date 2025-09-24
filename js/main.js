@@ -368,16 +368,18 @@ function updatePerkProgressionMeters(summary) {
     })();
 
     const shardGoal = LEGACY_ROLLOVER_THRESHOLD;
-    const rawStatsTowardPerk = (() => {
+    const statsTowardPerk = (() => {
         if (typeof characterData?.statCounter === 'number' && Number.isFinite(characterData.statCounter)) {
-            return Math.max(0, Math.floor(characterData.statCounter));
+            return Math.max(0, Math.floor(characterData.statCounter)) % STATS_PER_PERK_POINT;
         }
-        if (typeof characterData?.legacyStatProgress === 'number' && Number.isFinite(characterData.legacyStatProgress)) {
-            return Math.max(0, Math.floor(characterData.legacyStatProgress));
+        if (
+            typeof characterData?.legacyStatProgress === 'number'
+            && Number.isFinite(characterData.legacyStatProgress)
+        ) {
+            return Math.max(0, Math.floor(characterData.legacyStatProgress)) % STATS_PER_PERK_POINT;
         }
         return 0;
     })();
-    const statsTowardPerk = rawStatsTowardPerk % STATS_PER_PERK_POINT;
     setPerkProgressMeter(
         'perk-progress-chores-bar',
         'perk-progress-chores-text',
