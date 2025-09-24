@@ -1,0 +1,60 @@
+<svg width="640" height="800" viewBox="0 0 640 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="120" y1="60" x2="520" y2="720" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F7FAFF" />
+      <stop offset="0.42" stop-color="#E3ECF7" />
+      <stop offset="1" stop-color="#D4E5F1" />
+    </linearGradient>
+    <radialGradient id="haloGradient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(320 256) rotate(90) scale(232 244)">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.92" />
+      <stop offset="1" stop-color="#C7D8E8" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="headGradient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(320 248) rotate(90) scale(124)">
+      <stop offset="0" stop-color="#FDF7F2" />
+      <stop offset="1" stop-color="#EACFBE" />
+    </radialGradient>
+    <linearGradient id="neckGradient" x1="320" y1="348" x2="320" y2="430" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#EED7C8" />
+      <stop offset="1" stop-color="#D8B6A1" />
+    </linearGradient>
+    <linearGradient id="shoulderGradient" x1="320" y1="392" x2="320" y2="640" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F3F7FB" />
+      <stop offset="0.58" stop-color="#D8E5F1" />
+      <stop offset="1" stop-color="#C0D7E6" />
+    </linearGradient>
+    <linearGradient id="collarGradient" x1="320" y1="408" x2="320" y2="520" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" />
+      <stop offset="1" stop-color="#E8EFF7" />
+    </linearGradient>
+    <radialGradient id="hairGradient" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(320 228) rotate(90) scale(156 168)">
+      <stop offset="0" stop-color="#F7ECE5" />
+      <stop offset="1" stop-color="#D8C3B5" />
+    </radialGradient>
+    <linearGradient id="accentGradient" x1="320" y1="556" x2="320" y2="720" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E6F0F8" />
+      <stop offset="1" stop-color="#C8DDEF" />
+    </linearGradient>
+    <filter id="softGlow" x="70" y="36" width="500" height="500" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="28" result="blur" />
+      <feBlend in="SourceGraphic" in2="blur" mode="soft-light" />
+    </filter>
+  </defs>
+  <rect x="20" y="20" width="600" height="760" rx="120" fill="url(#bgGradient)" />
+  <ellipse cx="320" cy="252" rx="220" ry="200" fill="url(#haloGradient)" />
+  <g filter="url(#softGlow)">
+    <path d="M320 96c-76 0-138 62-138 138 0 44.4 20.6 84.2 53.4 110.2-4.4 18.4-21.4 51.8-21.4 51.8 24.8-10.2 50.8-22.6 73.4-22.6h64c22.6 0 48.6 12.4 73.4 22.6 0 0-17-33.4-21.4-51.8 32.8-26 53.4-65.8 53.4-110.2 0-76-62-138-138-138z" fill="url(#hairGradient)" />
+  </g>
+  <circle cx="320" cy="256" r="112" fill="url(#headGradient)" />
+  <path d="M320 352c-28 0-54-12-54-12 2 26.4 24 60 54 60s52-33.6 54-60c0 0-26 12-54 12z" fill="#E3C8B7" />
+  <path d="M256 348c8.4 21.6 34 48 64 48s55.6-26.4 64-48c0 0-18 16-64 16s-64-16-64-16z" fill="#F5DDCE" />
+  <path d="M274 344c12 18 28 32 46 32s34-14 46-32v60c0 20-18.4 36-46 36s-46-16-46-36v-60z" fill="url(#neckGradient)" />
+  <path d="M288 240c0 10.4-6.4 18.8-14.4 18.8s-14.4-8.4-14.4-18.8 6.4-18.8 14.4-18.8 14.4 8.4 14.4 18.8z" fill="#E3BFA9" />
+  <path d="M381 240c0 10.4-6.4 18.8-14.4 18.8s-14.4-8.4-14.4-18.8 6.4-18.8 14.4-18.8 14.4 8.4 14.4 18.8z" fill="#E3BFA9" />
+  <path d="M320 318c-11.6 0-20.8-4-20.8-4 1.2 12.2 9.6 26.4 20.8 26.4 11.2 0 19.6-14.2 20.8-26.4 0 0-9.2 4-20.8 4z" fill="#D8AE9A" />
+  <path d="M320 352c-54 0-108 38-132 78.4C164 470 148 524 148 584v132h344V584c0-60-16-114-40-153.6C428 390 374 352 320 352z" fill="url(#shoulderGradient)" />
+  <path d="M320 380c-46 0-88 30-110 72 25.4 19 63 31.6 110 31.6 47 0 84.6-12.6 110-31.6-22-42-64-72-110-72z" fill="url(#collarGradient)" />
+  <path d="M208 590c0 72 52 130 112 130s112-58 112-130H208z" fill="url(#accentGradient)" />
+  <path d="M232 520c32 20 56 28 88 28s56-8 88-28l-12-24c-24 16-48 22-76 22s-52-6-76-22l-12 24z" fill="#E8EFF7" />
+  <path d="M320 428c-40 0-68 22-84 48 26 14 52 20 84 20s58-6 84-20c-16-26-44-48-84-48z" fill="#FFFFFF" fill-opacity="0.42" />
+  <ellipse cx="320" cy="658" rx="148" ry="52" fill="#BBD2E4" fill-opacity="0.28" />
+</svg>
