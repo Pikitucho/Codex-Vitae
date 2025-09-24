@@ -225,7 +225,33 @@ function normalizeCharacterStats(rawStats, defaultValue = 8) {
 }
 
 function createEmptyLegacyStat() {
-    return { counter: 0, level: 0, totalEarned: 0 };
+    return { counter: 0, legacyCounter: 0, level: 0, totalEarned: 0 };
+}
+
+function getLegacyCounterValue(stat) {
+    if (!stat || typeof stat !== 'object') {
+        return 0;
+    }
+    const legacyCounter = typeof stat.legacyCounter === 'number' && Number.isFinite(stat.legacyCounter)
+        ? stat.legacyCounter
+        : null;
+    if (legacyCounter !== null) {
+        return Math.max(0, Math.floor(legacyCounter));
+    }
+    const counter = typeof stat.counter === 'number' && Number.isFinite(stat.counter)
+        ? stat.counter
+        : 0;
+    return Math.max(0, Math.floor(counter));
+}
+
+function setLegacyCounterValue(stat, value) {
+    if (!stat || typeof stat !== 'object') {
+        return 0;
+    }
+    const sanitized = Math.max(0, Math.min(LEGACY_ROLLOVER_THRESHOLD - 1, Math.floor(value)));
+    stat.counter = sanitized;
+    stat.legacyCounter = sanitized;
+    return sanitized;
 }
 
 function createDefaultLegacyState() {
@@ -252,9 +278,7 @@ function normalizeLegacyState(legacyState) {
 
     STAT_KEYS.forEach(key => {
         const raw = legacyState.stats && typeof legacyState.stats === 'object' ? legacyState.stats[key] : null;
-        const rawCounter = raw && typeof raw.counter === 'number' && Number.isFinite(raw.counter)
-            ? raw.counter
-            : 0;
+        const rawCounter = getLegacyCounterValue(raw);
         const rawLevel = raw && typeof raw.level === 'number' && Number.isFinite(raw.level)
             ? raw.level
             : 0;
@@ -266,7 +290,11 @@ function normalizeLegacyState(legacyState) {
         const level = Math.max(0, Math.floor(rawLevel));
         const totalEarnedValue = Math.max(0, Math.floor(rawTotalEarned));
 
-        stats[key] = { counter, level, totalEarned: totalEarnedValue };
+        const normalizedStat = createEmptyLegacyStat();
+        normalizedStat.level = level;
+        normalizedStat.totalEarned = totalEarnedValue;
+        setLegacyCounterValue(normalizedStat, counter);
+        stats[key] = normalizedStat;
         totalLevels += level;
         totalEarned += totalEarnedValue;
     });
@@ -294,6 +322,87 @@ function normalizeLegacyState(legacyState) {
         totalEarned: legacyScore,
         perkPoints
     };
+}
+
+function sanitizeShardAmount(value) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+        return 0;
+    }
+    return Math.max(0, Math.round(value));
+}
+
+function extractShardAmount(value) {
+    if (typeof value === 'number') {
+        return sanitizeShardAmount(value);
+    }
+    if (!value || typeof value !== 'object') {
+        return 0;
+    }
+    const candidates = ['amount', 'value', 'shards', 'total'];
+    for (let index = 0; index < candidates.length; index += 1) {
+        const key = candidates[index];
+        if (typeof value[key] === 'number' && Number.isFinite(value[key])) {
+            return sanitizeShardAmount(value[key]);
+        }
+    }
+    return 0;
+}
+
+function extractShardBreakdown(suggestion) {
+    if (typeof suggestion === 'number') {
+        const amount = sanitizeShardAmount(suggestion);
+        return { primary: amount, secondary: 0, total: amount };
+    }
+    if (Array.isArray(suggestion)) {
+        const primary = sanitizeShardAmount(suggestion[0]);
+        const secondary = sanitizeShardAmount(suggestion[1]);
+        return { primary, secondary, total: primary + secondary };
+    }
+    if (!suggestion || typeof suggestion !== 'object') {
+        return { primary: 0, secondary: 0, total: 0 };
+    }
+
+    const primaryCandidates = [
+        suggestion.primary,
+        suggestion.primaryAmount,
+        suggestion.primary_stat,
+        suggestion.primary_shards,
+        suggestion.main,
+        suggestion.focus
+    ];
+    let primary = 0;
+    for (let index = 0; index < primaryCandidates.length && primary === 0; index += 1) {
+        primary = extractShardAmount(primaryCandidates[index]);
+    }
+
+    const secondaryCandidates = [
+        suggestion.secondary,
+        suggestion.secondaryAmount,
+        suggestion.secondary_stat,
+        suggestion.secondary_shards,
+        suggestion.offhand
+    ];
+    let secondary = 0;
+    for (let index = 0; index < secondaryCandidates.length && secondary === 0; index += 1) {
+        secondary = extractShardAmount(secondaryCandidates[index]);
+    }
+
+    const total = sanitizeShardAmount(
+        suggestion.total
+        ?? suggestion.sum
+        ?? suggestion.amount
+        ?? suggestion.total_shards
+        ?? suggestion.totalShards
+    );
+
+    return { primary, secondary, total };
+}
+
+function deriveLevelFromTotalStatIncreases(totalStatIncreases) {
+    if (!Number.isFinite(totalStatIncreases) || totalStatIncreases <= 0) {
+        return 1;
+    }
+    return Math.max(1, Math.floor(totalStatIncreases / STATS_PER_PERK_POINT) + 1);
 }
 
 function getModernStatMetadataFromLegacyKey(legacyKey) {
@@ -449,6 +558,16 @@ function setPerkProgressMeter(barId, textId, current, goal, textFormatter) {
 
 function updatePerkProgressionMeters(summary) {
     const normalizedLegacy = normalizeLegacyState(characterData?.legacy);
+    const totalStatIncreases = typeof characterData?.totalStatIncreases === 'number' && Number.isFinite(characterData.totalStatIncreases)
+        ? Math.max(0, Math.floor(characterData.totalStatIncreases))
+        : Math.max(0, Math.floor(normalizedLegacy.totalLevels));
+    const characterLevel = deriveLevelFromTotalStatIncreases(totalStatIncreases);
+    characterData.level = characterLevel;
+    const levelElement = document.getElementById('perk-character-level');
+    if (levelElement) {
+        levelElement.textContent = characterLevel.toString();
+    }
+
     const totalStatIncreases = Math.max(0, Math.floor(normalizedLegacy.totalLevels));
     const statsTowardPerk = totalStatIncreases % STATS_PER_PERK_POINT;
     const statsProgressElement = document.getElementById('perk-stats-to-next');
@@ -461,8 +580,49 @@ function updatePerkProgressionMeters(summary) {
     }
     STAT_KEYS.forEach(statKey => {
         const legacyStat = normalizedLegacy.stats[statKey] || createEmptyLegacyStat();
-        characterData.choreProgress[statKey] = legacyStat.counter;
+        characterData.choreProgress[statKey] = getLegacyCounterValue(legacyStat);
     });
+
+    const shardProgress = (() => {
+        let leadingStat = null;
+        let leadingValue = 0;
+        Object.entries(normalizedLegacy.stats).forEach(([statKey, legacyStat]) => {
+            const counter = getLegacyCounterValue(legacyStat);
+            if (counter > leadingValue) {
+                leadingValue = counter;
+                leadingStat = statKey;
+            }
+        });
+        return { statKey: leadingStat, value: leadingValue };
+    })();
+
+    const leadingStatLabel = shardProgress.statKey
+        ? getModernStatShortLabel(shardProgress.statKey)
+        : null;
+    const leadingStatElement = document.getElementById('perk-leading-stat');
+    if (leadingStatElement) {
+        if (leadingStatLabel) {
+            const shardValue = Math.round(shardProgress.value);
+            leadingStatElement.textContent = `${leadingStatLabel} • ${shardValue.toLocaleString()} / ${LEGACY_ROLLOVER_THRESHOLD.toLocaleString()}`;
+        } else {
+            leadingStatElement.textContent = '--';
+        }
+    }
+
+    const shardGoal = LEGACY_ROLLOVER_THRESHOLD;
+    setPerkProgressMeter(
+        'perk-progress-legacy-bar',
+        'perk-progress-legacy-text',
+        shardProgress.value,
+        shardGoal,
+        (current, goal) => {
+            const shardProgressText = leadingStatLabel
+                ? `${Math.round(current)} / ${goal.toLocaleString()} legacy shards toward next ${leadingStatLabel} stat.`
+                : `${Math.round(current)} / ${goal.toLocaleString()} legacy shards logged.`;
+            const perkProgressText = `${statsTowardPerk} / ${STATS_PER_PERK_POINT} stat increases counted toward next perk point.`;
+            return `${shardProgressText} ${perkProgressText}`;
+        }
+    );
 
     const currentQuarterId = getQuarterIdentifier(new Date());
     const hasQuarterData = currentQuarterId
@@ -518,9 +678,7 @@ function updateStatRows(stats, legacyState) {
         }
 
         const statLegacy = normalizedLegacy.stats[key] || createEmptyLegacyStat();
-        const counterValue = typeof statLegacy.counter === 'number' && Number.isFinite(statLegacy.counter)
-            ? Math.max(0, statLegacy.counter)
-            : 0;
+        const counterValue = getLegacyCounterValue(statLegacy);
         const levelValue = typeof statLegacy.level === 'number' && Number.isFinite(statLegacy.level)
             ? Math.max(0, Math.floor(statLegacy.level))
             : 0;
@@ -1194,27 +1352,233 @@ function dispatchSkillTreeDataReady(options = {}) {
 window.addEventListener(SKILL_TREE_READY_EVENT, handleSkillTreeDataReady);
 
 // --- Manager Logic ---
-const levelManager = {
-    gainStatProgress: function(amount) {
-        if (!characterData) return;
-        characterData.statProgress += amount;
-        while (characterData.statProgress >= characterData.statsToNextLevel) {
-            this.levelUp();
-        }
-        updateDashboard();
-    },
-    levelUp: function() {
-        characterData.level++;
-        characterData.statProgress -= characterData.statsToNextLevel;
-        showToast(`Congratulations! You've reached Level ${characterData.level}!`);
+function computeChoreShardPlan(source, fallback = {}) {
+    const normalizedSource = source && typeof source === 'object' ? source : {};
+    const normalizedFallback = fallback && typeof fallback === 'object' ? fallback : {};
 
-        if (characterData.level % 10 === 0) {
-            characterData.skillPoints++;
-            showToast(`Level ${characterData.level} Milestone! You earned a Perk Point!`);
-            refreshStarAvailability();
+    const fallbackStat = normalizedFallback.stat ?? normalizedSource.stat;
+    const fallbackEffort = normalizedFallback.effort ?? normalizedSource.effort;
+    const fallbackTotal = (() => {
+        const sanitized = sanitizeShardAmount(fallbackEffort);
+        return sanitized > 0 ? sanitized : 10;
+    })();
+
+    let primaryStatKey = getStatKeyFromAny(
+        normalizedSource.primary_stat
+        ?? normalizedSource.primaryStat
+        ?? normalizedFallback.primary_stat
+        ?? fallbackStat
+    );
+    if (!primaryStatKey) {
+        primaryStatKey = 'grt';
+    }
+    const secondaryStatKey = getStatKeyFromAny(
+        normalizedSource.secondary_stat
+        ?? normalizedSource.secondaryStat
+        ?? normalizedFallback.secondary_stat
+        ?? normalizedFallback.secondaryStat
+    );
+
+    const suggestion = normalizedSource.suggested_shards
+        ?? normalizedSource.shards
+        ?? normalizedFallback.suggested_shards;
+    const breakdown = extractShardBreakdown(suggestion);
+
+    let primaryAmount = breakdown.primary;
+    let secondaryAmount = breakdown.secondary;
+    let desiredTotal = breakdown.total;
+
+    if (primaryAmount <= 0) {
+        const fallbackFromEffort = sanitizeShardAmount(normalizedSource.effort ?? fallbackEffort);
+        primaryAmount = fallbackFromEffort > 0 ? fallbackFromEffort : fallbackTotal;
+    }
+    if (primaryAmount <= 0) {
+        primaryAmount = fallbackTotal;
+    }
+
+    if (secondaryAmount < 0) {
+        secondaryAmount = 0;
+    }
+
+    const explicitTotal = sanitizeShardAmount(
+        normalizedSource.totalShards
+        ?? normalizedSource.total_shards
+        ?? normalizedFallback.totalShards
+    );
+    if (explicitTotal > 0) {
+        desiredTotal = explicitTotal;
+    }
+
+    if (secondaryStatKey && secondaryAmount <= 0 && desiredTotal > primaryAmount) {
+        secondaryAmount = Math.max(0, desiredTotal - primaryAmount);
+    }
+
+    let totalShards = primaryAmount;
+    if (secondaryStatKey && secondaryAmount > 0) {
+        totalShards += secondaryAmount;
+    }
+
+    if (desiredTotal > 0) {
+        if (totalShards === 0) {
+            primaryAmount = desiredTotal;
+            secondaryAmount = 0;
+            totalShards = desiredTotal;
+        } else if (totalShards < desiredTotal) {
+            if (secondaryStatKey) {
+                secondaryAmount = Math.max(0, desiredTotal - primaryAmount);
+                totalShards = primaryAmount + secondaryAmount;
+            } else {
+                primaryAmount = desiredTotal;
+                totalShards = desiredTotal;
+            }
         }
     }
-};
+
+    if (totalShards <= 0) {
+        primaryAmount = Math.max(1, fallbackTotal);
+        secondaryAmount = 0;
+        totalShards = primaryAmount;
+    }
+
+    const plan = {
+        primary: { stat: primaryStatKey, amount: primaryAmount },
+        secondary: null,
+        total: totalShards
+    };
+
+    if (secondaryStatKey && secondaryAmount > 0) {
+        plan.secondary = { stat: secondaryStatKey, amount: secondaryAmount };
+        plan.total = primaryAmount + secondaryAmount;
+    } else {
+        plan.total = primaryAmount;
+    }
+
+    return plan;
+}
+
+function formatChoreShardDetails(shards) {
+    if (!shards || typeof shards !== 'object') {
+        return '';
+    }
+    const segments = [];
+    const primary = shards.primary;
+    if (primary && typeof primary === 'object') {
+        const amount = sanitizeShardAmount(primary.amount);
+        if (amount > 0) {
+            const statLabel = getModernStatShortLabel(primary.stat);
+            segments.push(`+${amount} ${statLabel}`);
+        }
+    }
+    const secondary = shards.secondary;
+    if (secondary && typeof secondary === 'object') {
+        const amount = sanitizeShardAmount(secondary.amount);
+        if (amount > 0) {
+            const statLabel = getModernStatShortLabel(secondary.stat);
+            segments.push(`+${amount} ${statLabel}`);
+        }
+    }
+    return segments.join(' • ');
+}
+
+function getChoreShardEntries(chore) {
+    if (!chore || typeof chore !== 'object') {
+        return [];
+    }
+
+    const entries = [];
+    const shards = chore.shards && typeof chore.shards === 'object' ? chore.shards : null;
+
+    if (shards && shards.primary && typeof shards.primary === 'object') {
+        const primaryStatKey = getStatKeyFromAny(shards.primary.stat ?? chore.stat) || 'grt';
+        let primaryAmount = sanitizeShardAmount(shards.primary.amount);
+        if (primaryAmount <= 0) {
+            primaryAmount = sanitizeShardAmount(shards.primary.value);
+        }
+        if (primaryAmount <= 0) {
+            primaryAmount = sanitizeShardAmount(shards.primary.shards);
+        }
+        if (primaryAmount <= 0) {
+            primaryAmount = sanitizeShardAmount(chore.effort ?? chore.totalShards);
+        }
+        if (primaryAmount > 0) {
+            entries.push({ stat: primaryStatKey, amount: primaryAmount });
+        }
+    }
+
+    if (shards && shards.secondary && typeof shards.secondary === 'object') {
+        const secondaryStatKey = getStatKeyFromAny(shards.secondary.stat);
+        let secondaryAmount = sanitizeShardAmount(shards.secondary.amount);
+        if (secondaryAmount <= 0) {
+            secondaryAmount = sanitizeShardAmount(shards.secondary.value);
+        }
+        if (secondaryAmount <= 0) {
+            secondaryAmount = sanitizeShardAmount(shards.secondary.shards);
+        }
+        if (secondaryStatKey && secondaryAmount > 0) {
+            entries.push({ stat: secondaryStatKey, amount: secondaryAmount });
+        }
+    }
+
+    if (entries.length === 0) {
+        const fallbackStatKey = getStatKeyFromAny(chore.stat) || 'grt';
+        let fallbackAmount = sanitizeShardAmount(chore.effort ?? chore.totalShards);
+        if (fallbackAmount <= 0) {
+            fallbackAmount = 10;
+        }
+        entries.push({ stat: fallbackStatKey, amount: fallbackAmount });
+    }
+
+    return entries;
+}
+
+function normalizeStoredChore(chore) {
+    if (!chore || typeof chore !== 'object') {
+        return null;
+    }
+
+    const text = typeof chore.text === 'string' ? chore.text : '';
+    if (!text) {
+        return null;
+    }
+
+    const shardPlan = computeChoreShardPlan(chore, {
+        stat: chore.stat ?? chore.primary_stat,
+        effort: chore.effort ?? chore.totalShards
+    });
+    const primaryShard = {
+        stat: shardPlan.primary.stat,
+        amount: sanitizeShardAmount(shardPlan.primary.amount) || 0
+    };
+    const secondaryShard = shardPlan.secondary
+        ? {
+            stat: shardPlan.secondary.stat,
+            amount: sanitizeShardAmount(shardPlan.secondary.amount) || 0
+        }
+        : null;
+    const totalShards = (() => {
+        const total = sanitizeShardAmount(shardPlan.total);
+        const computed = primaryShard.amount + (secondaryShard ? secondaryShard.amount : 0);
+        const fallback = computed > 0 ? computed : sanitizeShardAmount(chore.effort ?? chore.totalShards);
+        return total > 0 ? total : (fallback > 0 ? fallback : 10);
+    })();
+
+    const identifier = typeof chore.id === 'number' && Number.isFinite(chore.id)
+        ? chore.id
+        : Date.now() + Math.floor(Math.random() * 1000);
+
+    return {
+        id: identifier,
+        text,
+        stat: primaryShard.stat,
+        effort: totalShards,
+        totalShards,
+        shards: {
+            primary: primaryShard,
+            secondary: secondaryShard
+        },
+        completed: Boolean(chore.completed)
+    };
+}
 
 let choreManager = {
     chores: [],
@@ -1222,91 +1586,140 @@ let choreManager = {
         if (!text) return;
 
         const classification = await getAIChoreClassification(text);
-        const stat = getStatKeyFromAny(classification?.stat) || 'grt';
-        const effort = typeof classification?.effort === 'number' && Number.isFinite(classification.effort)
-            ? Math.max(0, classification.effort)
-            : 10;
+        const shardPlan = computeChoreShardPlan(classification, {
+            stat: classification?.stat,
+            effort: classification?.effort
+        });
+        const primaryShard = {
+            stat: shardPlan.primary.stat,
+            amount: sanitizeShardAmount(shardPlan.primary.amount) || 0
+        };
+        const secondaryShard = shardPlan.secondary
+            ? {
+                stat: shardPlan.secondary.stat,
+                amount: sanitizeShardAmount(shardPlan.secondary.amount) || 0
+            }
+            : null;
+        const totalShards = (() => {
+            const total = sanitizeShardAmount(shardPlan.total);
+            const computed = primaryShard.amount + (secondaryShard ? secondaryShard.amount : 0);
+            const fallback = computed > 0 ? computed : sanitizeShardAmount(classification?.effort);
+            return total > 0 ? total : (fallback > 0 ? fallback : 10);
+        })();
 
         const newChore = {
             id: Date.now(),
             text: text,
-            stat,
-            effort,
+            stat: primaryShard.stat,
+            effort: totalShards,
+            totalShards,
+            shards: {
+                primary: primaryShard,
+                secondary: secondaryShard
+            },
             completed: false
         };
         this.chores.push(newChore);
         updateDashboard();
     },
-    completeChore: function(choreId) {
+    applyShards: function(choreId) {
         const choreIndex = this.chores.findIndex(c => c.id === choreId);
         if (choreIndex === -1) return;
 
         const chore = this.chores[choreIndex];
-        const statKey = getStatKeyFromAny(chore.stat) || 'grt';
-        const effortValue = typeof chore.effort === 'number' && Number.isFinite(chore.effort)
-            ? Math.max(0, chore.effort)
-            : 0;
-        const shardGain = Math.round(effortValue);
+        const shardEntries = getChoreShardEntries(chore);
+        if (!Array.isArray(shardEntries) || shardEntries.length === 0) {
+            this.chores.splice(choreIndex, 1);
+            updateDashboard();
+            return;
+        }
 
         if (!characterData.choreProgress || typeof characterData.choreProgress !== 'object') {
             characterData.choreProgress = createEmptyPerStatMap(0);
         }
 
-        const normalizedLegacy = normalizeLegacyState(characterData.legacy);
-        characterData.legacy = normalizedLegacy;
-
-        const legacyStat = normalizedLegacy.stats[statKey] || createEmptyLegacyStat();
-        normalizedLegacy.stats[statKey] = legacyStat;
-
-        legacyStat.counter += shardGain;
-        legacyStat.totalEarned += shardGain;
-        normalizedLegacy.totalEarned += shardGain;
-
-        characterData.choreProgress[statKey] = legacyStat.counter;
-
-        const statLabel = getModernStatShortLabel(statKey);
-        showToast(`+${shardGain} Legacy shards • ${statLabel}`);
-
         if (!characterData.stats || typeof characterData.stats !== 'object') {
             characterData.stats = normalizeCharacterStats({});
         }
 
-        if (legacyStat.counter >= LEGACY_ROLLOVER_THRESHOLD) {
-            const pointsGained = Math.floor(legacyStat.counter / LEGACY_ROLLOVER_THRESHOLD);
-            legacyStat.counter -= pointsGained * LEGACY_ROLLOVER_THRESHOLD;
-            characterData.choreProgress[statKey] = legacyStat.counter;
-            legacyStat.level += pointsGained;
-            normalizedLegacy.totalLevels += pointsGained;
+        const normalizedLegacy = normalizeLegacyState(characterData.legacy);
+        const baseLegacyLevels = Math.max(0, Math.floor(normalizedLegacy.totalLevels));
+        const baseLegacyEarned = Math.max(0, Math.floor(normalizedLegacy.totalEarned));
+        characterData.legacy = normalizedLegacy;
 
-            const currentStatValue = typeof characterData.stats[statKey] === 'number' && Number.isFinite(characterData.stats[statKey])
-                ? characterData.stats[statKey]
-                : 0;
-            const updatedStatValue = clampMajorStatValue(currentStatValue + pointsGained);
-            characterData.stats[statKey] = updatedStatValue;
+        let totalShardsAwarded = 0;
+        let totalStatIncreasesGained = 0;
 
-            levelManager.gainStatProgress(pointsGained);
-            const plural = pointsGained === 1 ? 'level' : 'levels';
-            showToast(`Legacy milestone! +${pointsGained} ${statLabel} ${plural}.`);
-
-            const currentStatCounter = typeof characterData.statCounter === 'number' && Number.isFinite(characterData.statCounter)
-                ? characterData.statCounter
-                : 0;
-            const updatedStatCounter = currentStatCounter + pointsGained;
-            characterData.statCounter = updatedStatCounter;
-
-            const perkPointsFromStats = Math.floor(updatedStatCounter / STATS_PER_PERK_POINT);
-            if (perkPointsFromStats > 0) {
-                characterData.statCounter = updatedStatCounter % STATS_PER_PERK_POINT;
-                const existingSkillPoints = typeof characterData.skillPoints === 'number' && Number.isFinite(characterData.skillPoints)
-                    ? characterData.skillPoints
-                    : 0;
-                characterData.skillPoints = existingSkillPoints + perkPointsFromStats;
-                const perkPlural = perkPointsFromStats === 1 ? 'Perk Point' : 'Perk Points';
-                showToast(`Legacy ascension! +${perkPointsFromStats} ${perkPlural}.`);
-                refreshStarAvailability();
+        shardEntries.forEach(entry => {
+            const statKey = getStatKeyFromAny(entry.stat) || 'grt';
+            const shardGain = sanitizeShardAmount(entry.amount);
+            if (shardGain <= 0) {
+                return;
             }
 
-            characterData.legacyStatProgress = characterData.statCounter;
+            totalShardsAwarded += shardGain;
+
+            const legacyStat = normalizedLegacy.stats[statKey] || createEmptyLegacyStat();
+            normalizedLegacy.stats[statKey] = legacyStat;
+
+            const currentCounter = getLegacyCounterValue(legacyStat);
+            let updatedCounter = currentCounter + shardGain;
+            let rollovers = 0;
+            while (updatedCounter >= LEGACY_ROLLOVER_THRESHOLD) {
+                updatedCounter -= LEGACY_ROLLOVER_THRESHOLD;
+                rollovers += 1;
+            }
+
+            setLegacyCounterValue(legacyStat, updatedCounter);
+            const statLabel = getModernStatShortLabel(statKey);
+            showToast(`+${shardGain} Legacy shards • ${statLabel}`);
+
+            legacyStat.totalEarned = Math.max(0, Math.floor(legacyStat.totalEarned || 0)) + shardGain;
+            characterData.choreProgress[statKey] = getLegacyCounterValue(legacyStat);
+
+            if (rollovers > 0) {
+                const currentLevel = typeof legacyStat.level === 'number' && Number.isFinite(legacyStat.level)
+                    ? Math.max(0, Math.floor(legacyStat.level))
+                    : 0;
+                legacyStat.level = currentLevel + rollovers;
+                totalStatIncreasesGained += rollovers;
+
+                const currentStatValue = typeof characterData.stats[statKey] === 'number' && Number.isFinite(characterData.stats[statKey])
+                    ? characterData.stats[statKey]
+                    : 0;
+                const updatedStatValue = clampMajorStatValue(currentStatValue + rollovers);
+                characterData.stats[statKey] = updatedStatValue;
+
+                const plural = rollovers === 1 ? 'level' : 'levels';
+                showToast(`Legacy milestone! +${rollovers} ${statLabel} ${plural}.`);
+            }
+        });
+
+        normalizedLegacy.totalLevels = baseLegacyLevels + totalStatIncreasesGained;
+        normalizedLegacy.totalEarned = baseLegacyEarned + totalShardsAwarded;
+
+        const existingTotalStatIncreases = typeof characterData.totalStatIncreases === 'number' && Number.isFinite(characterData.totalStatIncreases)
+            ? Math.max(0, Math.floor(characterData.totalStatIncreases))
+            : baseLegacyLevels;
+        const updatedTotalStatIncreases = existingTotalStatIncreases + totalStatIncreasesGained;
+        characterData.totalStatIncreases = updatedTotalStatIncreases;
+
+        const previousLevel = deriveLevelFromTotalStatIncreases(existingTotalStatIncreases);
+        const nextLevel = deriveLevelFromTotalStatIncreases(updatedTotalStatIncreases);
+        characterData.level = nextLevel;
+
+        if (!Number.isFinite(characterData.skillPoints)) {
+            characterData.skillPoints = 0;
+        }
+
+        if (nextLevel > previousLevel) {
+            const levelsGained = nextLevel - previousLevel;
+            const perkPlural = levelsGained === 1 ? 'Perk Point' : 'Perk Points';
+            characterData.skillPoints = Math.max(0, Math.floor(characterData.skillPoints)) + levelsGained;
+            showToast(`Level up! Level ${nextLevel}. +${levelsGained} ${perkPlural}.`);
+            refreshStarAvailability();
+        } else {
+            characterData.skillPoints = Math.max(0, Math.floor(characterData.skillPoints));
         }
 
         this.chores.splice(choreIndex, 1);
@@ -1389,17 +1802,13 @@ async function loadData(userId) {
             : Boolean(loadedCharacterData.monthlyPerkClaimed);
 
         const sanitizedLoadedData = { ...loadedCharacterData };
-        const storedStatCounter = typeof sanitizedLoadedData.statCounter === 'number' && Number.isFinite(sanitizedLoadedData.statCounter)
-            ? Math.max(0, Math.floor(sanitizedLoadedData.statCounter))
-            : null;
-        const legacyStatProgressCarry = typeof sanitizedLoadedData.legacyStatProgress === 'number' && Number.isFinite(sanitizedLoadedData.legacyStatProgress)
-            ? Math.max(0, Math.floor(sanitizedLoadedData.legacyStatProgress))
-            : 0;
-        const normalizedStatCounter = (storedStatCounter !== null ? storedStatCounter : legacyStatProgressCarry) % STATS_PER_PERK_POINT;
         delete sanitizedLoadedData.monthlyActivityLog;
         delete sanitizedLoadedData.activityLogMonth;
         delete sanitizedLoadedData.monthlyPerkClaimed;
         delete sanitizedLoadedData.legacyStatProgress;
+        delete sanitizedLoadedData.statCounter;
+        delete sanitizedLoadedData.statProgress;
+        delete sanitizedLoadedData.statsToNextLevel;
 
         const normalizedLegacy = normalizeLegacyState(loadedCharacterData.legacy);
         const normalizedStats = normalizeCharacterStats(loadedCharacterData.stats);
@@ -1413,26 +1822,29 @@ async function loadData(userId) {
         );
         const normalizedChoreProgress = createEmptyPerStatMap(statKey => {
             const legacyStat = normalizedLegacy.stats[statKey] || createEmptyLegacyStat();
-            return legacyStat.counter;
+            return getLegacyCounterValue(legacyStat);
         });
         const normalizedChores = Array.isArray(loadedCharacterData.chores)
-            ? loadedCharacterData.chores.map(chore => {
-                if (!chore || typeof chore !== 'object') {
-                    return chore;
-                }
-                const statKey = getStatKeyFromAny(chore.stat) || 'grt';
-                return { ...chore, stat: statKey };
-            })
+            ? loadedCharacterData.chores
+                .map(normalizeStoredChore)
+                .filter(chore => chore && typeof chore === 'object')
             : [];
+
+        const storedTotalStatIncreases = typeof sanitizedLoadedData.totalStatIncreases === 'number' && Number.isFinite(sanitizedLoadedData.totalStatIncreases)
+            ? Math.max(0, Math.floor(sanitizedLoadedData.totalStatIncreases))
+            : null;
+        const normalizedTotalStatIncreases = storedTotalStatIncreases !== null
+            ? storedTotalStatIncreases
+            : Math.max(0, Math.floor(normalizedLegacy.totalLevels));
+        const normalizedSkillPoints = typeof loadedCharacterData.skillPoints === 'number' && Number.isFinite(loadedCharacterData.skillPoints)
+            ? Math.max(0, Math.floor(loadedCharacterData.skillPoints))
+            : 0;
 
         characterData = {
             ...sanitizedLoadedData,
-            level: loadedCharacterData.level || 1,
-            statProgress: loadedCharacterData.statProgress || 0,
-            statsToNextLevel: loadedCharacterData.statsToNextLevel || 10,
-            skillPoints: loadedCharacterData.skillPoints || 0,
-            statCounter: normalizedStatCounter,
-            legacyStatProgress: normalizedStatCounter,
+            level: deriveLevelFromTotalStatIncreases(normalizedTotalStatIncreases),
+            totalStatIncreases: normalizedTotalStatIncreases,
+            skillPoints: normalizedSkillPoints,
             legacy: normalizedLegacy,
             stats: normalizedStats,
             statConfidence: normalizedStatConfidence,
@@ -1485,7 +1897,7 @@ async function loadData(userId) {
 async function getAIChoreClassification(text) {
     if (!AI_FEATURES_AVAILABLE) {
         console.info('AI classification skipped because backendUrl is not configured.');
-        return { stat: 'constitution', effort: 10 };
+        return { primary_stat: 'constitution', stat: 'constitution', suggested_shards: { primary: 10 }, effort: 10 };
     }
 
     try {
@@ -1501,11 +1913,14 @@ async function getAIChoreClassification(text) {
         }
 
         const data = await response.json();
-        return data; // { stat, effort }
+        if (!data || typeof data !== 'object') {
+            return { primary_stat: 'constitution', stat: 'constitution', suggested_shards: { primary: 10 }, effort: 10 };
+        }
+        return data;
     } catch (error) {
         console.error("AI classification failed:", error);
         showToast("AI classification failed. Assigning a default chore.");
-        return { stat: 'constitution', effort: 10 };
+        return { primary_stat: 'constitution', stat: 'constitution', suggested_shards: { primary: 10 }, effort: 10 };
     }
 }
 
@@ -1552,8 +1967,7 @@ function calculateStartingStats() {
 
     characterData = {
         level: 1,
-        statProgress: 0,
-        statsToNextLevel: 10,
+        totalStatIncreases: 0,
         stats: normalizedStats,
         statConfidence,
         legacy: normalizedLegacy,
@@ -1561,8 +1975,6 @@ function calculateStartingStats() {
         choreProgress: { ...emptyPerStat },
         avatarUrl: '',
         skillPoints: 0,
-        statCounter: 0,
-        legacyStatProgress: 0,
         unlockedPerks: [],
         verifiedProofs: [],
         verifiedCredentials: [],
@@ -1680,12 +2092,16 @@ function updateDashboard() {
         choreManager.chores.forEach(chore => {
             const li = document.createElement('li');
             li.className = 'chore-item';
+            const detailText = formatChoreShardDetails(chore.shards);
+            const detailMarkup = detailText
+                ? `<span class="chore-details">(${detailText})</span>`
+                : '';
             li.innerHTML = `
                 <span>${chore.text}</span>
-                <span class="chore-details">(+${chore.effort} ${getModernStatShortLabel(chore.stat)})</span>
+                ${detailMarkup}
                 <button class="complete-chore-btn">✓</button>
             `;
-            li.querySelector('.complete-chore-btn').addEventListener('click', () => choreManager.completeChore(chore.id));
+            li.querySelector('.complete-chore-btn').addEventListener('click', () => choreManager.applyShards(chore.id));
             choreList.appendChild(li);
         });
     }

@@ -4,6 +4,7 @@ import {
   createEmptyCharacterProgress,
   createEmptyLegacyState,
   createEmptyPerkCurrency,
+  deriveCharacterLevel,
   LEGACY_ROLLOVER_THRESHOLD,
   normalizeCharacterProgress,
   normalizeLegacyState
@@ -149,5 +150,92 @@ describe('Legacy progression (Acceptance Tests §9.1–§9.4)', () => {
         expect.objectContaining({ id: 'level:10', points: 1, reason: 'level' })
       ])
     );
+  });
+});
+
+describe('Legacy shard regression coverage', () => {
+  it('carries remainder shards forward after a rollover', () => {
+    const legacy = createEmptyLegacyState();
+    legacy.stats.cog = {
+      counter: 995,
+      level: 4,
+      totalEarned: 4 * LEGACY_ROLLOVER_THRESHOLD + 995
+    };
+    const seededLegacy = normalizeLegacyState(legacy);
+    const ability = makeAbilityFromValues({ pwr: 12, acc: 11, grt: 10, cog: 14, pln: 9, soc: 9 });
+
+    const result = addLegacyProgress({
+      legacy: seededLegacy,
+      ability,
+      stat: 'cog',
+      amount: 30,
+      progress: createEmptyCharacterProgress(),
+      perkCurrency: createEmptyPerkCurrency()
+    });
+
+    expect(result.levelsGained).toBe(1);
+    expect(result.legacy.stats.cog.counter).toBe((995 + 30) % LEGACY_ROLLOVER_THRESHOLD);
+    expect(result.progress.totalStatPointsEarned).toBe(1);
+    expect(result.legacy.stats.cog.level).toBe(5);
+  });
+
+  it('handles multiple rollovers while preserving stat totals', () => {
+    const legacy = createEmptyLegacyState();
+    legacy.stats.acc = {
+      counter: 200,
+      level: 3,
+      totalEarned: 3 * LEGACY_ROLLOVER_THRESHOLD + 200
+    };
+    const seededLegacy = normalizeLegacyState(legacy);
+    const ability = makeAbilityFromValues({ pwr: 13, acc: 17, grt: 12, cog: 11, pln: 10, soc: 10 });
+
+    const amount = LEGACY_ROLLOVER_THRESHOLD * 2 + 650;
+    const result = addLegacyProgress({
+      legacy: seededLegacy,
+      ability,
+      stat: 'acc',
+      amount,
+      progress: createEmptyCharacterProgress(),
+      perkCurrency: createEmptyPerkCurrency()
+    });
+
+    expect(result.levelsGained).toBe(Math.floor((200 + amount) / LEGACY_ROLLOVER_THRESHOLD));
+    expect(result.legacy.stats.acc.counter).toBe((200 + amount) % LEGACY_ROLLOVER_THRESHOLD);
+    expect(result.progress.totalStatPointsEarned).toBe(result.levelsGained);
+    expect(result.legacy.stats.acc.level).toBe(3 + result.levelsGained);
+    expect(result.legacy.totalEarned).toBe(seededLegacy.totalEarned + amount);
+  });
+
+  it('increments character level and perk currency on level-up thresholds', () => {
+    const ability = makeAbilityFromValues({ pwr: 10, acc: 10, grt: 10, cog: 10, pln: 10, soc: 10 });
+    let legacy = createEmptyLegacyState();
+    let progress = createEmptyCharacterProgress();
+    let wallet = createEmptyPerkCurrency();
+
+    const first = addLegacyProgress({
+      legacy,
+      ability,
+      stat: 'pwr',
+      amount: LEGACY_ROLLOVER_THRESHOLD,
+      progress,
+      perkCurrency: wallet
+    });
+
+    expect(first.progress.totalStatPointsEarned).toBe(1);
+    expect(first.progress.characterLevel).toBe(deriveCharacterLevel(1));
+    expect(first.perkCurrency.perkPoints).toBe(0);
+
+    const second = addLegacyProgress({
+      legacy: first.legacy,
+      ability: first.ability,
+      stat: 'pwr',
+      amount: LEGACY_ROLLOVER_THRESHOLD * 9,
+      progress: first.progress,
+      perkCurrency: first.perkCurrency
+    });
+
+    expect(second.progress.totalStatPointsEarned).toBe(10);
+    expect(second.progress.characterLevel).toBe(deriveCharacterLevel(10));
+    expect(second.perkCurrency.perkPoints).toBe(0);
   });
 });
