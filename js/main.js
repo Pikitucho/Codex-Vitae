@@ -39,14 +39,15 @@ if (!codexConfig || typeof codexConfig !== 'object') {
 const firebaseConfig = codexConfig.firebaseConfig;
 const BACKEND_SERVER_URL =
     typeof codexConfig.backendUrl === 'string' ? codexConfig.backendUrl.trim() : '';
-const AI_FEATURES_AVAILABLE = BACKEND_SERVER_URL.length > 0;const AVATAR_ASSETS = Object.freeze({
+const AI_FEATURES_AVAILABLE = BACKEND_SERVER_URL.length > 0;
+const AVATAR_ASSETS = Object.freeze({
     modelSrc: 'assets/avatars/codex-vitae-avatar.gltf',
-    placeholderSrc: 'assets/avatars/codex-vitae-avatar-placeholder.svg',
+    placeholderSrc: 'assets/avatars/avatar-placeholder-casual-park.jpg',
     legacyPlaceholderSrc: 'assets/avatars/avatar-placeholder-casual-park.jpg',
     modelExtensions: Object.freeze(['.glb', '.gltf'])
 });
 const DEFAULT_AVATAR_MODEL_SRC = 'assets/avatars/codex-vitae-avatar.gltf';
-const DEFAULT_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/codex-vitae-avatar-placeholder.svg';
+const DEFAULT_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/avatar-placeholder-casual-park.jpg';
 const LEGACY_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/avatar-placeholder-casual-park.jpg';
 const AVATAR_MODEL_EXTENSIONS = ['.glb', '.gltf'];
 
