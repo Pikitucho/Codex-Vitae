@@ -349,6 +349,22 @@ function setPerkProgressMeter(barId, textId, current, goal, textFormatter) {
 }
 
 function updatePerkProgressionMeters(summary) {
+    const normalizedLegacy = normalizeLegacyState(characterData?.legacy);
+    const characterLevel = typeof characterData?.level === 'number' && Number.isFinite(characterData.level)
+        ? Math.max(1, Math.floor(characterData.level))
+        : Math.max(1, Math.floor(normalizedLegacy.totalLevels) || 1);
+    const levelElement = document.getElementById('perk-character-level');
+    if (levelElement) {
+        levelElement.textContent = characterLevel.toString();
+    }
+
+    const totalStatIncreases = Math.max(0, Math.floor(normalizedLegacy.totalLevels));
+    const statsTowardPerk = totalStatIncreases % STATS_PER_PERK_POINT;
+    const statsProgressElement = document.getElementById('perk-stats-to-next');
+    if (statsProgressElement) {
+        statsProgressElement.textContent = `${statsTowardPerk} / ${STATS_PER_PERK_POINT}`;
+    }
+
     const shardProgress = (() => {
         if (!characterData || typeof characterData.choreProgress !== 'object') {
             return { statKey: null, value: 0 };
@@ -367,30 +383,30 @@ function updatePerkProgressionMeters(summary) {
         return { statKey: leadingStat, value: leadingValue };
     })();
 
+    const leadingStatLabel = shardProgress.statKey
+        ? getModernStatShortLabel(shardProgress.statKey)
+        : null;
+    const leadingStatElement = document.getElementById('perk-leading-stat');
+    if (leadingStatElement) {
+        if (leadingStatLabel) {
+            const shardValue = Math.round(shardProgress.value);
+            leadingStatElement.textContent = `${leadingStatLabel} • ${shardValue.toLocaleString()} / ${LEGACY_ROLLOVER_THRESHOLD.toLocaleString()}`;
+        } else {
+            leadingStatElement.textContent = '--';
+        }
+    }
+
     const shardGoal = LEGACY_ROLLOVER_THRESHOLD;
-    const statsTowardPerk = (() => {
-        if (typeof characterData?.statCounter === 'number' && Number.isFinite(characterData.statCounter)) {
-            return Math.max(0, Math.floor(characterData.statCounter)) % STATS_PER_PERK_POINT;
-        }
-        if (
-            typeof characterData?.legacyStatProgress === 'number'
-            && Number.isFinite(characterData.legacyStatProgress)
-        ) {
-            return Math.max(0, Math.floor(characterData.legacyStatProgress)) % STATS_PER_PERK_POINT;
-        }
-        return 0;
-    })();
     setPerkProgressMeter(
-        'perk-progress-chores-bar',
-        'perk-progress-chores-text',
+        'perk-progress-legacy-bar',
+        'perk-progress-legacy-text',
         shardProgress.value,
         shardGoal,
         (current, goal) => {
-            const statLabel = shardProgress.statKey
-                ? getModernStatShortLabel(shardProgress.statKey)
-                : 'STAT';
-            const shardProgressText = `${Math.round(current)} / ${goal.toLocaleString()} legacy shards toward next ${statLabel} stat.`;
-            const perkProgressText = `${statsTowardPerk} / ${STATS_PER_PERK_POINT} stats toward next perk point.`;
+            const shardProgressText = leadingStatLabel
+                ? `${Math.round(current)} / ${goal.toLocaleString()} legacy shards toward next ${leadingStatLabel} stat.`
+                : `${Math.round(current)} / ${goal.toLocaleString()} legacy shards logged.`;
+            const perkProgressText = `${statsTowardPerk} / ${STATS_PER_PERK_POINT} stat increases counted toward next perk point.`;
             return `${shardProgressText} ${perkProgressText}`;
         }
     );
