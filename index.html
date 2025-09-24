@@ -76,14 +76,17 @@
                         <span class="stat-row-label">PWR • Force</span>
                         <span class="stat-row-value" id="pwr-value">--</span>
                     </div>
-                    <div class="stat-bar major" role="progressbar" aria-valuemin="1" aria-valuemax="20" aria-valuenow="1">
+                    <div class="stat-bar major" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                         <div class="stat-bar-fill" id="pwr-major-bar"></div>
                         <span class="stat-bar-text" id="pwr-major-text">--</span>
                         <span class="stat-confidence" id="pwr-confidence">Q 0.00</span>
                     </div>
-                    <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                        <div class="stat-bar-fill" id="pwr-legacy-bar"></div>
-                        <span class="stat-bar-text" id="pwr-legacy-text">Legacy 0</span>
+                    <div class="stat-legacy-row">
+                        <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0">
+                            <div class="stat-bar-fill" id="pwr-legacy-bar"></div>
+                            <span class="stat-bar-text" id="pwr-legacy-text">Lvl 0</span>
+                        </div>
+                        <span class="legacy-counter" id="pwr-legacy-counter">0 / 1000</span>
                     </div>
                 </div>
                 <div class="stat-row" data-stat="acc">
@@ -91,14 +94,17 @@
                         <span class="stat-row-label">ACC • Precision</span>
                         <span class="stat-row-value" id="acc-value">--</span>
                     </div>
-                    <div class="stat-bar major" role="progressbar" aria-valuemin="1" aria-valuemax="20" aria-valuenow="1">
+                    <div class="stat-bar major" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                         <div class="stat-bar-fill" id="acc-major-bar"></div>
                         <span class="stat-bar-text" id="acc-major-text">--</span>
                         <span class="stat-confidence" id="acc-confidence">Q 0.00</span>
                     </div>
-                    <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                        <div class="stat-bar-fill" id="acc-legacy-bar"></div>
-                        <span class="stat-bar-text" id="acc-legacy-text">Legacy 0</span>
+                    <div class="stat-legacy-row">
+                        <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0">
+                            <div class="stat-bar-fill" id="acc-legacy-bar"></div>
+                            <span class="stat-bar-text" id="acc-legacy-text">Lvl 0</span>
+                        </div>
+                        <span class="legacy-counter" id="acc-legacy-counter">0 / 1000</span>
                     </div>
                 </div>
                 <div class="stat-row" data-stat="grt">
@@ -106,14 +112,17 @@
                         <span class="stat-row-label">GRT • Resilience</span>
                         <span class="stat-row-value" id="grt-value">--</span>
                     </div>
-                    <div class="stat-bar major" role="progressbar" aria-valuemin="1" aria-valuemax="20" aria-valuenow="1">
+                    <div class="stat-bar major" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                         <div class="stat-bar-fill" id="grt-major-bar"></div>
                         <span class="stat-bar-text" id="grt-major-text">--</span>
                         <span class="stat-confidence" id="grt-confidence">Q 0.00</span>
                     </div>
-                    <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                        <div class="stat-bar-fill" id="grt-legacy-bar"></div>
-                        <span class="stat-bar-text" id="grt-legacy-text">Legacy 0</span>
+                    <div class="stat-legacy-row">
+                        <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0">
+                            <div class="stat-bar-fill" id="grt-legacy-bar"></div>
+                            <span class="stat-bar-text" id="grt-legacy-text">Lvl 0</span>
+                        </div>
+                        <span class="legacy-counter" id="grt-legacy-counter">0 / 1000</span>
                     </div>
                 </div>
                 <div class="stat-row" data-stat="cog">
@@ -121,14 +130,17 @@
                         <span class="stat-row-label">COG • Intellect</span>
                         <span class="stat-row-value" id="cog-value">--</span>
                     </div>
-                    <div class="stat-bar major" role="progressbar" aria-valuemin="1" aria-valuemax="20" aria-valuenow="1">
+                    <div class="stat-bar major" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                         <div class="stat-bar-fill" id="cog-major-bar"></div>
                         <span class="stat-bar-text" id="cog-major-text">--</span>
                         <span class="stat-confidence" id="cog-confidence">Q 0.00</span>
                     </div>
-                    <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                        <div class="stat-bar-fill" id="cog-legacy-bar"></div>
-                        <span class="stat-bar-text" id="cog-legacy-text">Legacy 0</span>
+                    <div class="stat-legacy-row">
+                        <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0">
+                            <div class="stat-bar-fill" id="cog-legacy-bar"></div>
+                            <span class="stat-bar-text" id="cog-legacy-text">Lvl 0</span>
+                        </div>
+                        <span class="legacy-counter" id="cog-legacy-counter">0 / 1000</span>
                     </div>
                 </div>
                 <div class="stat-row" data-stat="pln">
@@ -136,14 +148,17 @@
                         <span class="stat-row-label">PLN • Foresight</span>
                         <span class="stat-row-value" id="pln-value">--</span>
                     </div>
-                    <div class="stat-bar major" role="progressbar" aria-valuemin="1" aria-valuemax="20" aria-valuenow="1">
+                    <div class="stat-bar major" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                         <div class="stat-bar-fill" id="pln-major-bar"></div>
                         <span class="stat-bar-text" id="pln-major-text">--</span>
                         <span class="stat-confidence" id="pln-confidence">Q 0.00</span>
                     </div>
-                    <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                        <div class="stat-bar-fill" id="pln-legacy-bar"></div>
-                        <span class="stat-bar-text" id="pln-legacy-text">Legacy 0</span>
+                    <div class="stat-legacy-row">
+                        <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0">
+                            <div class="stat-bar-fill" id="pln-legacy-bar"></div>
+                            <span class="stat-bar-text" id="pln-legacy-text">Lvl 0</span>
+                        </div>
+                        <span class="legacy-counter" id="pln-legacy-counter">0 / 1000</span>
                     </div>
                 </div>
                 <div class="stat-row" data-stat="soc">
@@ -151,14 +166,17 @@
                         <span class="stat-row-label">SOC • Influence</span>
                         <span class="stat-row-value" id="soc-value">--</span>
                     </div>
-                    <div class="stat-bar major" role="progressbar" aria-valuemin="1" aria-valuemax="20" aria-valuenow="1">
+                    <div class="stat-bar major" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                         <div class="stat-bar-fill" id="soc-major-bar"></div>
                         <span class="stat-bar-text" id="soc-major-text">--</span>
                         <span class="stat-confidence" id="soc-confidence">Q 0.00</span>
                     </div>
-                    <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                        <div class="stat-bar-fill" id="soc-legacy-bar"></div>
-                        <span class="stat-bar-text" id="soc-legacy-text">Legacy 0</span>
+                    <div class="stat-legacy-row">
+                        <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0">
+                            <div class="stat-bar-fill" id="soc-legacy-bar"></div>
+                            <span class="stat-bar-text" id="soc-legacy-text">Lvl 0</span>
+                        </div>
+                        <span class="legacy-counter" id="soc-legacy-counter">0 / 1000</span>
                     </div>
                 </div>
             </div>

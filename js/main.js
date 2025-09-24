@@ -94,6 +94,7 @@ const STAT_KEY_METADATA = {
 
 const STAT_KEYS = Object.keys(STAT_KEY_METADATA);
 const LEGACY_ROLLOVER_THRESHOLD = 1000;
+const MAX_MAJOR_STAT_VALUE = 100;
 const STATS_PER_PERK_POINT = 10;
 const QUARTERLY_MILESTONE_GOAL = 60;
 
@@ -122,6 +123,105 @@ function convertMonthStringToQuarter(monthString) {
     const normalizedMonth = Math.max(1, Math.min(12, Math.floor(month)));
     const quarterIndex = Math.floor((normalizedMonth - 1) / 3) + 1;
     return `${year}-Q${quarterIndex}`;
+}
+
+function getStatKeyFromAny(statKey) {
+    if (typeof statKey !== 'string') {
+        return null;
+    }
+    const trimmed = statKey.trim();
+    if (!trimmed) {
+        return null;
+    }
+    const normalized = trimmed.toLowerCase();
+    if (STAT_KEYS.includes(normalized)) {
+        return normalized;
+    }
+    const metadata = getModernStatMetadataFromLegacyKey(normalized);
+    return metadata ? metadata.modernKey : null;
+}
+
+function getStatMetadata(statKeyOrLegacy) {
+    const modernKey = getStatKeyFromAny(statKeyOrLegacy);
+    if (!modernKey) {
+        return null;
+    }
+    return { modernKey, ...STAT_KEY_METADATA[modernKey] };
+}
+
+function clampMajorStatValue(value) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+        return 0;
+    }
+    return Math.max(0, Math.min(MAX_MAJOR_STAT_VALUE, value));
+}
+
+function createEmptyPerStatMap(initialValue = 0) {
+    const result = {};
+    STAT_KEYS.forEach(key => {
+        result[key] = typeof initialValue === 'function' ? initialValue(key) : initialValue;
+    });
+    return result;
+}
+
+function extractNumericStatValue(rawStats, modernKey, legacyKey) {
+    if (!rawStats || typeof rawStats !== 'object') {
+        return null;
+    }
+    const modernEntry = rawStats[modernKey];
+    if (typeof modernEntry === 'number' && Number.isFinite(modernEntry)) {
+        return modernEntry;
+    }
+    if (modernEntry && typeof modernEntry === 'object') {
+        if (typeof modernEntry.value === 'number' && Number.isFinite(modernEntry.value)) {
+            return modernEntry.value;
+        }
+        if (typeof modernEntry.score === 'number' && Number.isFinite(modernEntry.score)) {
+            return modernEntry.score;
+        }
+    }
+    if (typeof legacyKey === 'string' && legacyKey) {
+        const legacyEntry = rawStats[legacyKey];
+        if (typeof legacyEntry === 'number' && Number.isFinite(legacyEntry)) {
+            return legacyEntry;
+        }
+        if (legacyEntry && typeof legacyEntry === 'object' && typeof legacyEntry.value === 'number' && Number.isFinite(legacyEntry.value)) {
+            return legacyEntry.value;
+        }
+    }
+    return null;
+}
+
+function normalizePerStatNumericMap(rawMap, options = {}) {
+    const { defaultValue = 0, clamp } = options;
+    const normalized = createEmptyPerStatMap(defaultValue);
+    if (!rawMap || typeof rawMap !== 'object') {
+        return normalized;
+    }
+    Object.entries(rawMap).forEach(([rawKey, rawValue]) => {
+        const statKey = getStatKeyFromAny(rawKey);
+        if (!statKey) {
+            return;
+        }
+        if (typeof rawValue !== 'number' || !Number.isFinite(rawValue)) {
+            return;
+        }
+        const processed = typeof clamp === 'function' ? clamp(rawValue, statKey) : rawValue;
+        normalized[statKey] = processed;
+    });
+    return normalized;
+}
+
+function normalizeCharacterStats(rawStats, defaultValue = 8) {
+    const normalized = {};
+    STAT_KEYS.forEach(key => {
+        const metadata = STAT_KEY_METADATA[key];
+        const rawValue = extractNumericStatValue(rawStats, key, metadata.legacyKey);
+        const fallback = typeof defaultValue === 'function' ? defaultValue(key) : defaultValue;
+        const safeValue = clampMajorStatValue(rawValue !== null ? rawValue : fallback);
+        normalized[key] = safeValue;
+    });
+    return normalized;
 }
 
 function createEmptyLegacyStat() {
@@ -197,23 +297,27 @@ function normalizeLegacyState(legacyState) {
 }
 
 function getModernStatMetadataFromLegacyKey(legacyKey) {
+    if (typeof legacyKey !== 'string') {
+        return null;
+    }
+    const normalizedLegacyKey = legacyKey.trim().toLowerCase();
     const entries = Object.entries(STAT_KEY_METADATA);
     for (let index = 0; index < entries.length; index += 1) {
         const [modernKey, metadata] = entries[index];
-        if (metadata.legacyKey === legacyKey) {
+        if (metadata.legacyKey === normalizedLegacyKey) {
             return { modernKey, ...metadata };
         }
     }
     return null;
 }
 
-function getModernStatShortLabel(legacyKey) {
-    const metadata = getModernStatMetadataFromLegacyKey(legacyKey);
+function getModernStatShortLabel(statKeyOrLegacy) {
+    const metadata = getStatMetadata(statKeyOrLegacy);
     if (metadata && metadata.shortLabel) {
         return metadata.shortLabel;
     }
-    if (typeof legacyKey === 'string' && legacyKey.length > 0) {
-        return legacyKey.slice(0, 3).toUpperCase();
+    if (typeof statKeyOrLegacy === 'string' && statKeyOrLegacy.length > 0) {
+        return statKeyOrLegacy.slice(0, 3).toUpperCase();
     }
     return 'STAT';
 }
@@ -242,18 +346,13 @@ function ensureStatConfidence() {
 }
 
 function deriveStatSnapshots(rawStats) {
+    const normalizedStats = normalizeCharacterStats(rawStats);
     const snapshots = {};
     ensureStatConfidence();
-    Object.entries(STAT_KEY_METADATA).forEach(([key, metadata]) => {
-        const legacyValue = typeof rawStats?.[metadata.legacyKey] === 'number'
-            ? rawStats[metadata.legacyKey]
-            : null;
-        const modernValue = rawStats?.[key] && typeof rawStats[key] === 'object'
-            ? rawStats[key].value
-            : (typeof rawStats?.[key] === 'number' ? rawStats[key] : null);
-        const value = typeof modernValue === 'number'
-            ? modernValue
-            : (typeof legacyValue === 'number' ? legacyValue : 8);
+    Object.entries(STAT_KEY_METADATA).forEach(([key]) => {
+        const value = typeof normalizedStats[key] === 'number'
+            ? normalizedStats[key]
+            : 0;
         snapshots[key] = {
             value,
             confidence: characterData.statConfidence?.[key] ?? 0.6
@@ -365,18 +464,23 @@ function updatePerkProgressionMeters(summary) {
         statsProgressElement.textContent = `${statsTowardPerk} / ${STATS_PER_PERK_POINT}`;
     }
 
+    if (!characterData || typeof characterData.choreProgress !== 'object') {
+        characterData.choreProgress = createEmptyPerStatMap(0);
+    }
+    STAT_KEYS.forEach(statKey => {
+        const legacyStat = normalizedLegacy.stats[statKey] || createEmptyLegacyStat();
+        characterData.choreProgress[statKey] = legacyStat.counter;
+    });
+
     const shardProgress = (() => {
-        if (!characterData || typeof characterData.choreProgress !== 'object') {
-            return { statKey: null, value: 0 };
-        }
         let leadingStat = null;
         let leadingValue = 0;
-        Object.entries(characterData.choreProgress).forEach(([statKey, rawValue]) => {
-            const numericValue = typeof rawValue === 'number' && Number.isFinite(rawValue)
-                ? rawValue
+        Object.entries(normalizedLegacy.stats).forEach(([statKey, legacyStat]) => {
+            const counter = typeof legacyStat?.counter === 'number' && Number.isFinite(legacyStat.counter)
+                ? Math.max(0, legacyStat.counter)
                 : 0;
-            if (numericValue > leadingValue) {
-                leadingValue = numericValue;
+            if (counter > leadingValue) {
+                leadingValue = counter;
                 leadingStat = statKey;
             }
         });
@@ -439,47 +543,62 @@ function updatePerkProgressionMeters(summary) {
 
 function updateStatRows(stats, legacyState) {
     const normalizedLegacy = normalizeLegacyState(legacyState);
-    const totalEarned = normalizedLegacy.totalEarned;
-    const totalLevels = normalizedLegacy.totalLevels;
 
     Object.entries(STAT_KEY_METADATA).forEach(([key, metadata]) => {
-        const snapshot = stats[key];
-        const majorBar = document.getElementById(`${key}-major-bar`);
-        const legacyBar = document.getElementById(`${key}-legacy-bar`);
+        const snapshot = stats[key] || { value: 0, confidence: 0 };
+        const abilityValue = clampMajorStatValue(snapshot.value);
+        const majorFill = document.getElementById(`${key}-major-bar`);
         const valueElement = document.getElementById(`${key}-value`);
         const majorText = document.getElementById(`${key}-major-text`);
         const confidenceElement = document.getElementById(`${key}-confidence`);
-        const legacyText = document.getElementById(`${key}-legacy-text`);
-        if (majorBar) {
-            const percent = Math.max(0, Math.min(100, (snapshot.value / 20) * 100));
-            majorBar.style.width = `${percent}%`;
-            majorBar.setAttribute('aria-valuenow', snapshot.value.toFixed(2));
+        if (majorFill) {
+            majorFill.style.width = `${abilityValue}%`;
+            const majorContainer = majorFill.parentElement;
+            if (majorContainer) {
+                majorContainer.setAttribute('aria-valuenow', abilityValue.toFixed(1));
+            }
         }
         if (valueElement) {
-            valueElement.textContent = snapshot.value.toFixed(1);
+            valueElement.textContent = abilityValue.toFixed(1);
         }
         if (majorText) {
-            majorText.textContent = `${metadata.shortLabel} ${snapshot.value.toFixed(1)}`;
+            majorText.textContent = `${metadata.shortLabel} ${abilityValue.toFixed(1)}`;
         }
         if (confidenceElement) {
             confidenceElement.textContent = `Q ${snapshot.confidence.toFixed(2)}`;
         }
+
         const statLegacy = normalizedLegacy.stats[key] || createEmptyLegacyStat();
-        let legacyValue = 0;
-        if (totalEarned > 0) {
-            legacyValue = (statLegacy.totalEarned / totalEarned) * 100;
-        } else if (totalLevels > 0) {
-            legacyValue = (statLegacy.level / totalLevels) * 100;
-        } else if (statLegacy.counter > 0) {
-            legacyValue = (statLegacy.counter / LEGACY_ROLLOVER_THRESHOLD) * 100;
+        const counterValue = typeof statLegacy.counter === 'number' && Number.isFinite(statLegacy.counter)
+            ? Math.max(0, statLegacy.counter)
+            : 0;
+        const levelValue = typeof statLegacy.level === 'number' && Number.isFinite(statLegacy.level)
+            ? Math.max(0, Math.floor(statLegacy.level))
+            : 0;
+        const counterForFill = LEGACY_ROLLOVER_THRESHOLD > 0
+            ? Math.min(counterValue, LEGACY_ROLLOVER_THRESHOLD)
+            : counterValue;
+        const fillPercent = LEGACY_ROLLOVER_THRESHOLD > 0
+            ? Math.max(0, Math.min(100, (counterForFill / LEGACY_ROLLOVER_THRESHOLD) * 100))
+            : 0;
+
+        const legacyFill = document.getElementById(`${key}-legacy-bar`);
+        if (legacyFill) {
+            legacyFill.style.width = `${fillPercent}%`;
+            const legacyContainer = legacyFill.parentElement;
+            if (legacyContainer) {
+                legacyContainer.setAttribute('aria-valuenow', Math.round(counterValue).toString());
+            }
         }
-        legacyValue = Math.max(0, Math.min(100, legacyValue));
-        if (legacyBar) {
-            legacyBar.style.width = `${legacyValue}%`;
-            legacyBar.setAttribute('aria-valuenow', legacyValue.toFixed(1));
-        }
+
+        const legacyText = document.getElementById(`${key}-legacy-text`);
         if (legacyText) {
-            legacyText.textContent = `Legacy ${legacyValue.toFixed(0)}`;
+            legacyText.textContent = `Lvl ${levelValue}`;
+        }
+
+        const legacyCounterElement = document.getElementById(`${key}-legacy-counter`);
+        if (legacyCounterElement) {
+            legacyCounterElement.textContent = `${Math.round(counterValue)} / ${LEGACY_ROLLOVER_THRESHOLD}`;
         }
     });
 }
@@ -1152,10 +1271,12 @@ let choreManager = {
     chores: [],
     addChore: async function(text) {
         if (!text) return;
-        
+
         const classification = await getAIChoreClassification(text);
-        const stat = classification?.stat || 'constitution';
-        const effort = typeof classification?.effort === 'number' ? classification.effort : 10;
+        const stat = getStatKeyFromAny(classification?.stat) || 'grt';
+        const effort = typeof classification?.effort === 'number' && Number.isFinite(classification.effort)
+            ? Math.max(0, classification.effort)
+            : 10;
 
         const newChore = {
             id: Date.now(),
@@ -1172,18 +1293,48 @@ let choreManager = {
         if (choreIndex === -1) return;
 
         const chore = this.chores[choreIndex];
-        
-        if (typeof characterData.choreProgress[chore.stat] !== 'number' || !Number.isFinite(characterData.choreProgress[chore.stat])) {
-            characterData.choreProgress[chore.stat] = 0;
-        }
-        characterData.choreProgress[chore.stat] += chore.effort;
-        const statLabel = getModernStatShortLabel(chore.stat);
-        showToast(`+${chore.effort} Legacy shards • ${statLabel}`);
+        const statKey = getStatKeyFromAny(chore.stat) || 'grt';
+        const effortValue = typeof chore.effort === 'number' && Number.isFinite(chore.effort)
+            ? Math.max(0, chore.effort)
+            : 0;
+        const shardGain = Math.round(effortValue);
 
-        if (characterData.choreProgress[chore.stat] >= LEGACY_ROLLOVER_THRESHOLD) {
-            const pointsGained = Math.floor(characterData.choreProgress[chore.stat] / LEGACY_ROLLOVER_THRESHOLD);
-            characterData.choreProgress[chore.stat] %= LEGACY_ROLLOVER_THRESHOLD;
-            characterData.stats[chore.stat] += pointsGained;
+        if (!characterData.choreProgress || typeof characterData.choreProgress !== 'object') {
+            characterData.choreProgress = createEmptyPerStatMap(0);
+        }
+
+        const normalizedLegacy = normalizeLegacyState(characterData.legacy);
+        characterData.legacy = normalizedLegacy;
+
+        const legacyStat = normalizedLegacy.stats[statKey] || createEmptyLegacyStat();
+        normalizedLegacy.stats[statKey] = legacyStat;
+
+        legacyStat.counter += shardGain;
+        legacyStat.totalEarned += shardGain;
+        normalizedLegacy.totalEarned += shardGain;
+
+        characterData.choreProgress[statKey] = legacyStat.counter;
+
+        const statLabel = getModernStatShortLabel(statKey);
+        showToast(`+${shardGain} Legacy shards • ${statLabel}`);
+
+        if (!characterData.stats || typeof characterData.stats !== 'object') {
+            characterData.stats = normalizeCharacterStats({});
+        }
+
+        if (legacyStat.counter >= LEGACY_ROLLOVER_THRESHOLD) {
+            const pointsGained = Math.floor(legacyStat.counter / LEGACY_ROLLOVER_THRESHOLD);
+            legacyStat.counter -= pointsGained * LEGACY_ROLLOVER_THRESHOLD;
+            characterData.choreProgress[statKey] = legacyStat.counter;
+            legacyStat.level += pointsGained;
+            normalizedLegacy.totalLevels += pointsGained;
+
+            const currentStatValue = typeof characterData.stats[statKey] === 'number' && Number.isFinite(characterData.stats[statKey])
+                ? characterData.stats[statKey]
+                : 0;
+            const updatedStatValue = clampMajorStatValue(currentStatValue + pointsGained);
+            characterData.stats[statKey] = updatedStatValue;
+
             levelManager.gainStatProgress(pointsGained);
             const plural = pointsGained === 1 ? 'level' : 'levels';
             showToast(`Legacy milestone! +${pointsGained} ${statLabel} ${plural}.`);
@@ -1301,6 +1452,30 @@ async function loadData(userId) {
         delete sanitizedLoadedData.monthlyPerkClaimed;
         delete sanitizedLoadedData.legacyStatProgress;
 
+        const normalizedLegacy = normalizeLegacyState(loadedCharacterData.legacy);
+        const normalizedStats = normalizeCharacterStats(loadedCharacterData.stats);
+        const normalizedTrainingLoad = normalizePerStatNumericMap(
+            loadedCharacterData.recentTrainingLoad,
+            { defaultValue: 0, clamp: value => Math.max(0, value) }
+        );
+        const normalizedStatConfidence = normalizePerStatNumericMap(
+            loadedCharacterData.statConfidence,
+            { defaultValue: 0.6, clamp: value => Math.max(0, Math.min(1, value)) }
+        );
+        const normalizedChoreProgress = createEmptyPerStatMap(statKey => {
+            const legacyStat = normalizedLegacy.stats[statKey] || createEmptyLegacyStat();
+            return legacyStat.counter;
+        });
+        const normalizedChores = Array.isArray(loadedCharacterData.chores)
+            ? loadedCharacterData.chores.map(chore => {
+                if (!chore || typeof chore !== 'object') {
+                    return chore;
+                }
+                const statKey = getStatKeyFromAny(chore.stat) || 'grt';
+                return { ...chore, stat: statKey };
+            })
+            : [];
+
         characterData = {
             ...sanitizedLoadedData,
             level: loadedCharacterData.level || 1,
@@ -1309,9 +1484,10 @@ async function loadData(userId) {
             skillPoints: loadedCharacterData.skillPoints || 0,
             statCounter: normalizedStatCounter,
             legacyStatProgress: normalizedStatCounter,
-            legacy: normalizeLegacyState(loadedCharacterData.legacy),
-            statConfidence: loadedCharacterData.statConfidence || {},
-            recentTrainingLoad: loadedCharacterData.recentTrainingLoad || {},
+            legacy: normalizedLegacy,
+            stats: normalizedStats,
+            statConfidence: normalizedStatConfidence,
+            recentTrainingLoad: normalizedTrainingLoad,
             unlockedPerks: Array.isArray(loadedCharacterData.unlockedPerks)
                 ? loadedCharacterData.unlockedPerks
                 : [],
@@ -1319,15 +1495,8 @@ async function loadData(userId) {
             activityLogQuarter: storedQuarter,
             quarterlyPerkClaimed,
             skillSearchTarget: loadedCharacterData.skillSearchTarget || null,
-            choreProgress: {
-                strength: loadedCharacterData.choreProgress?.strength || 0,
-                dexterity: loadedCharacterData.choreProgress?.dexterity || 0,
-                constitution: loadedCharacterData.choreProgress?.constitution || 0,
-                intelligence: loadedCharacterData.choreProgress?.intelligence || 0,
-                wisdom: loadedCharacterData.choreProgress?.wisdom || 0,
-                charisma: loadedCharacterData.choreProgress?.charisma || 0
-            },
-            chores: Array.isArray(loadedCharacterData.chores) ? loadedCharacterData.chores : [],
+            choreProgress: normalizedChoreProgress,
+            chores: normalizedChores,
             verifiedCredentials: Array.isArray(loadedCharacterData.verifiedCredentials)
                 ? loadedCharacterData.verifiedCredentials
                 : [],
@@ -1427,34 +1596,20 @@ function calculateStartingStats() {
         pln: 8 + studyValue,
         soc: 8
     };
-    const statConfidence = {};
-    Object.keys(STAT_KEY_METADATA).forEach(key => {
-        statConfidence[key] = 0.6;
-    });
+    const statConfidence = createEmptyPerStatMap(() => 0.6);
+    const normalizedStats = normalizeCharacterStats(baseStats, key => baseStats[key]);
+    const emptyPerStat = createEmptyPerStatMap(0);
+    const normalizedLegacy = normalizeLegacyState();
 
     characterData = {
         level: 1,
         statProgress: 0,
         statsToNextLevel: 10,
-        stats: {
-            strength: baseStats.pwr,
-            dexterity: baseStats.acc,
-            constitution: baseStats.grt,
-            intelligence: baseStats.cog,
-            wisdom: baseStats.pln,
-            charisma: baseStats.soc
-        },
+        stats: normalizedStats,
         statConfidence,
-        legacy: normalizeLegacyState(),
-        recentTrainingLoad: {},
-        choreProgress: {
-            strength: 0,
-            dexterity: 0,
-            constitution: 0,
-            intelligence: 0,
-            wisdom: 0,
-            charisma: 0
-        },
+        legacy: normalizedLegacy,
+        recentTrainingLoad: { ...emptyPerStat },
+        choreProgress: { ...emptyPerStat },
         avatarUrl: '',
         skillPoints: 0,
         statCounter: 0,
@@ -1612,12 +1767,12 @@ function unlockPerk(perkName, perkData) {
     const unlockedPerks = characterData.unlockedPerks;
 
     const requires = perkData?.requires || {};
-    const requiredStat = requires.stat;
     const requiredValue = requires.value;
-    const hasStatRequirement = requiredStat && requiredValue !== undefined;
-    const statValue = hasStatRequirement ? stats[requiredStat] : null;
+    const requiredStatKey = getStatKeyFromAny(requires.stat);
+    const hasStatRequirement = requiredStatKey && typeof requiredValue === 'number' && Number.isFinite(requiredValue);
+    const statValue = hasStatRequirement ? stats[requiredStatKey] : null;
     const meetsStatRequirement = !hasStatRequirement
-        || (typeof statValue === 'number' && statValue >= requiredValue);
+        || (typeof statValue === 'number' && Number.isFinite(statValue) && statValue >= requiredValue);
 
     const requiredProof = requires.proof;
     const hasProofRequirement = typeof requiredProof === 'string' && requiredProof.trim().length > 0;
