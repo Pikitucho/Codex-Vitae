@@ -24,6 +24,22 @@
         stars: { distance: 120, height: 60, duration: 1200 }
     };
 
+    const GALAXY_LABEL_VISIBILITY = (() => {
+        const galaxyViewDistance = Math.sqrt(
+            (CAMERA_LEVELS.galaxies.distance ** 2) + (CAMERA_LEVELS.galaxies.height ** 2)
+        );
+        const constellationViewDistance = Math.sqrt(
+            (CAMERA_LEVELS.constellations.distance ** 2) + (CAMERA_LEVELS.constellations.height ** 2)
+        );
+        const fullyTransparentDistance = Math.max(320, constellationViewDistance * 0.92);
+        const minimumSeparation = 240;
+        const fullyVisibleDistance = Math.max(
+            fullyTransparentDistance + minimumSeparation,
+            galaxyViewDistance * 1.08
+        );
+        return { fullyTransparentDistance, fullyVisibleDistance };
+    })();
+
     const CAMERA_THRESHOLDS = {
         starToSystem: (CAMERA_LEVELS.starSystems.distance + CAMERA_LEVELS.stars.distance) / 2,
         systemToConstellation: (CAMERA_LEVELS.constellations.distance + CAMERA_LEVELS.starSystems.distance) / 2,
@@ -1194,6 +1210,8 @@
             const directionToCamera = new THREE.Vector3();
             const labelWorld = new THREE.Vector3();
             const labelLocal = new THREE.Vector3();
+            const { fullyTransparentDistance, fullyVisibleDistance } = GALAXY_LABEL_VISIBILITY;
+            const fadeRange = Math.max(1, fullyVisibleDistance - fullyTransparentDistance);
 
             this.galaxyMap.forEach((info) => {
                 if (!info || !info.group || !info.label) {
@@ -1213,6 +1231,9 @@
                 const distance = directionToCamera.length();
                 if (distance <= 1e-3) {
                     label.position.set(0, height, 0);
+                    if (label.material && typeof label.material.opacity === 'number') {
+                        label.material.opacity = 0;
+                    }
                     return;
                 }
 
@@ -1238,6 +1259,16 @@
                     );
                 }
                 label.position.copy(labelLocal);
+
+                if (label.material && typeof label.material.opacity === 'number') {
+                    const visibilityFactor = clamp(
+                        (distance - fullyTransparentDistance) / fadeRange,
+                        0,
+                        1
+                    );
+                    const emphasis = visibilityFactor * visibilityFactor;
+                    label.material.opacity = emphasis;
+                }
             });
         }
 
