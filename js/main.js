@@ -39,7 +39,12 @@ if (!codexConfig || typeof codexConfig !== 'object') {
 const firebaseConfig = codexConfig.firebaseConfig;
 const BACKEND_SERVER_URL =
     typeof codexConfig.backendUrl === 'string' ? codexConfig.backendUrl.trim() : '';
-const AI_FEATURES_AVAILABLE = BACKEND_SERVER_URL.length > 0;
+const AI_FEATURES_AVAILABLE = BACKEND_SERVER_URL.length > 0;const AVATAR_ASSETS = Object.freeze({
+    modelSrc: 'assets/avatars/codex-vitae-avatar.gltf',
+    placeholderSrc: 'assets/avatars/codex-vitae-avatar-placeholder.svg',
+    legacyPlaceholderSrc: 'assets/avatars/avatar-placeholder-casual-park.jpg',
+    modelExtensions: Object.freeze(['.glb', '.gltf'])
+});
 const DEFAULT_AVATAR_MODEL_SRC = 'assets/avatars/codex-vitae-avatar.gltf';
 const DEFAULT_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/codex-vitae-avatar-placeholder.svg';
 const LEGACY_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/avatar-placeholder-casual-park.jpg';
@@ -830,7 +835,7 @@ function updateCapturedPhotoElement(element, imageSrc) {
     const srcWithoutParams = lowerSrc.split(/[?#]/)[0];
     const hasCustomValue = trimmedSrc.length > 0;
     const isModelSrc = hasCustomValue && (
-        AVATAR_MODEL_EXTENSIONS.some(extension => srcWithoutParams.endsWith(extension))
+        AVATAR_ASSETS.modelExtensions.some(extension => srcWithoutParams.endsWith(extension))
         || lowerSrc.startsWith('data:model/gltf')
     );
     const usingCustomImage = hasCustomValue && !isModelSrc;
@@ -868,26 +873,26 @@ function updateCapturedPhotoElement(element, imageSrc) {
 
         const ensurePlaceholderLoaded = (imgElement) => {
             if (!imgElement || imgElement.dataset.placeholderPrepared === 'true') {
-                if (imgElement && imgElement.getAttribute('src') !== DEFAULT_AVATAR_PLACEHOLDER_SRC) {
-                    imgElement.setAttribute('src', DEFAULT_AVATAR_PLACEHOLDER_SRC);
+                if (imgElement && imgElement.getAttribute('src') !== AVATAR_ASSETS.placeholderSrc) {
+                    imgElement.setAttribute('src', AVATAR_ASSETS.placeholderSrc);
                 }
                 return;
             }
 
             const handleError = () => {
-                if (imgElement.getAttribute('src') === DEFAULT_AVATAR_PLACEHOLDER_SRC) {
-                    imgElement.setAttribute('src', LEGACY_AVATAR_PLACEHOLDER_SRC);
+                if (imgElement.getAttribute('src') === AVATAR_ASSETS.placeholderSrc) {
+                    imgElement.setAttribute('src', AVATAR_ASSETS.legacyPlaceholderSrc);
                 }
             };
 
             imgElement.addEventListener('error', handleError);
             imgElement.dataset.placeholderPrepared = 'true';
-            imgElement.setAttribute('src', DEFAULT_AVATAR_PLACEHOLDER_SRC);
+            imgElement.setAttribute('src', AVATAR_ASSETS.placeholderSrc);
         };
 
         ensurePlaceholderLoaded(activeElement);
-        if (activeElement.getAttribute('src') !== DEFAULT_AVATAR_PLACEHOLDER_SRC) {
-            activeElement.setAttribute('src', DEFAULT_AVATAR_PLACEHOLDER_SRC);
+        if (activeElement.getAttribute('src') !== AVATAR_ASSETS.placeholderSrc) {
+            activeElement.setAttribute('src', AVATAR_ASSETS.placeholderSrc);
         }
 
         activeElement.setAttribute('alt', 'Avatar placeholder');
@@ -898,7 +903,7 @@ function updateCapturedPhotoElement(element, imageSrc) {
         return;
     }
 
-    const viewerSrc = isModelSrc ? trimmedSrc : DEFAULT_AVATAR_MODEL_SRC;
+    const viewerSrc = isModelSrc ? trimmedSrc : AVATAR_ASSETS.modelSrc;
     if (activeElement.getAttribute('src') !== viewerSrc) {
         activeElement.setAttribute('src', viewerSrc);
     }
