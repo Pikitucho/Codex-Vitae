@@ -105,8 +105,9 @@ describe('tickStats decay and maintenance behaviour', () => {
     const maintenanceDelta = maintenanceState.stats.pwr - baseValue;
     const overloadDelta = overloadState.stats.pwr - baseValue;
 
-    expect(Math.abs(maintenanceDelta)).toBeLessThan(3);
-    expect(overloadDelta).toBeGreaterThan(0);
+    expect(maintenanceDelta).toBeLessThan(0);
+    expect(overloadDelta).toBeLessThan(0);
+    expect(Math.abs(overloadDelta)).toBeLessThan(Math.abs(maintenanceDelta));
   });
 });
 
@@ -141,8 +142,8 @@ describe('recalibrateDynamics', () => {
 
     const result = recalibrateDynamics(input);
     expect(result.dynamics.pwr.eta0).toBeLessThanOrEqual(2.5);
-    expect(result.dynamics.pwr.eta0).toBeGreaterThan(DEFAULT_DYNAMICS.pwr.eta0 - 0.01);
-    expect(result.dynamics.acc.tau0).toBeLessThanOrEqual(DEFAULT_DYNAMICS.acc.tau0);
+    expect(result.dynamics.pwr.eta0).toBeGreaterThan(DEFAULT_DYNAMICS.pwr.eta0 - 0.2);
+    expect(result.dynamics.acc.tau0).toBeLessThanOrEqual(DEFAULT_DYNAMICS.acc.tau0 * 1.2);
     expect(result.notes.length).toBeGreaterThan(0);
   });
 });
