@@ -18,11 +18,27 @@
         : (typeof THREE.RingBufferGeometry === 'function' ? THREE.RingBufferGeometry : null);
 
     const CAMERA_LEVELS = {
-        galaxies: { distance: 2150, height: 380, duration: 1500 },
-        constellations: { distance: 920, height: 260, duration: 1200 },
-        starSystems: { distance: 480, height: 170, duration: 1100 },
-        stars: { distance: 180, height: 82, duration: 1200 }
+        galaxies: { distance: 1750, height: 320, duration: 1500 },
+        constellations: { distance: 720, height: 220, duration: 1200 },
+        starSystems: { distance: 320, height: 140, duration: 1100 },
+        stars: { distance: 120, height: 60, duration: 1200 }
     };
+
+    const GALAXY_LABEL_VISIBILITY = (() => {
+        const galaxyViewDistance = Math.sqrt(
+            (CAMERA_LEVELS.galaxies.distance ** 2) + (CAMERA_LEVELS.galaxies.height ** 2)
+        );
+        const constellationViewDistance = Math.sqrt(
+            (CAMERA_LEVELS.constellations.distance ** 2) + (CAMERA_LEVELS.constellations.height ** 2)
+        );
+        const fullyTransparentDistance = Math.max(320, constellationViewDistance * 0.92);
+        const minimumSeparation = 240;
+        const fullyVisibleDistance = Math.max(
+            fullyTransparentDistance + minimumSeparation,
+            galaxyViewDistance * 1.08
+        );
+        return { fullyTransparentDistance, fullyVisibleDistance };
+    })();
 
     const CAMERA_THRESHOLDS = {
         starToSystem: (CAMERA_LEVELS.starSystems.distance + CAMERA_LEVELS.stars.distance) / 2,
@@ -57,7 +73,16 @@
     const LABEL_DEFAULTS = {
         fontSize: 48,
         padding: 18,
-        scale: 1.0
+        scale: 1.0,
+        backgroundColor: 'rgba(10, 10, 20, 0.72)',
+        textColor: 'rgba(255, 255, 255, 0.97)',
+        borderColor: null,
+        borderWidth: 0,
+        borderRadius: 12,
+        shadowColor: 'rgba(0, 0, 0, 0.55)',
+        shadowBlur: 8,
+        shadowOffsetX: 0,
+        shadowOffsetY: 3
     };
 
     const GALAXY_TEXTURE_SIZE = 1024;
@@ -116,6 +141,21 @@
         return `rgba(${r}, ${g}, ${b}, ${a})`;
     }
 
+    function drawRoundedRect(ctx, x, y, width, height, radius) {
+        const clampedRadius = Math.max(0, Math.min(radius, Math.min(width, height) / 2));
+        ctx.beginPath();
+        ctx.moveTo(x + clampedRadius, y);
+        ctx.lineTo(x + width - clampedRadius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + clampedRadius);
+        ctx.lineTo(x + width, y + height - clampedRadius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - clampedRadius, y + height);
+        ctx.lineTo(x + clampedRadius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - clampedRadius);
+        ctx.lineTo(x, y + clampedRadius);
+        ctx.quadraticCurveTo(x, y, x + clampedRadius, y);
+        ctx.closePath();
+    }
+
     function createGalaxyTexture(baseColorValue, emissiveColorValue) {
         const safeBase = Number.isFinite(baseColorValue) ? baseColorValue : 0x6c5ce7;
         const safeEmissive = Number.isFinite(emissiveColorValue) ? emissiveColorValue : 0x241563;
@@ -135,14 +175,14 @@
         const emissiveColor = new THREE.Color(safeEmissive);
         const white = new THREE.Color(0xffffff);
         const deepSpace = new THREE.Color(0x02030b);
-        const coreColor = mixColors(baseColor, white, 0.55);
-        const highlightColor = mixColors(emissiveColor, white, 0.4);
+        const coreColor = mixColors(baseColor, white, 0.4);
+        const highlightColor = mixColors(emissiveColor, white, 0.25);
         const outerColor = mixColors(baseColor, deepSpace, 0.9);
 
         const gradient = ctx.createRadialGradient(half, half, GALAXY_TEXTURE_SIZE * 0.06, half, half, GALAXY_TEXTURE_SIZE * 0.5);
-        gradient.addColorStop(0, colorToRgbaString(coreColor, 0.95));
-        gradient.addColorStop(0.32, colorToRgbaString(baseColor, 0.85));
-        gradient.addColorStop(0.62, colorToRgbaString(highlightColor, 0.45));
+        gradient.addColorStop(0, colorToRgbaString(coreColor, 0.75));
+        gradient.addColorStop(0.32, colorToRgbaString(baseColor, 0.6));
+        gradient.addColorStop(0.62, colorToRgbaString(highlightColor, 0.28));
         gradient.addColorStop(1, colorToRgbaString(outerColor, 0));
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, GALAXY_TEXTURE_SIZE, GALAXY_TEXTURE_SIZE);
@@ -168,11 +208,11 @@
                     ctx.lineTo(x, y);
                 }
             }
-            ctx.strokeStyle = colorToRgbaString(highlightColor, 0.18);
+            ctx.strokeStyle = colorToRgbaString(highlightColor, 0.12);
             ctx.lineWidth = GALAXY_TEXTURE_SIZE * 0.02;
             ctx.lineCap = 'round';
-            ctx.shadowColor = colorToRgbaString(highlightColor, 0.45);
-            ctx.shadowBlur = GALAXY_TEXTURE_SIZE * 0.05;
+            ctx.shadowColor = colorToRgbaString(highlightColor, 0.28);
+            ctx.shadowBlur = GALAXY_TEXTURE_SIZE * 0.04;
             ctx.stroke();
             ctx.restore();
         }
@@ -187,8 +227,8 @@
             const angle = Math.random() * Math.PI * 2;
             const x = Math.cos(angle) * radius;
             const y = Math.sin(angle) * radius * 0.7;
-            const starSize = Math.pow(Math.random(), 1.8) * 7 + 1.2;
-            const alpha = 0.12 + Math.random() * 0.35;
+            const starSize = Math.pow(Math.random(), 1.8) * 6 + 1.1;
+            const alpha = 0.08 + Math.random() * 0.24;
             const tint = Math.random() < 0.3
                 ? mixColors(highlightColor, baseColor, 0.4)
                 : white;
@@ -200,8 +240,8 @@
         ctx.restore();
 
         const coreGlow = ctx.createRadialGradient(half, half, GALAXY_TEXTURE_SIZE * 0.02, half, half, GALAXY_TEXTURE_SIZE * 0.12);
-        coreGlow.addColorStop(0, colorToRgbaString(white, 0.9));
-        coreGlow.addColorStop(0.65, colorToRgbaString(highlightColor, 0.4));
+        coreGlow.addColorStop(0, colorToRgbaString(white, 0.6));
+        coreGlow.addColorStop(0.65, colorToRgbaString(highlightColor, 0.3));
         coreGlow.addColorStop(1, colorToRgbaString(highlightColor, 0));
         ctx.fillStyle = coreGlow;
         ctx.beginPath();
@@ -221,7 +261,20 @@
 
     function createLabelSprite(text, overrides = {}) {
         const options = { ...LABEL_DEFAULTS, ...overrides };
-        const { fontSize, padding, scale } = options;
+        const {
+            fontSize,
+            padding,
+            scale,
+            backgroundColor,
+            textColor,
+            borderColor,
+            borderWidth,
+            borderRadius,
+            shadowColor,
+            shadowBlur,
+            shadowOffsetX,
+            shadowOffsetY
+        } = options;
         const ratio = global.devicePixelRatio || 1;
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -239,11 +292,24 @@
 
         ctx.scale(ratio, ratio);
         ctx.font = fontFamily;
-        ctx.fillStyle = 'rgba(10, 10, 10, 0.65)';
-        ctx.fillRect(0, 0, textWidth + padding * 2, textHeight + padding * 2);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.save();
+        ctx.shadowColor = shadowColor;
+        ctx.shadowBlur = shadowBlur;
+        ctx.shadowOffsetX = shadowOffsetX;
+        ctx.shadowOffsetY = shadowOffsetY;
+        drawRoundedRect(ctx, 0, 0, textWidth + padding * 2, textHeight + padding * 2, borderRadius);
+        ctx.fillStyle = backgroundColor;
+        ctx.fill();
+        if (borderWidth > 0 && borderColor) {
+            ctx.lineWidth = borderWidth;
+            ctx.strokeStyle = borderColor;
+            drawRoundedRect(ctx, borderWidth / 2, borderWidth / 2, textWidth + padding * 2 - borderWidth, textHeight + padding * 2 - borderWidth, Math.max(0, borderRadius - borderWidth / 2));
+            ctx.stroke();
+        }
+        ctx.restore();
         ctx.textBaseline = 'middle';
         ctx.textAlign = 'center';
+        ctx.fillStyle = textColor;
         ctx.fillText(text, textWidth / 2 + padding, textHeight / 2 + padding);
 
         const texture = new THREE.CanvasTexture(canvas);
@@ -808,7 +874,7 @@
                     new THREE.MeshBasicMaterial({
                         map: galaxyTexture,
                         transparent: true,
-                        opacity: 0.95,
+                        opacity: 0.68,
                         blending: THREE.AdditiveBlending,
                         depthWrite: false,
                         side: THREE.DoubleSide
@@ -862,7 +928,20 @@
 
                 const labelHeight = Math.max(72, semiMinor * 0.22 + 52);
                 const labelOffset = Math.max(semiMajor * 0.78, CONSTELLATION_RADIUS * 1.1);
-                const label = createLabelSprite(galaxyName, { scale: 1.0 });
+                const label = createLabelSprite(galaxyName, {
+                    scale: 1.15,
+                    fontSize: 56,
+                    padding: 22,
+                    backgroundColor: 'rgba(36, 20, 62, 0.9)',
+                    textColor: 'rgba(255, 228, 166, 0.98)',
+                    borderColor: 'rgba(255, 196, 116, 0.9)',
+                    borderWidth: 4,
+                    borderRadius: 18,
+                    shadowColor: 'rgba(10, 0, 40, 0.85)',
+                    shadowBlur: 18,
+                    shadowOffsetX: 0,
+                    shadowOffsetY: 6
+                });
                 label.position.set(0, labelHeight, labelOffset);
                 label.userData = Object.assign({}, label.userData || {}, {
                     offsetDistance: labelOffset,
@@ -1131,6 +1210,8 @@
             const directionToCamera = new THREE.Vector3();
             const labelWorld = new THREE.Vector3();
             const labelLocal = new THREE.Vector3();
+            const { fullyTransparentDistance, fullyVisibleDistance } = GALAXY_LABEL_VISIBILITY;
+            const fadeRange = Math.max(1, fullyVisibleDistance - fullyTransparentDistance);
 
             this.galaxyMap.forEach((info) => {
                 if (!info || !info.group || !info.label) {
@@ -1150,6 +1231,9 @@
                 const distance = directionToCamera.length();
                 if (distance <= 1e-3) {
                     label.position.set(0, height, 0);
+                    if (label.material && typeof label.material.opacity === 'number') {
+                        label.material.opacity = 0;
+                    }
                     return;
                 }
 
@@ -1175,6 +1259,16 @@
                     );
                 }
                 label.position.copy(labelLocal);
+
+                if (label.material && typeof label.material.opacity === 'number') {
+                    const visibilityFactor = clamp(
+                        (distance - fullyTransparentDistance) / fadeRange,
+                        0,
+                        1
+                    );
+                    const emphasis = visibilityFactor * visibilityFactor;
+                    label.material.opacity = emphasis;
+                }
             });
         }
 
