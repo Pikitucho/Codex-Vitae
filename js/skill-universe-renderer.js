@@ -1130,6 +1130,7 @@
             const worldCenter = new THREE.Vector3();
             const directionToCamera = new THREE.Vector3();
             const labelWorld = new THREE.Vector3();
+            const labelLocal = new THREE.Vector3();
 
             this.galaxyMap.forEach((info) => {
                 if (!info || !info.group || !info.label) {
@@ -1160,8 +1161,20 @@
 
                 labelWorld.copy(worldCenter).add(directionToCamera.multiplyScalar(effectiveOffset));
                 labelWorld.y = worldCenter.y + height;
-                const localPosition = info.group.worldToLocal(labelWorld);
-                label.position.copy(localPosition);
+                labelLocal.copy(labelWorld).sub(worldCenter);
+                const { scale } = info.group;
+                if (scale && typeof scale === 'object') {
+                    const safeAxis = (axis) => (Number.isFinite(axis) && axis !== 0 ? axis : 1);
+                    const scaleX = safeAxis(scale.x);
+                    const scaleY = safeAxis(scale.y);
+                    const scaleZ = safeAxis(scale.z);
+                    labelLocal.set(
+                        labelLocal.x / scaleX,
+                        labelLocal.y / scaleY,
+                        labelLocal.z / scaleZ
+                    );
+                }
+                label.position.copy(labelLocal);
             });
         }
 
