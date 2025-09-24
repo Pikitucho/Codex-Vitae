@@ -1798,5 +1798,6 @@
         }
     }
 
+    SkillUniverseRenderer.VERSION = '2024.06.02';
     global.SkillUniverseRenderer = SkillUniverseRenderer;
 })(typeof window !== 'undefined' ? window : this);
