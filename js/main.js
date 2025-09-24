@@ -40,6 +40,7 @@ const AI_FEATURES_AVAILABLE = BACKEND_SERVER_URL.length > 0;
 const DEFAULT_AVATAR_MODEL_SRC = 'assets/avatars/codex-vitae-avatar.gltf';
 const DEFAULT_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/avatar-placeholder-casual-park.jpg';
 const LEGACY_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/codex-vitae-avatar-placeholder.svg';
+const DEFAULT_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/codex-vitae-avatar-placeholder.svg';
 const AVATAR_MODEL_EXTENSIONS = ['.glb', '.gltf'];
 
 if (!firebaseConfig || typeof firebaseConfig !== 'object') {
@@ -879,6 +880,9 @@ function updateCapturedPhotoElement(element, imageSrc) {
         };
 
         ensurePlaceholderLoaded(activeElement);
+        if (activeElement.getAttribute('src') !== DEFAULT_AVATAR_PLACEHOLDER_SRC) {
+            activeElement.setAttribute('src', DEFAULT_AVATAR_PLACEHOLDER_SRC);
+        }
 
         activeElement.setAttribute('alt', 'Avatar placeholder');
         activeElement.classList.remove('avatar-circle', 'avatar-viewer');
