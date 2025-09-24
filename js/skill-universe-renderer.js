@@ -18,10 +18,10 @@
         : (typeof THREE.RingBufferGeometry === 'function' ? THREE.RingBufferGeometry : null);
 
     const CAMERA_LEVELS = {
-        galaxies: { distance: 2400, height: 680, duration: 1400 },
-        constellations: { distance: 1400, height: 420, duration: 1200 },
-        starSystems: { distance: 640, height: 260, duration: 1000 },
-        stars: { distance: 150, height: 70, duration: 1200 }
+        galaxies: { distance: 2150, height: 380, duration: 1500 },
+        constellations: { distance: 920, height: 260, duration: 1200 },
+        starSystems: { distance: 480, height: 170, duration: 1100 },
+        stars: { distance: 180, height: 82, duration: 1200 }
     };
 
     const CAMERA_THRESHOLDS = {
@@ -59,6 +59,130 @@
         padding: 18,
         scale: 1.0
     };
+
+    const GALAXY_TEXTURE_SIZE = 1024;
+    const galaxyTextureCache = new Map();
+
+    function clamp01(value) {
+        if (!Number.isFinite(value)) {
+            return 0;
+        }
+        return Math.max(0, Math.min(1, value));
+    }
+
+    function colorToRgbaString(color, alpha = 1) {
+        if (!color || typeof color.r !== 'number') {
+            return `rgba(255, 255, 255, ${clamp01(alpha)})`;
+        }
+        const r = Math.round(Math.max(0, Math.min(255, color.r * 255)));
+        const g = Math.round(Math.max(0, Math.min(255, color.g * 255)));
+        const b = Math.round(Math.max(0, Math.min(255, color.b * 255)));
+        const a = clamp01(alpha);
+        return `rgba(${r}, ${g}, ${b}, ${a})`;
+    }
+
+    function createGalaxyTexture(baseColorValue, emissiveColorValue) {
+        const safeBase = Number.isFinite(baseColorValue) ? baseColorValue : 0x6c5ce7;
+        const safeEmissive = Number.isFinite(emissiveColorValue) ? emissiveColorValue : 0x241563;
+        const cacheKey = `${safeBase}|${safeEmissive}`;
+        if (galaxyTextureCache.has(cacheKey)) {
+            return galaxyTextureCache.get(cacheKey);
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = GALAXY_TEXTURE_SIZE;
+        canvas.height = GALAXY_TEXTURE_SIZE;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, GALAXY_TEXTURE_SIZE, GALAXY_TEXTURE_SIZE);
+
+        const half = GALAXY_TEXTURE_SIZE / 2;
+        const baseColor = new THREE.Color(safeBase);
+        const emissiveColor = new THREE.Color(safeEmissive);
+        const white = new THREE.Color(0xffffff);
+        const deepSpace = new THREE.Color(0x02030b);
+        const coreColor = baseColor.clone().lerp(white, 0.55);
+        const highlightColor = emissiveColor.clone().lerp(white, 0.4);
+        const outerColor = baseColor.clone().lerp(deepSpace, 0.9);
+
+        const gradient = ctx.createRadialGradient(half, half, GALAXY_TEXTURE_SIZE * 0.06, half, half, GALAXY_TEXTURE_SIZE * 0.5);
+        gradient.addColorStop(0, colorToRgbaString(coreColor, 0.95));
+        gradient.addColorStop(0.32, colorToRgbaString(baseColor, 0.85));
+        gradient.addColorStop(0.62, colorToRgbaString(highlightColor, 0.45));
+        gradient.addColorStop(1, colorToRgbaString(outerColor, 0));
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, GALAXY_TEXTURE_SIZE, GALAXY_TEXTURE_SIZE);
+
+        ctx.save();
+        ctx.translate(half, half);
+        ctx.scale(1.18, 0.78);
+        const spiralArms = 3;
+        for (let arm = 0; arm < spiralArms; arm += 1) {
+            ctx.save();
+            ctx.rotate((Math.PI * 2 * arm) / spiralArms);
+            ctx.beginPath();
+            const segments = 220;
+            for (let step = 0; step <= segments; step += 1) {
+                const t = step / segments;
+                const radius = Math.pow(t, 0.92) * half * 0.95;
+                const angle = t * Math.PI * 1.9;
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius * 0.62;
+                if (step === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.strokeStyle = colorToRgbaString(highlightColor, 0.18);
+            ctx.lineWidth = GALAXY_TEXTURE_SIZE * 0.02;
+            ctx.lineCap = 'round';
+            ctx.shadowColor = colorToRgbaString(highlightColor, 0.45);
+            ctx.shadowBlur = GALAXY_TEXTURE_SIZE * 0.05;
+            ctx.stroke();
+            ctx.restore();
+        }
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(half, half);
+        ctx.scale(1.08, 0.82);
+        const sparkleCount = 160;
+        for (let i = 0; i < sparkleCount; i += 1) {
+            const radius = Math.pow(Math.random(), 0.55) * half * 0.92;
+            const angle = Math.random() * Math.PI * 2;
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius * 0.7;
+            const starSize = Math.pow(Math.random(), 1.8) * 7 + 1.2;
+            const alpha = 0.12 + Math.random() * 0.35;
+            const tint = Math.random() < 0.3
+                ? highlightColor.clone().lerp(baseColor, 0.4)
+                : white;
+            ctx.beginPath();
+            ctx.fillStyle = colorToRgbaString(tint, alpha);
+            ctx.arc(x, y, starSize * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+
+        const coreGlow = ctx.createRadialGradient(half, half, GALAXY_TEXTURE_SIZE * 0.02, half, half, GALAXY_TEXTURE_SIZE * 0.12);
+        coreGlow.addColorStop(0, colorToRgbaString(white, 0.9));
+        coreGlow.addColorStop(0.65, colorToRgbaString(highlightColor, 0.4));
+        coreGlow.addColorStop(1, colorToRgbaString(highlightColor, 0));
+        ctx.fillStyle = coreGlow;
+        ctx.beginPath();
+        ctx.arc(half, half, GALAXY_TEXTURE_SIZE * 0.12, 0, Math.PI * 2);
+        ctx.fill();
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.wrapS = THREE.ClampToEdgeWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        texture.encoding = THREE.sRGBEncoding;
+        texture.anisotropy = 4;
+        texture.needsUpdate = true;
+
+        galaxyTextureCache.set(cacheKey, texture);
+        return texture;
+    }
 
     function createLabelSprite(text, overrides = {}) {
         const options = { ...LABEL_DEFAULTS, ...overrides };
@@ -265,7 +389,9 @@
 
             const { width, height } = this._getContainerSize();
             this.camera = new THREE.PerspectiveCamera(55, width / height, 1, 9000);
-            this.camera.position.set(0, CAMERA_LEVELS.galaxies.height, CAMERA_LEVELS.galaxies.distance + 320);
+            const initialHeight = CAMERA_LEVELS.galaxies.height * 1.15;
+            const initialDistance = CAMERA_LEVELS.galaxies.distance + 420;
+            this.camera.position.set(0, initialHeight, initialDistance);
             this.cameraTarget = new THREE.Vector3(0, 0, 0);
 
             this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -294,6 +420,7 @@
             this.controls.rotateSpeed = 0.35;
             this.controls.zoomSpeed = 0.65;
             this.controls.panSpeed = 0.8;
+            this.controls.target.copy(this.cameraTarget);
             this.controls.addEventListener('start', () => {
                 this._cancelTween();
                 if (this.currentSelection?.star) {
@@ -622,67 +749,75 @@
                 const dynamicRadius = baseAreaRadius * Math.sqrt(Math.max(1, constellationNames.length / 6));
                 const areaRadius = configuredRadius && configuredRadius > 0 ? configuredRadius : dynamicRadius;
 
-                const circleGeometry = CircleGeometryClass
-                    ? new CircleGeometryClass(areaRadius, 96)
-                    : (RingGeometryClass
-                        ? new RingGeometryClass(0, areaRadius, 96)
-                        : null);
+                const semiMajor = Math.max(areaRadius * 1.3, CONSTELLATION_RADIUS * 1.65);
+                const semiMinor = Math.max(areaRadius * 0.92, CONSTELLATION_RADIUS * 1.35);
 
-                const areaGeometry = circleGeometry
-                    || (typeof THREE.CircleGeometry === 'function'
-                        ? new THREE.CircleGeometry(areaRadius, 96)
-                        : new THREE.PlaneGeometry(areaRadius * 2, areaRadius * 2, 1, 1));
-
+                const galaxyTexture = createGalaxyTexture(galaxyColor, galaxyEmissive);
                 const areaMesh = new THREE.Mesh(
-                    areaGeometry,
-                    new THREE.MeshStandardMaterial({
-                        color: galaxyColor,
-                        emissive: galaxyEmissive,
-                        emissiveIntensity: 0.45,
-                        roughness: 0.42,
-                        metalness: 0.08,
+                    new THREE.PlaneGeometry(1, 1, 128, 128),
+                    new THREE.MeshBasicMaterial({
+                        map: galaxyTexture,
                         transparent: true,
-                        opacity: 0.22,
+                        opacity: 0.95,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false,
                         side: THREE.DoubleSide
                     })
                 );
+                areaMesh.scale.set(semiMajor * 2, semiMinor * 2, 1);
                 areaMesh.rotation.x = -Math.PI / 2;
-                areaMesh.position.y = -6;
+                areaMesh.position.y = -4;
                 areaMesh.userData = { type: 'galaxy', galaxy: galaxyName };
                 areaMesh.userData.originalScale = areaMesh.scale.clone();
                 group.add(areaMesh);
                 this.pickableObjects.push(areaMesh);
 
+                const halo = new THREE.Mesh(
+                    new THREE.PlaneGeometry(1, 1, 8, 8),
+                    new THREE.MeshBasicMaterial({
+                        color: haloColor,
+                        transparent: true,
+                        opacity: 0.18,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false,
+                        side: THREE.DoubleSide
+                    })
+                );
+                halo.scale.set(semiMajor * 2.8, semiMinor * 2.4, 1);
+                halo.rotation.x = -Math.PI / 2;
+                halo.position.y = -6;
+                halo.renderOrder = -1;
+                group.add(halo);
+
                 const rimGeometry = RingGeometryClass
-                    ? new RingGeometryClass(areaRadius + 12, areaRadius + 28, 96)
-                    : new THREE.TorusGeometry(areaRadius + 20, 6, 16, 96);
+                    ? new RingGeometryClass(0.78, 1.02, 128)
+                    : new THREE.PlaneGeometry(1, 1, 8, 8);
 
                 const rim = new THREE.Mesh(
                     rimGeometry,
-                    new THREE.MeshBasicMaterial({ color: haloColor, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
-                );
-                rim.rotation.x = -Math.PI / 2;
-                rim.position.y = -5;
-                group.add(rim);
-
-                const core = new THREE.Mesh(
-                    new THREE.SphereGeometry(Math.max(32, areaRadius * 0.12), 48, 48),
-                    new THREE.MeshStandardMaterial({
-                        color: galaxyColor,
-                        emissive: galaxyEmissive,
-                        emissiveIntensity: 0.9,
-                        roughness: 0.28,
-                        metalness: 0.18,
+                    new THREE.MeshBasicMaterial({
+                        color: haloColor,
                         transparent: true,
-                        opacity: 0.92
+                        opacity: 0.32,
+                        blending: THREE.AdditiveBlending,
+                        depthWrite: false,
+                        side: THREE.DoubleSide
                     })
                 );
-                core.position.y = 24;
-                group.add(core);
+                rim.scale.set(semiMajor, semiMinor, 1);
+                rim.rotation.x = -Math.PI / 2;
+                rim.position.y = -5;
+                rim.renderOrder = 0;
+                group.add(rim);
 
-                const labelHeight = Math.max(68, areaRadius * 0.12 + 46);
+                const labelHeight = Math.max(72, semiMinor * 0.22 + 52);
+                const labelOffset = Math.max(semiMajor * 0.78, CONSTELLATION_RADIUS * 1.1);
                 const label = createLabelSprite(galaxyName, { scale: 1.0 });
-                label.position.set(0, labelHeight, 0);
+                label.position.set(0, labelHeight, labelOffset);
+                label.userData = Object.assign({}, label.userData || {}, {
+                    offsetDistance: labelOffset,
+                    height: labelHeight
+                });
                 group.add(label);
 
                 const orbitGroup = new THREE.Group();
@@ -697,7 +832,10 @@
                     mesh: areaMesh,
                     orbitGroup,
                     areaRadius,
-                    constellationNames
+                    constellationNames,
+                    label,
+                    labelOffset,
+                    ellipse: { semiMajor, semiMinor }
                 };
 
                 constellationNames.forEach((constellationName, cIndex) => {
@@ -904,6 +1042,8 @@
 
                 this.galaxyMap.set(galaxyName, galaxyInfo);
             });
+
+            this._updateGalaxyLabels();
         }
 
         _clearUniverse() {
@@ -929,6 +1069,50 @@
             const y = toNumber(focusOverride.y, fallback.y);
             const z = toNumber(focusOverride.z, fallback.z);
             return new THREE.Vector3(x, y, z);
+        }
+
+        _updateGalaxyLabels() {
+            if (!this.galaxyMap || !this.galaxyMap.size) {
+                return;
+            }
+
+            const cameraPosition = this.camera.position;
+            const worldCenter = new THREE.Vector3();
+            const directionToCamera = new THREE.Vector3();
+            const labelWorld = new THREE.Vector3();
+
+            this.galaxyMap.forEach((info) => {
+                if (!info || !info.group || !info.label) {
+                    return;
+                }
+
+                const label = info.label;
+                const baseOffset = Number.isFinite(label.userData?.offsetDistance)
+                    ? label.userData.offsetDistance
+                    : Math.max(info.areaRadius || CONSTELLATION_RADIUS, CONSTELLATION_RADIUS);
+                const height = Number.isFinite(label.userData?.height)
+                    ? label.userData.height
+                    : 80;
+
+                info.group.getWorldPosition(worldCenter);
+                directionToCamera.copy(cameraPosition).sub(worldCenter);
+                const distance = directionToCamera.length();
+                if (distance <= 1e-3) {
+                    label.position.set(0, height, 0);
+                    return;
+                }
+
+                directionToCamera.normalize();
+                const desiredOffset = Math.max(48, baseOffset);
+                const maxOffset = Math.max(24, distance - 60);
+                const cappedOffset = Math.min(desiredOffset, maxOffset);
+                const effectiveOffset = Math.min(cappedOffset, Math.max(12, distance * 0.85));
+
+                labelWorld.copy(worldCenter).add(directionToCamera.multiplyScalar(effectiveOffset));
+                labelWorld.y = worldCenter.y + height;
+                const localPosition = info.group.worldToLocal(labelWorld);
+                label.position.copy(localPosition);
+            });
         }
 
         _maybeAutoAdjustView() {
@@ -1428,18 +1612,18 @@
             const height = config.height;
             const duration = config.duration;
 
-            const worldDirection = targetPosition.clone().normalize();
-            if (worldDirection.length() === 0) {
-                worldDirection.set(0, 0, 1);
-            }
-
-            const offsetDirection = worldDirection.clone().negate().normalize();
-            if (offsetDirection.length() === 0) {
+            const horizontalTarget = new THREE.Vector3(targetPosition.x, 0, targetPosition.z);
+            const horizontalCamera = new THREE.Vector3(this.camera.position.x, 0, this.camera.position.z);
+            const offsetDirection = horizontalTarget.sub(horizontalCamera);
+            if (!offsetDirection.lengthSq()) {
                 offsetDirection.set(0, 0, 1);
+            } else {
+                offsetDirection.normalize();
             }
 
-            const endPosition = targetPosition.clone().add(offsetDirection.multiplyScalar(distance));
+            const endPosition = targetPosition.clone();
             endPosition.y += height;
+            endPosition.sub(offsetDirection.clone().multiplyScalar(distance));
 
             const startPosition = this.camera.position.clone();
             const startTarget = this.controls.target.clone();
@@ -1484,6 +1668,7 @@
             }
 
             this.controls.update();
+            this._updateGalaxyLabels();
             this._maybeAutoAdjustView();
             this.render();
         }
