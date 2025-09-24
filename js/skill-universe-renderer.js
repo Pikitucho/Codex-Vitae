@@ -70,6 +70,19 @@
         return Math.max(0, Math.min(1, value));
     }
 
+    if (THREE.Color && THREE.Color.prototype && typeof THREE.Color.prototype.lerp !== 'function') {
+        THREE.Color.prototype.lerp = function lerp(targetColor, alpha) {
+            const target = targetColor instanceof THREE.Color
+                ? targetColor
+                : new THREE.Color(targetColor ?? 0xffffff);
+            const t = clamp01(Number.isFinite(alpha) ? alpha : 0);
+            this.r += (target.r - this.r) * t;
+            this.g += (target.g - this.g) * t;
+            this.b += (target.b - this.b) * t;
+            return this;
+        };
+    }
+
     function ensureColorInstance(input, fallbackHex = 0xffffff) {
         if (input instanceof THREE.Color) {
             return input;
