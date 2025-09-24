@@ -1046,6 +1046,23 @@ model-viewer.avatar-viewer {
     padding: 0 10px;
 }
 
+.stat-legacy-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.stat-legacy-row .stat-bar.legacy {
+    flex: 1 1 auto;
+}
+
+.legacy-counter {
+    font-size: 0.78em;
+    font-weight: 600;
+    color: var(--color-text-medium);
+    white-space: nowrap;
+}
+
 .stat-bar-fill {
     position: absolute;
     inset: 0;
