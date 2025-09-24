@@ -42,23 +42,14 @@
         </div>
 
         <div class="avatar-hero">
-            <div class="avatar-stage">
-                <model-viewer
+            <div class="avatar-stage is-placeholder">
+                <img
                     id="captured-photo"
-                    class="avatar-viewer"
-                    src="assets/avatars/codex-vitae-avatar.gltf"
-                    alt="Your Avatar"
-                    camera-controls
-                    auto-rotate
-                    interaction-prompt="none"
-                    camera-target="0 1.4 0"
-                    camera-orbit="0deg 80deg 2.9m"
-                    min-camera-orbit="-120deg 60deg 2.6m"
-                    max-camera-orbit="120deg 100deg 3.4m"
-                    field-of-view="28deg"
-                    shadow-intensity="0.65"
-                    exposure="1.1"
-                ></model-viewer>
+                    class="avatar-placeholder"
+                    src="assets/avatars/codex-vitae-avatar-placeholder.svg"
+                    alt="Avatar placeholder"
+                    decoding="async"
+                />
                 <video id="webcam-feed" class="avatar-camera hidden" autoplay playsinline></video>
             </div>
             <canvas id="photo-canvas" class="hidden"></canvas>
@@ -329,13 +320,5 @@
     <!-- Configuration values (firebase config, backend URL) -->
     <script src="config.js?v=20240610"></script>
     <script src="js/main.js?v=20240610"></script>
-    <script src="js/vendor/three.min.js?v=20240602"></script>
-    <script src="js/vendor/OrbitControls.js?v=20240602"></script>
-
-    <script src="js/skill-tree-data.js?v=20240602"></script>
-    <script src="js/skill-universe-renderer.js?v=20240602"></script>
-    <!-- Configuration values (firebase config, backend URL) -->
-    <script src="config.js?v=20240602"></script>
-    <script src="js/main.js?v=20240602"></script>
 </body>
 </html>
