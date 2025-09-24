@@ -1,5 +1,8 @@
 // js/skill-tree-data.js
 
+(function initializeSkillTreeData(global) {
+    'use strict';
+
 const DEFAULT_LAYOUT = {
     galaxies: {
         radius: 920,
@@ -1052,13 +1055,13 @@ const rawSkillTree = {
 
 const skillTree = generateProceduralLayout(rawSkillTree, { forceLayout: true });
 
-if (window.skillTree && typeof window.skillTree === 'object') {
-    window.skillTree = generateProceduralLayout(window.skillTree, { clone: true });
+if (global.skillTree && typeof global.skillTree === 'object') {
+    global.skillTree = generateProceduralLayout(global.skillTree, { clone: true });
 } else {
-    window.skillTree = skillTree;
+    global.skillTree = skillTree;
 }
 
-window.SkillTreeUtils = Object.assign({}, window.SkillTreeUtils, {
+global.SkillTreeUtils = Object.assign({}, global.SkillTreeUtils, {
     DEFAULT_LAYOUT,
     normalizeSkillTreeStructure,
     generateProceduralLayout,
@@ -1070,3 +1073,5 @@ window.SkillTreeUtils = Object.assign({}, window.SkillTreeUtils, {
     hasConstellationStar,
     findStarInConstellation
 });
+
+})(window);

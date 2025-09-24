@@ -1,5 +1,8 @@
 // js/main.js
 
+(() => {
+    'use strict';
+
 // --- CONFIGURATION ---
 // Sensitive configuration values are now injected via config.js which
 // should define window.__CODEX_CONFIG__.
@@ -3171,4 +3174,6 @@ if (typeof window.SkillUniverseRenderer === 'function') {
             '<p class="skill-tree-unavailable">3D skill tree unavailable (offline or missing Three.js).</p>';
     }
 }
+
+})();
 
