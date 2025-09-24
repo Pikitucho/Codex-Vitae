@@ -1817,5 +1817,7 @@
         const lerpExists = !!(THREE && THREE.Color && THREE.Color.prototype && typeof THREE.Color.prototype.lerp === 'function');
         console.info('SkillUniverseRenderer', SkillUniverseRenderer.VERSION, 'Color.lerp available:', lerpExists);
     }
+
+    SkillUniverseRenderer.VERSION = '2024.06.02';
     global.SkillUniverseRenderer = SkillUniverseRenderer;
 })(typeof window !== 'undefined' ? window : this);
