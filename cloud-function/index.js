@@ -53,6 +53,32 @@ const LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
 const TEXT_MODEL = process.env.VERTEX_TEXT_MODEL || 'gemini-1.0-pro';
 const IMAGE_MODEL = process.env.VERTEX_IMAGE_MODEL || 'imagegeneration@002';
 
+const ERROR_CODES = {
+  vertexAuthTimeout: 'VERTEX_AUTH_TIMEOUT',
+  vertexRequestTimeout: 'VERTEX_REQUEST_TIMEOUT'
+};
+
+const VERTEX_AUTH_TIMEOUT_MS = 20000;
+const VERTEX_REQUEST_TIMEOUT_MS = 45000;
+
+function createTimeoutError(message, code) {
+  const error = new Error(message);
+  if (code) {
+    error.code = code;
+  }
+  return error;
+}
+
+function withTimeout(promise, ms, onTimeout) {
+  let timer;
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      reject(typeof onTimeout === 'function' ? onTimeout() : createTimeoutError(onTimeout));
+    }, ms);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+}
+
 const googleAuth = new GoogleAuth({
   scopes: ['https://www.googleapis.com/auth/cloud-platform']
 });
@@ -60,14 +86,35 @@ let authClientPromise;
 
 async function getAuthClient() {
   if (!authClientPromise) {
-    authClientPromise = googleAuth.getClient();
+    authClientPromise = (async () => {
+      try {
+        return await withTimeout(
+          googleAuth.getClient(),
+          VERTEX_AUTH_TIMEOUT_MS,
+          () => createTimeoutError(
+            'Timed out while acquiring Google auth client for Vertex AI.',
+            ERROR_CODES.vertexAuthTimeout
+          )
+        );
+      } catch (error) {
+        authClientPromise = null;
+        throw error;
+      }
+    })();
   }
   return authClientPromise;
 }
 
 async function getAccessToken() {
   const client = await getAuthClient();
-  const accessToken = await client.getAccessToken();
+  const accessToken = await withTimeout(
+    client.getAccessToken(),
+    VERTEX_AUTH_TIMEOUT_MS,
+    () => createTimeoutError(
+      'Timed out while acquiring access token for Vertex AI.',
+      ERROR_CODES.vertexAuthTimeout
+    )
+  );
   const token = typeof accessToken === 'string' ? accessToken : accessToken?.token;
   if (!token) {
     throw new Error('Unable to acquire access token for Vertex AI.');
@@ -84,14 +131,26 @@ async function callVertex(model, body) {
   }
   const url = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${model}:generateContent`;
   const token = await getAccessToken();
-  const { data } = await axios.post(url, body, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    timeout: 60000
-  });
-  return data;
+  try {
+    const { data } = await axios.post(url, body, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: VERTEX_REQUEST_TIMEOUT_MS
+    });
+    return data;
+  } catch (error) {
+    const timeoutTriggered =
+      error?.code === 'ECONNABORTED' ||
+      error?.code === 'ERR_CANCELED' ||
+      error?.name === 'AbortError' ||
+      typeof error?.message === 'string' && error.message.toLowerCase().includes('timeout');
+    if (timeoutTriggered) {
+      throw createTimeoutError('Vertex AI request timed out.', ERROR_CODES.vertexRequestTimeout);
+    }
+    throw error;
+  }
 }
 
 const app = express();
@@ -104,6 +163,11 @@ function isConfigurationError(error) {
     message === MISSING_PROJECT_MESSAGE ||
     (MISSING_CREDENTIALS_MESSAGE && message === MISSING_CREDENTIALS_MESSAGE)
   );
+}
+
+function isVertexTimeoutError(error) {
+  const code = error?.code;
+  return code === ERROR_CODES.vertexAuthTimeout || code === ERROR_CODES.vertexRequestTimeout;
 }
 
 function ensureProjectConfigured(res) {
@@ -215,6 +279,9 @@ app.post('/classify-chore', async (req, res) => {
   } catch (error) {
     if (isConfigurationError(error)) {
       res.status(500).json({ error: error.message });
+    } else if (isVertexTimeoutError(error)) {
+      console.warn('classify-chore timeout', error.message);
+      res.status(504).json({ error: error.message });
     } else {
       console.error('classify-chore error', error);
       res.status(502).json({ error: 'Classification failed.' });
@@ -272,6 +339,9 @@ app.post('/generate-avatar', async (req, res) => {
   } catch (error) {
     if (isConfigurationError(error)) {
       res.status(500).json({ error: error.message });
+    } else if (isVertexTimeoutError(error)) {
+      console.warn('generate-avatar timeout', error.message);
+      res.status(504).json({ error: error.message });
     } else {
       console.error('generate-avatar error', error);
       res.status(502).json({ error: 'Avatar generation failed.' });
