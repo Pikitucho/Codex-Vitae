@@ -1,5 +1,8 @@
 // js/main.js
 
+(() => {
+    'use strict';
+
 // --- CONFIGURATION ---
 // Sensitive configuration values are now injected via config.js which
 // should define window.__CODEX_CONFIG__.
@@ -38,6 +41,8 @@ const BACKEND_SERVER_URL =
     typeof codexConfig.backendUrl === 'string' ? codexConfig.backendUrl.trim() : '';
 const AI_FEATURES_AVAILABLE = BACKEND_SERVER_URL.length > 0;
 const DEFAULT_AVATAR_MODEL_SRC = 'assets/avatars/codex-vitae-avatar.gltf';
+const DEFAULT_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/codex-vitae-avatar-placeholder.svg';
+const LEGACY_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/avatar-placeholder-casual-park.jpg';
 const DEFAULT_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/avatar-placeholder-casual-park.jpg';
 const LEGACY_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/codex-vitae-avatar-placeholder.svg';
 const DEFAULT_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/codex-vitae-avatar-placeholder.svg';
@@ -3175,4 +3180,6 @@ if (typeof window.SkillUniverseRenderer === 'function') {
             '<p class="skill-tree-unavailable">3D skill tree unavailable (offline or missing Three.js).</p>';
     }
 }
+
+})();
 
