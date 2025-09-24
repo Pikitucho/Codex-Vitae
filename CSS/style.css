@@ -935,6 +935,28 @@ model-viewer.avatar-viewer {
     color: var(--color-primary-dark);
 }
 
+.perk-progress-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.perk-overview-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(63, 111, 118, 0.08);
+    border: 1px solid rgba(63, 111, 118, 0.12);
+}
+
+.perk-overview-card strong,
+.perk-overview-value {
+    font-size: 1.2em;
+    color: var(--color-primary-dark);
+}
+
 .perk-progress-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));

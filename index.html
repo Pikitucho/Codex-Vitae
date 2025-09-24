@@ -176,18 +176,27 @@
                     <span class="meta-label">Perk Points Available</span>
                     <strong id="perk-points-available">0</strong>
                 </div>
+                <div class="perk-progress-overview" role="group" aria-label="Perk progression indicators">
+                    <div class="perk-overview-card">
+                        <span class="meta-label">Character Level</span>
+                        <strong id="perk-character-level">0</strong>
+                    </div>
+                    <div class="perk-overview-card">
+                        <span class="meta-label">Stats Toward Next Perk Point</span>
+                        <span id="perk-stats-to-next" class="perk-overview-value">0 / 10</span>
+                    </div>
+                    <div class="perk-overview-card">
+                        <span class="meta-label">Leading Legacy Stat</span>
+                        <span id="perk-leading-stat" class="perk-overview-value">--</span>
+                    </div>
+                </div>
                 <div class="perk-progress-grid">
                     <div class="perk-progress-card">
-                        <h4>Stat Counter</h4>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar" id="perk-progress-chores-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
-                        </div>
-                        <p id="perk-progress-chores-text" class="perk-progress-text">0 / 1,000 legacy shards toward next stat. Stat counter: 0 / 10.</p>
                         <h4>Legacy Shards</h4>
                         <div class="progress-bar-container">
-                            <div class="progress-bar" id="perk-progress-chores-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+                            <div class="progress-bar" id="perk-progress-legacy-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
                         </div>
-                        <p id="perk-progress-chores-text" class="perk-progress-text">0 / 1,000 legacy shards toward next stat. 0 / 10 stats toward next perk point.</p>
+                        <p id="perk-progress-legacy-text" class="perk-progress-text">0 / 1,000 legacy shards toward next stat milestone.</p>
                     </div>
                     <div class="perk-progress-card">
                         <h4>Quarterly</h4>
