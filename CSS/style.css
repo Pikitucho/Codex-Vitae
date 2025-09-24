@@ -312,8 +312,6 @@ button:active {
 
 .avatar-stage {
     position: relative;
-    width: min(72vw, 320px);
-    aspect-ratio: 5 / 8;
     width: min(78vw, 340px);
     aspect-ratio: 3 / 4;
     border-radius: 32px;
@@ -369,6 +367,12 @@ button:active {
 }
 
 .avatar-stage img.avatar-placeholder {
+    object-fit: cover;
+    object-position: 50% 10%;
+    padding: 0;
+    box-sizing: border-box;
+    background: transparent;
+    filter: none;
     object-fit: contain;
     padding: 8% 10% 6%;
     box-sizing: border-box;

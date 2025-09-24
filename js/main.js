@@ -38,6 +38,8 @@ const BACKEND_SERVER_URL =
     typeof codexConfig.backendUrl === 'string' ? codexConfig.backendUrl.trim() : '';
 const AI_FEATURES_AVAILABLE = BACKEND_SERVER_URL.length > 0;
 const DEFAULT_AVATAR_MODEL_SRC = 'assets/avatars/codex-vitae-avatar.gltf';
+const DEFAULT_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/avatar-placeholder-casual-park.jpg';
+const LEGACY_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/codex-vitae-avatar-placeholder.svg';
 const DEFAULT_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/codex-vitae-avatar-placeholder.svg';
 const AVATAR_MODEL_EXTENSIONS = ['.glb', '.gltf'];
 
@@ -858,6 +860,26 @@ function updateCapturedPhotoElement(element, imageSrc) {
             return;
         }
 
+        const ensurePlaceholderLoaded = (imgElement) => {
+            if (!imgElement || imgElement.dataset.placeholderPrepared === 'true') {
+                if (imgElement && imgElement.getAttribute('src') !== DEFAULT_AVATAR_PLACEHOLDER_SRC) {
+                    imgElement.setAttribute('src', DEFAULT_AVATAR_PLACEHOLDER_SRC);
+                }
+                return;
+            }
+
+            const handleError = () => {
+                if (imgElement.getAttribute('src') === DEFAULT_AVATAR_PLACEHOLDER_SRC) {
+                    imgElement.setAttribute('src', LEGACY_AVATAR_PLACEHOLDER_SRC);
+                }
+            };
+
+            imgElement.addEventListener('error', handleError);
+            imgElement.dataset.placeholderPrepared = 'true';
+            imgElement.setAttribute('src', DEFAULT_AVATAR_PLACEHOLDER_SRC);
+        };
+
+        ensurePlaceholderLoaded(activeElement);
         if (activeElement.getAttribute('src') !== DEFAULT_AVATAR_PLACEHOLDER_SRC) {
             activeElement.setAttribute('src', DEFAULT_AVATAR_PLACEHOLDER_SRC);
         }
