@@ -926,12 +926,12 @@
                 rim.renderOrder = 0;
                 group.add(rim);
 
-                const labelHeight = Math.max(72, semiMinor * 0.22 + 52);
-                const labelOffset = Math.max(semiMajor * 0.78, CONSTELLATION_RADIUS * 1.1);
+                const labelHeight = Math.max(96, semiMinor * 0.24 + 68);
+                const labelOffset = Math.max(semiMajor * 0.85, CONSTELLATION_RADIUS * 1.22);
                 const label = createLabelSprite(galaxyName, {
-                    scale: 1.15,
-                    fontSize: 56,
-                    padding: 22,
+                    scale: 2.05,
+                    fontSize: 72,
+                    padding: 28,
                     backgroundColor: 'rgba(36, 20, 62, 0.9)',
                     textColor: 'rgba(255, 228, 166, 0.98)',
                     borderColor: 'rgba(255, 196, 116, 0.9)',
