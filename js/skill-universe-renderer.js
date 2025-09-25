@@ -18,10 +18,10 @@
         : (typeof THREE.RingBufferGeometry === 'function' ? THREE.RingBufferGeometry : null);
 
     const CAMERA_LEVELS = {
-        galaxies: { distance: 1750, height: 320, duration: 1500 },
-        constellations: { distance: 720, height: 220, duration: 1200 },
-        starSystems: { distance: 320, height: 140, duration: 1100 },
-        stars: { distance: 120, height: 60, duration: 1200 }
+        galaxies: { distance: 2350, height: 420, duration: 1600 },
+        constellations: { distance: 780, height: 240, duration: 1250 },
+        starSystems: { distance: 340, height: 150, duration: 1100 },
+        stars: { distance: 130, height: 65, duration: 1200 }
     };
 
     const GALAXY_LABEL_VISIBILITY = (() => {
@@ -64,10 +64,10 @@
     const STAR_ORBIT_RADIUS = 32;
 
     const STARFIELD_CONFIG = {
-        count: 2400,
-        radius: 4600,
-        size: 1.9,
-        opacity: 0.82
+        count: 4200,
+        radius: 6400,
+        size: 1.35,
+        opacity: 0.9
     };
 
     const LABEL_DEFAULTS = {
@@ -323,9 +323,13 @@
         });
 
         const sprite = new THREE.Sprite(material);
-        const aspect = canvas.width / canvas.height;
+        const aspect = canvas.width / canvas.height || 1;
         const baseScale = scale * 22;
         sprite.scale.set(baseScale * aspect, baseScale, 1);
+        sprite.userData = Object.assign({}, sprite.userData, {
+            baseScale,
+            aspectRatio: aspect
+        });
         sprite.renderOrder = 2;
         return sprite;
     }
@@ -500,13 +504,13 @@
                 : null;
 
             this.scene = new THREE.Scene();
-            this.scene.fog = new THREE.FogExp2(0x04070d, 0.00085);
+            this.scene.fog = new THREE.FogExp2(0x01040a, 0.00045);
             this.starfield = null;
 
             const { width, height } = this._getContainerSize();
-            this.camera = new THREE.PerspectiveCamera(55, width / height, 1, 9000);
-            const initialHeight = CAMERA_LEVELS.galaxies.height * 1.15;
-            const initialDistance = CAMERA_LEVELS.galaxies.distance + 420;
+            this.camera = new THREE.PerspectiveCamera(57, width / height, 1, 9000);
+            const initialHeight = CAMERA_LEVELS.galaxies.height * 1.12;
+            const initialDistance = CAMERA_LEVELS.galaxies.distance + 620;
             this.camera.position.set(0, initialHeight, initialDistance);
             this.cameraTarget = new THREE.Vector3(0, 0, 0);
 
@@ -517,7 +521,7 @@
             this.renderer.domElement.style.height = '100%';
             this.renderer.domElement.style.display = 'block';
             this.renderer.setPixelRatio(global.devicePixelRatio || 1);
-            this.renderer.setClearColor(0x02030b, 1);
+            this.renderer.setClearColor(0x01020a, 1);
             this.container.innerHTML = '';
             this.container.appendChild(this.renderer.domElement);
             this.starFocusOverlay = this._createStarFocusOverlay();
@@ -529,7 +533,7 @@
             this.controls.dampingFactor = 0.12;
             this.controls.screenSpacePanning = true;
             this.controls.minDistance = 120;
-            this.controls.maxDistance = 4400;
+            this.controls.maxDistance = 5600;
             this.controls.enablePan = true;
             this.controls.enableZoom = true;
             this.controls.enableRotate = true;
@@ -769,26 +773,31 @@
             const count = STARFIELD_CONFIG.count;
             const positions = new Float32Array(count * 3);
             const colors = new Float32Array(count * 3);
-            const baseColor = new THREE.Color(0xffffff);
+            const baseColor = new THREE.Color(0xf6f8ff);
+            const tintColor = new THREE.Color(0x6ca4ff);
+            const tempColor = new THREE.Color();
 
             for (let i = 0; i < count; i += 1) {
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(Math.max(-1, Math.min(1, (Math.random() * 2) - 1)));
-                const radius = Math.pow(Math.random(), 0.42) * STARFIELD_CONFIG.radius;
+                const radius = Math.pow(Math.random(), 0.38) * STARFIELD_CONFIG.radius;
                 const sinPhi = Math.sin(phi);
                 const x = sinPhi * Math.cos(theta) * radius;
                 const z = sinPhi * Math.sin(theta) * radius;
-                const y = Math.cos(phi) * STARFIELD_CONFIG.radius * 0.35 + (Math.random() - 0.5) * STARFIELD_CONFIG.radius * 0.25;
+                const y = Math.cos(phi) * STARFIELD_CONFIG.radius * 0.48
+                    + (Math.random() - 0.5) * STARFIELD_CONFIG.radius * 0.18;
 
                 const offset = i * 3;
                 positions[offset] = x;
                 positions[offset + 1] = y;
                 positions[offset + 2] = z;
 
-                const twinkle = 0.6 + Math.random() * 0.4;
-                colors[offset] = baseColor.r * twinkle;
-                colors[offset + 1] = baseColor.g * twinkle;
-                colors[offset + 2] = baseColor.b * twinkle;
+                const twinkle = 0.55 + Math.random() * 0.45;
+                const coolFactor = Math.pow(Math.random(), 2.2) * 0.45;
+                tempColor.copy(baseColor).lerp(tintColor, coolFactor);
+                colors[offset] = tempColor.r * twinkle;
+                colors[offset + 1] = tempColor.g * twinkle;
+                colors[offset + 2] = tempColor.b * twinkle;
             }
 
             const geometry = new THREE.BufferGeometry();
@@ -1260,12 +1269,31 @@
                 }
                 label.position.copy(labelLocal);
 
+                const baseScale = Number.isFinite(label.userData?.baseScale)
+                    ? label.userData.baseScale
+                    : label.scale.y;
+                const fallbackScaleY = Number.isFinite(label.scale?.y) ? label.scale.y : 1;
+                const computedAspect = fallbackScaleY !== 0 ? label.scale.x / fallbackScaleY : 1;
+                const aspectRatio = Number.isFinite(label.userData?.aspectRatio) && label.userData.aspectRatio > 0
+                    ? label.userData.aspectRatio
+                    : (Number.isFinite(computedAspect) && computedAspect > 0 ? computedAspect : 1);
+                const comfortableDistance = CAMERA_LEVELS.galaxies.distance + 360;
+                const visibilityFactor = clamp(
+                    (distance - fullyTransparentDistance) / fadeRange,
+                    0,
+                    1
+                );
+                const distanceScale = clamp(
+                    distance / Math.max(comfortableDistance, 1),
+                    0.6,
+                    2.6
+                );
+                const emphasisScale = 0.85 + visibilityFactor * 1.15;
+                const scaleMultiplier = clamp(distanceScale * emphasisScale, 0.65, 2.75);
+                const finalScale = baseScale * scaleMultiplier;
+                label.scale.set(finalScale * aspectRatio, finalScale, 1);
+
                 if (label.material && typeof label.material.opacity === 'number') {
-                    const visibilityFactor = clamp(
-                        (distance - fullyTransparentDistance) / fadeRange,
-                        0,
-                        1
-                    );
                     const emphasis = visibilityFactor * visibilityFactor;
                     label.material.opacity = emphasis;
                 }
