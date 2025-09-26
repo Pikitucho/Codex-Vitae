@@ -357,12 +357,22 @@
             return null;
         };
 
+    function hashToUnit(value) {
+        const x = Math.sin(value * 127.1) * 43758.5453123;
+        return x - Math.floor(x);
+    }
+
     function createRadialPosition(index, total, radius, verticalAmplitude = 0) {
         const safeTotal = Math.max(total || 0, 1);
         const angle = (index % safeTotal) / safeTotal * Math.PI * 2;
         const x = Math.cos(angle) * radius;
         const z = Math.sin(angle) * radius;
-        const y = verticalAmplitude ? Math.sin(angle * 2) * verticalAmplitude : 0;
+        let y = 0;
+        if (verticalAmplitude) {
+            const wave = Math.sin(angle * 1.7) * verticalAmplitude * 0.6;
+            const scatter = (hashToUnit(index + safeTotal * 0.618) - 0.5) * 2 * verticalAmplitude * 0.4;
+            y = wave + scatter;
+        }
         return { x, y, z };
     }
 
@@ -872,6 +882,7 @@
                 this.renderer.domElement.style.width = '100%';
                 this.renderer.domElement.style.height = '100%';
                 this.renderer.domElement.style.display = 'block';
+                this.renderer.domElement.style.touchAction = 'none';
                 this.renderer.setClearColor(0x01020a, 1);
                 if (this.container && typeof this.container.appendChild === 'function') {
                     this.container.appendChild(this.renderer.domElement);
@@ -905,6 +916,20 @@
             this.controls.rotateSpeed = 0.35;
             this.controls.zoomSpeed = 0.65;
             this.controls.panSpeed = 0.8;
+            if (THREE?.MOUSE) {
+                this.controls.mouseButtons = {
+                    LEFT: THREE.MOUSE.PAN,
+                    MIDDLE: THREE.MOUSE.DOLLY,
+                    RIGHT: THREE.MOUSE.ROTATE
+                };
+            }
+            if (THREE?.TOUCH) {
+                this.controls.touches = {
+                    ONE: THREE.TOUCH.ROTATE,
+                    TWO: THREE.TOUCH.DOLLY_PAN,
+                    THREE: THREE.TOUCH.PAN
+                };
+            }
             this.controls.target.copy(this.cameraTarget);
             this.controls.addEventListener('start', () => {
                 this._cancelTween();
@@ -2173,7 +2198,7 @@
                     index,
                     galaxyNames.length,
                     GALAXY_RADIUS,
-                    0
+                    GALAXY_RADIUS * 0.22
                 );
                 const galaxyPosition = toVector3(galaxyData.position, fallbackGalaxyPosition);
                 const galaxyColor = resolveEntityColor(galaxyData, 0x6c5ce7);
@@ -2302,7 +2327,7 @@
                         cIndex,
                         constellationNames.length,
                         CONSTELLATION_RADIUS,
-                        14
+                        CONSTELLATION_RADIUS * 0.18
                     );
                     const constellationPosition = toVector3(constellationData.position, fallbackConstellationPosition);
                     const constellationColor = resolveEntityColor(constellationData, 0x45aaf2);
@@ -2378,7 +2403,7 @@
                             sIndex,
                             validSystemGroups.length,
                             STAR_SYSTEM_RADIUS,
-                            12
+                            STAR_SYSTEM_RADIUS * 0.32
                         );
                         const systemPosition = toVector3(systemData?.position, fallbackSystemPosition);
                         const systemColor = resolveEntityColor(systemData, constellationColor);
@@ -2437,7 +2462,7 @@
                                 starIndex,
                                 totalStars,
                                 STAR_ORBIT_RADIUS,
-                                6
+                                STAR_ORBIT_RADIUS * 0.42
                             );
                             const starPosition = toVector3(starData?.position, fallbackStarPosition);
 
@@ -3355,6 +3380,84 @@
             }
         }
 
+        nudgeOrbit(deltaAzimuth = 0, deltaPolar = 0) {
+            if (!this.controls || !this.camera) {
+                return;
+            }
+
+            this._cancelTween();
+
+            const target = this.controls.target.clone();
+            const offset = this.camera.position.clone().sub(target);
+            if (!offset.lengthSq()) {
+                return;
+            }
+
+            const spherical = new THREE.Spherical();
+            spherical.setFromVector3(offset);
+
+            const epsilon = 0.001;
+            const minPolar = typeof this.controls.minPolarAngle === 'number'
+                ? this.controls.minPolarAngle + epsilon
+                : epsilon;
+            const maxPolar = typeof this.controls.maxPolarAngle === 'number'
+                ? this.controls.maxPolarAngle - epsilon
+                : Math.PI - epsilon;
+
+            spherical.theta += Number.isFinite(deltaAzimuth) ? deltaAzimuth : 0;
+            spherical.phi = clamp(
+                spherical.phi + (Number.isFinite(deltaPolar) ? deltaPolar : 0),
+                Math.max(epsilon, minPolar),
+                Math.min(Math.PI - epsilon, maxPolar)
+            );
+
+            offset.setFromSpherical(spherical);
+            this.camera.position.copy(target.clone().add(offset));
+
+            if (typeof this.controls.update === 'function') {
+                this.controls.update();
+            }
+
+            this.render();
+        }
+
+        resetOrbit() {
+            if (!this.controls || !this.camera) {
+                return;
+            }
+
+            this._cancelTween();
+
+            const target = this.controls.target.clone();
+            const currentOffset = this.camera.position.clone().sub(target);
+            const currentRadius = currentOffset.length();
+            const level = CAMERA_LEVELS[this.currentView] || CAMERA_LEVELS.galaxies;
+            const defaultVector = new THREE.Vector3(0, level.height, level.distance);
+            if (!defaultVector.lengthSq()) {
+                defaultVector.set(0, level.height || 1, level.distance || 1);
+            }
+
+            const minRadius = Math.max(1, this.controls.minDistance || 1);
+            const maxRadius = this.controls.maxDistance && Number.isFinite(this.controls.maxDistance)
+                ? this.controls.maxDistance
+                : currentRadius || defaultVector.length();
+            const baselineRadius = defaultVector.length() || minRadius;
+            const targetRadius = clamp(
+                Number.isFinite(currentRadius) && currentRadius > 0 ? currentRadius : baselineRadius,
+                minRadius,
+                Math.max(minRadius, maxRadius)
+            );
+
+            const direction = defaultVector.clone().normalize().multiplyScalar(targetRadius);
+            this.camera.position.copy(target.clone().add(direction));
+
+            if (typeof this.controls.update === 'function') {
+                this.controls.update();
+            }
+
+            this.render();
+        }
+
         _getWorldPosition(object3D) {
             return object3D.getWorldPosition(new THREE.Vector3());
         }
@@ -3403,24 +3506,36 @@
             domElement.addEventListener('pointerup', (event) => this._onPointerUp(event));
             domElement.addEventListener('pointercancel', (event) => this._onPointerCancel(event));
             domElement.addEventListener('click', (event) => this._onClick(event));
+            domElement.addEventListener('keydown', (event) => this._onKeyDown(event));
+            domElement.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+            });
         }
 
         _onPointerDown(event) {
             if (event.pointerType === 'touch') {
                 this.activeTouchPointers.add(event.pointerId);
-                if (this.activeTouchPointers.size > 1) {
+                if (!event.isPrimary || this.activeTouchPointers.size > 1) {
                     this.pointerDownInfo = null;
                     return;
                 }
             } else {
                 this.activeTouchPointers.clear();
+                const isPrimary = event.isPrimary !== false;
+                const button = typeof event.button === 'number' ? event.button : 0;
+                const isLeftClick = button === 0;
+                if (!isPrimary || !isLeftClick) {
+                    this.pointerDownInfo = null;
+                    return;
+                }
             }
             this.pointerDownInfo = {
                 x: event.clientX,
                 y: event.clientY,
                 time: performance.now(),
                 pointerId: event.pointerId,
-                pointerType: event.pointerType || 'mouse'
+                pointerType: event.pointerType || 'mouse',
+                button: typeof event.button === 'number' ? event.button : 0
             };
         }
 
@@ -3433,6 +3548,10 @@
                 if (!this.activeTouchPointers.size) {
                     this.pointerDownInfo = null;
                 }
+                return;
+            }
+            if (downInfo.pointerType === 'mouse' && downInfo.button !== 0) {
+                this.pointerDownInfo = null;
                 return;
             }
             if (event.pointerType === 'touch' && this.activeTouchPointers.size > 0) {
@@ -3475,6 +3594,50 @@
             const intersects = this.raycaster.intersectObjects(this.pickableObjects, false);
             const first = intersects.length ? this._findSelectable(intersects[0].object) : null;
             this._updateHover(first);
+        }
+
+        _onKeyDown(event) {
+            if (!event) {
+                return;
+            }
+
+            const targetElement = this.renderer?.domElement || null;
+            if (!targetElement || event.target !== targetElement) {
+                return;
+            }
+
+            const azimuthStep = Math.PI / 24; // ~7.5° per tap
+            const polarStep = Math.PI / 40; // ~4.5° per tap
+            let handled = false;
+
+            switch (event.key) {
+                case 'ArrowLeft':
+                    this.nudgeOrbit(-azimuthStep, 0);
+                    handled = true;
+                    break;
+                case 'ArrowRight':
+                    this.nudgeOrbit(azimuthStep, 0);
+                    handled = true;
+                    break;
+                case 'ArrowUp':
+                    this.nudgeOrbit(0, -polarStep);
+                    handled = true;
+                    break;
+                case 'ArrowDown':
+                    this.nudgeOrbit(0, polarStep);
+                    handled = true;
+                    break;
+                case 'Home':
+                    this.resetOrbit();
+                    handled = true;
+                    break;
+                default:
+                    break;
+            }
+
+            if (handled) {
+                event.preventDefault();
+            }
         }
 
         _findSelectable(object) {
@@ -3834,13 +3997,11 @@
         }
     }
 
-    SkillUniverseRenderer.VERSION = '2024.06.10';
+    SkillUniverseRenderer.VERSION = '2024.06.24';
 
     if (typeof console !== 'undefined' && console.info) {
         const lerpExists = !!(THREE && THREE.Color && THREE.Color.prototype && typeof THREE.Color.prototype.lerp === 'function');
         console.info('SkillUniverseRenderer', SkillUniverseRenderer.VERSION, 'Color.lerp available:', lerpExists);
     }
-
-    SkillUniverseRenderer.VERSION = '2024.06.02';
     global.SkillUniverseRenderer = SkillUniverseRenderer;
 })(typeof window !== 'undefined' ? window : this);

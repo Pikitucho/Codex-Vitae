@@ -2621,6 +2621,8 @@ function updateSkillTreeUI(title, breadcrumbs, showBack) {
             skillPanRightBtn.disabled = !showPanControls;
         }
     }
+
+    updateOrbitControlsState();
 }
 
 function showToast(message) {
