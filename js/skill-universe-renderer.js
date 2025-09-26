@@ -87,6 +87,7 @@
 
     const GALAXY_TEXTURE_SIZE = 1024;
     const galaxyTextureCache = new Map();
+    const StarMixer = global.SkillUniverseStarMixer || null;
 
     function clamp01(value) {
         if (!Number.isFinite(value)) {
@@ -1359,18 +1360,95 @@
 
         _applyStarMaterial(mesh, status) {
             const material = mesh.material;
-            const color = STATUS_COLORS[status] || STATUS_COLORS.locked;
-            material.color.setHex(color);
-            if (status === 'unlocked') {
-                material.emissive.setHex(color);
-                material.emissiveIntensity = 0.65;
-            } else if (status === 'available') {
-                material.emissive.setHex(color);
-                material.emissiveIntensity = 0.35;
-            } else {
-                material.emissive.setHex(0x111111);
-                material.emissiveIntensity = 0.3;
+            const defaultColor = STATUS_COLORS[status] || STATUS_COLORS.locked;
+            let baseColorHex = defaultColor;
+            let highlightHex = null;
+            let emissiveHex = defaultColor;
+            let emissiveIntensity = status === 'unlocked'
+                ? 0.65
+                : status === 'available'
+                    ? 0.38
+                    : 0.26;
+            let roughness = Number.isFinite(material.roughness) ? material.roughness : 0.32;
+            let metalness = Number.isFinite(material.metalness) ? material.metalness : 0.18;
+
+            if (StarMixer && typeof StarMixer.generateStarMaterial === 'function') {
+                const mixerResult = StarMixer.generateStarMaterial({
+                    galaxyName: mesh.userData?.galaxy,
+                    constellationName: mesh.userData?.constellation,
+                    starSystemName: mesh.userData?.starSystem,
+                    starName: mesh.userData?.star,
+                    starData: mesh.userData?.data,
+                    status
+                });
+
+                if (mixerResult && mixerResult.colors && mixerResult.recipe) {
+                    baseColorHex = mixerResult.colors.albedo ?? baseColorHex;
+                    highlightHex = mixerResult.colors.highlight ?? null;
+                    emissiveHex = mixerResult.colors.emissive ?? emissiveHex;
+                    if (Number.isFinite(mixerResult.colors.emissiveIntensity)) {
+                        emissiveIntensity = mixerResult.colors.emissiveIntensity;
+                    }
+
+                    const categoryWeights = {};
+                    mixerResult.recipe.ingredients.forEach((ingredient) => {
+                        if (!ingredient || !ingredient.category) {
+                            return;
+                        }
+                        const weight = Number.isFinite(ingredient.weight) ? ingredient.weight : 0;
+                        if (weight <= 0) {
+                            return;
+                        }
+                        categoryWeights[ingredient.category] = (categoryWeights[ingredient.category] || 0) + weight;
+                    });
+
+                    if (categoryWeights.metals) {
+                        metalness += categoryWeights.metals * 0.42;
+                        roughness -= categoryWeights.metals * 0.18;
+                    }
+                    if (categoryWeights.minerals) {
+                        metalness += categoryWeights.minerals * 0.18;
+                        roughness += categoryWeights.minerals * 0.12;
+                    }
+                    if (categoryWeights.organics) {
+                        roughness += categoryWeights.organics * 0.25;
+                    }
+                    if (categoryWeights.gases) {
+                        roughness -= categoryWeights.gases * 0.22;
+                        emissiveIntensity += categoryWeights.gases * 0.18;
+                    }
+                    if (categoryWeights.other) {
+                        emissiveIntensity += categoryWeights.other * 0.24;
+                        highlightHex = highlightHex || emissiveHex;
+                    }
+
+                    mesh.userData.materialRecipe = mixerResult;
+                }
             }
+
+            roughness = clamp(roughness, 0.12, 0.85);
+            metalness = clamp(metalness, 0.05, 0.95);
+            emissiveIntensity = clamp(emissiveIntensity, 0.15, 1.1);
+
+            const baseColor = ensureColorInstance(baseColorHex, defaultColor);
+            if (status === 'available' && highlightHex !== null) {
+                baseColor.lerp(ensureColorInstance(highlightHex, baseColorHex), 0.25);
+            } else if (status === 'unlocked') {
+                baseColor.lerp(new THREE.Color(0xffffff), 0.12);
+            } else {
+                baseColor.lerp(new THREE.Color(0x06080d), 0.38);
+            }
+            material.color.copy(baseColor);
+
+            const emissiveColor = ensureColorInstance(emissiveHex, defaultColor);
+            if (status === 'locked') {
+                emissiveColor.lerp(baseColor, 0.7);
+                emissiveIntensity = Math.min(emissiveIntensity, 0.32);
+            }
+            material.emissive.copy(emissiveColor);
+            material.emissiveIntensity = emissiveIntensity;
+            material.roughness = roughness;
+            material.metalness = metalness;
         }
 
         _createStarFocusOverlay() {
