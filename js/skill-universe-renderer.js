@@ -590,6 +590,7 @@
                     }
                     this._glRenderer = null;
                 }
+                this._setDefaultEnvironment();
             }
 
             if (!this.renderer) {
@@ -3014,6 +3015,36 @@
             this._updateGalaxyLabels();
             this._maybeAutoAdjustView();
             this.render(delta);
+        }
+
+        async _setDefaultEnvironment() {
+            const fetchFn = typeof global.fetch === 'function' ? global.fetch.bind(global) : (typeof fetch === 'function' ? fetch : null);
+            if (!fetchFn || !global.CVTextures || typeof global.CVTextures.getEnvironmentFromHDR !== 'function' || !this.scene) {
+                return;
+            }
+            try {
+                const res = await fetchFn('assets/skill-universe/ingredient-library.json', { cache: 'no-store' });
+                if (!res || !res.ok) {
+                    return;
+                }
+                const lib = await res.json();
+                if (!Array.isArray(lib)) {
+                    return;
+                }
+                const neb = lib.find((e) => e && e.type === 'nebula' && e.maps && e.maps.environment && /\.hdr$/i.test(e.maps.environment));
+                if (!neb) {
+                    return;
+                }
+                const hdrUrl = neb.maps.environment;
+                const envTex = await global.CVTextures.getEnvironmentFromHDR(hdrUrl);
+                if (envTex) {
+                    this.scene.environment = envTex;
+                }
+            } catch (err) {
+                if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+                    console.warn('[SkillUniverse] Environment HDR load skipped:', err);
+                }
+            }
         }
 
         _updateViewUI() {
