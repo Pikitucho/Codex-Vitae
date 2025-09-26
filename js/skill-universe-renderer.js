@@ -505,8 +505,19 @@
                 : null;
 
             this.scene = new THREE.Scene();
-            this.scene.fog = new THREE.FogExp2(0x01040a, 0.00045);
-            this.starfield = null;
+            this.scene.fog = new THREE.FogExp2(0x01040a, 0.00038);
+            this.starfieldGroup = null;
+            this._farStars = null;
+            this._midStars = null;
+            this._fogPoints = null;
+            this._nebulaPlanes = [];
+            this._nebulaTextures = [];
+            this._lightRig = null;
+            this._lightRigLights = [];
+            this._environmentTarget = null;
+            this._environmentMap = null;
+            this._rgbeLoader = null;
+            this._clock = typeof THREE.Clock === 'function' ? new THREE.Clock() : null;
 
             const { width, height } = this._getContainerSize();
             this.camera = new THREE.PerspectiveCamera(57, width / height, 1, 9000);
@@ -516,7 +527,20 @@
             this.cameraTarget = new THREE.Vector3(0, 0, 0);
 
             this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            this.renderer.outputEncoding = THREE.sRGBEncoding;
+            if (typeof this.renderer.physicallyCorrectLights !== 'undefined') {
+                this.renderer.physicallyCorrectLights = true;
+            }
+            if (typeof this.renderer.toneMapping !== 'undefined' && typeof THREE.ACESFilmicToneMapping !== 'undefined') {
+                this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            }
+            if (typeof this.renderer.toneMappingExposure === 'number') {
+                this.renderer.toneMappingExposure = 1.1;
+            }
+            if (typeof this.renderer.outputColorSpace !== 'undefined' && typeof THREE.SRGBColorSpace !== 'undefined') {
+                this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+            } else if (typeof this.renderer.outputEncoding !== 'undefined' && typeof THREE.sRGBEncoding !== 'undefined') {
+                this.renderer.outputEncoding = THREE.sRGBEncoding;
+            }
             this.renderer.setSize(width, height, false);
             this.renderer.domElement.style.width = '100%';
             this.renderer.domElement.style.height = '100%';
@@ -525,9 +549,19 @@
             this.renderer.setClearColor(0x01020a, 1);
             this.container.innerHTML = '';
             this.container.appendChild(this.renderer.domElement);
+            if (typeof this.renderer.autoClear === 'boolean') {
+                this.renderer.autoClear = true;
+            }
             this.starFocusOverlay = this._createStarFocusOverlay();
             this.starFocusOverlayKey = null;
             this.renderer.domElement.setAttribute('tabindex', '0');
+
+            this.composer = null;
+            this.renderPass = null;
+            this._bloomPass = null;
+            this._colorGradePass = null;
+            this._initPostProcessing(width, height);
+            this._loadEnvironmentMap();
 
             this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
             this.controls.enableDamping = true;
@@ -597,6 +631,207 @@
             this._animate();
         }
 
+        _ensureRGBELoader() {
+            if (this._rgbeLoader || typeof THREE.RGBELoader !== 'function') {
+                return this._rgbeLoader;
+            }
+            try {
+                this._rgbeLoader = new THREE.RGBELoader();
+            } catch (error) {
+                console.warn('Unable to instantiate RGBELoader. HDR assets will be skipped.', error);
+                this._rgbeLoader = null;
+            }
+            return this._rgbeLoader;
+        }
+
+        _initPostProcessing(width, height) {
+            if (!this.renderer || typeof THREE.EffectComposer !== 'function' || typeof THREE.RenderPass !== 'function') {
+                this.composer = null;
+                this.renderPass = null;
+                this._bloomPass = null;
+                this._colorGradePass = null;
+                return;
+            }
+
+            const pixelRatio = this.renderer.getPixelRatio
+                ? this.renderer.getPixelRatio()
+                : (global.devicePixelRatio || 1);
+
+            this.composer = new THREE.EffectComposer(this.renderer);
+            if (typeof this.composer.setPixelRatio === 'function') {
+                this.composer.setPixelRatio(pixelRatio);
+            }
+            if (typeof this.composer.setSize === 'function') {
+                this.composer.setSize(width, height);
+            }
+
+            this.renderPass = new THREE.RenderPass(this.scene, this.camera);
+            this.composer.addPass(this.renderPass);
+
+            if (typeof THREE.UnrealBloomPass === 'function' && typeof THREE.Vector2 === 'function') {
+                this._bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(width, height), 0.75, 0.85, 0.25);
+                this._bloomPass.strength = 0.85;
+                this._bloomPass.radius = 0.82;
+                this._bloomPass.threshold = 0.18;
+                this.composer.addPass(this._bloomPass);
+            } else {
+                this._bloomPass = null;
+            }
+
+            if (typeof THREE.ShaderPass === 'function') {
+                const shader = this._createColorGradeShader();
+                this._colorGradePass = new THREE.ShaderPass(shader);
+                if (typeof this._colorGradePass.renderToScreen !== 'undefined') {
+                    this._colorGradePass.renderToScreen = true;
+                }
+                this.composer.addPass(this._colorGradePass);
+            } else {
+                this._colorGradePass = null;
+            }
+        }
+
+        _createColorGradeShader() {
+            const tint = new THREE.Vector3(0.96, 0.99, 1.05);
+            return {
+                uniforms: {
+                    tDiffuse: { value: null },
+                    exposure: { value: 1.05 },
+                    offset: { value: 0.015 },
+                    tint: { value: tint },
+                    vignetteStrength: { value: 0.48 },
+                    vignetteFeather: { value: 0.42 }
+                },
+                vertexShader: `varying vec2 vUv;\n` +
+                    `void main() {\n` +
+                    `    vUv = uv;\n` +
+                    `    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n` +
+                    `}`,
+                fragmentShader: `uniform sampler2D tDiffuse;\n` +
+                    `uniform float exposure;\n` +
+                    `uniform float offset;\n` +
+                    `uniform vec3 tint;\n` +
+                    `uniform float vignetteStrength;\n` +
+                    `uniform float vignetteFeather;\n` +
+                    `varying vec2 vUv;\n` +
+                    `void main() {\n` +
+                    `    vec4 color = texture2D(tDiffuse, vUv);\n` +
+                    `    color.rgb = (color.rgb + offset) * exposure;\n` +
+                    `    color.rgb *= tint;\n` +
+                    `    float radius = distance(vUv, vec2(0.5));\n` +
+                    `    float inner = vignetteStrength;\n` +
+                    `    float outer = vignetteStrength + vignetteFeather;\n` +
+                    `    float vignette = smoothstep(inner, outer, radius);\n` +
+                    `    color.rgb *= mix(1.0, 1.0 - vignette, 0.78);\n` +
+                    `    gl_FragColor = vec4(color.rgb, color.a);\n` +
+                    `}`
+            };
+        }
+
+        _resizePostProcessing(width, height) {
+            if (!this.renderer) {
+                return;
+            }
+            this.renderer.setSize(width, height, false);
+            const pixelRatio = this.renderer.getPixelRatio
+                ? this.renderer.getPixelRatio()
+                : (global.devicePixelRatio || 1);
+            if (this.composer && typeof this.composer.setPixelRatio === 'function') {
+                this.composer.setPixelRatio(pixelRatio);
+            }
+            if (this.composer && typeof this.composer.setSize === 'function') {
+                this.composer.setSize(width, height);
+            }
+            if (this._bloomPass && typeof this._bloomPass.setSize === 'function') {
+                this._bloomPass.setSize(width, height);
+            }
+        }
+
+        _loadEnvironmentMap() {
+            if (!this.renderer || !this.scene) {
+                return;
+            }
+            const loader = this._ensureRGBELoader();
+            if (!loader) {
+                return;
+            }
+
+            const hdrUrl = 'assets/skill-universe/material-ingredients/gases/HDR_rich_multi_nebulae_2.hdr';
+            loader.load(
+                hdrUrl,
+                (hdrTexture) => {
+                    if (!hdrTexture) {
+                        return;
+                    }
+                    try {
+                        const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
+                        if (typeof pmremGenerator.compileEquirectangularShader === 'function') {
+                            pmremGenerator.compileEquirectangularShader();
+                        }
+                        const target = pmremGenerator.fromEquirectangular(hdrTexture);
+                        pmremGenerator.dispose();
+                        hdrTexture.dispose();
+
+                        if (this._environmentTarget && typeof this._environmentTarget.dispose === 'function') {
+                            if (this._environmentTarget.texture && typeof this._environmentTarget.texture.dispose === 'function') {
+                                this._environmentTarget.texture.dispose();
+                            }
+                            this._environmentTarget.dispose();
+                        }
+
+                        this._environmentTarget = target;
+                        this._environmentMap = target.texture;
+                        if (this._environmentMap && typeof this._environmentMap.mapping !== 'undefined' && typeof THREE.EquirectangularReflectionMapping !== 'undefined') {
+                            this._environmentMap.mapping = THREE.EquirectangularReflectionMapping;
+                        }
+                        if (this.scene) {
+                            this.scene.environment = this._environmentMap;
+                            this.scene.background = this._environmentMap;
+                        }
+                        this.render();
+                    } catch (error) {
+                        console.warn('Failed to process HDR environment map:', error);
+                    }
+                },
+                undefined,
+                (error) => {
+                    console.warn('Failed to load HDR environment map:', hdrUrl, error);
+                }
+            );
+        }
+
+        _loadHDRTexture(url, onLoad, { track = false } = {}) {
+            if (!url || typeof onLoad !== 'function') {
+                return;
+            }
+            const loader = this._ensureRGBELoader();
+            if (!loader) {
+                return;
+            }
+            loader.load(
+                url,
+                (texture) => {
+                    if (!texture) {
+                        return;
+                    }
+                    if (typeof texture.colorSpace !== 'undefined' && typeof THREE.LinearSRGBColorSpace !== 'undefined') {
+                        texture.colorSpace = THREE.LinearSRGBColorSpace;
+                    } else if (typeof texture.encoding !== 'undefined' && typeof THREE.LinearEncoding !== 'undefined') {
+                        texture.encoding = THREE.LinearEncoding;
+                    }
+                    if (track) {
+                        this._nebulaTextures.push(texture);
+                    }
+                    texture.needsUpdate = true;
+                    onLoad(texture);
+                    this.render();
+                },
+                undefined,
+                (error) => {
+                    console.warn('Failed to load HDR texture:', url, error);
+                }
+            );
+        }
+
         rebuildUniverse() {
             this._buildUniverse();
             this.refreshStars();
@@ -641,7 +876,7 @@
             const { width, height } = this._getContainerSize();
             this.camera.aspect = width / height;
             this.camera.updateProjectionMatrix();
-            this.renderer.setSize(width, height, false);
+            this._resizePostProcessing(width, height);
             this.renderer.domElement.style.width = '100%';
             this.renderer.domElement.style.height = '100%';
             this.render();
@@ -743,8 +978,18 @@
             this.render();
         }
 
-        render() {
-            this.renderer.render(this.scene, this.camera);
+        render(delta = null) {
+            if (this.composer) {
+                if (typeof delta === 'number') {
+                    this.composer.render(delta);
+                } else {
+                    this.composer.render();
+                }
+                return;
+            }
+            if (this.renderer) {
+                this.renderer.render(this.scene, this.camera);
+            }
         }
 
         destroy() {
@@ -763,18 +1008,66 @@
                     }
                 });
             }
-            if (this.starfield) {
-                this.scene.remove(this.starfield);
-                if (this.starfield.geometry) {
-                    this.starfield.geometry.dispose();
-                }
-                if (this.starfield.material) {
-                    this.starfield.material.dispose();
-                }
-                this.starfield = null;
+            if (this.starfieldGroup) {
+                this.scene.remove(this.starfieldGroup);
+                this._disposeStarfieldGroup(this.starfieldGroup);
+                this.starfieldGroup = null;
             }
-            this.controls.dispose();
-            this.renderer.dispose();
+            this._farStars = null;
+            this._midStars = null;
+            this._fogPoints = null;
+            if (Array.isArray(this._nebulaTextures) && this._nebulaTextures.length) {
+                this._nebulaTextures.forEach((texture) => {
+                    if (texture && typeof texture.dispose === 'function') {
+                        texture.dispose();
+                    }
+                });
+            }
+            this._nebulaTextures = [];
+            this._nebulaPlanes = [];
+            if (Array.isArray(this._lightRigLights) && this._lightRigLights.length) {
+                this._lightRigLights.forEach((light) => {
+                    if (light && light.parent && typeof light.parent.remove === 'function') {
+                        light.parent.remove(light);
+                    }
+                });
+            }
+            this._lightRigLights = [];
+            this._lightRig = null;
+            if (this.composer && typeof this.composer.dispose === 'function') {
+                this.composer.dispose();
+            }
+            this.composer = null;
+            this.renderPass = null;
+            this._bloomPass = null;
+            this._colorGradePass = null;
+            if (this._environmentTarget) {
+                const targetTexture = this._environmentTarget.texture;
+                if (targetTexture && typeof targetTexture.dispose === 'function') {
+                    targetTexture.dispose();
+                }
+                if (typeof this._environmentTarget.dispose === 'function') {
+                    this._environmentTarget.dispose();
+                }
+                if (targetTexture && targetTexture === this._environmentMap) {
+                    this._environmentMap = null;
+                }
+                this._environmentTarget = null;
+            }
+            if (this._environmentMap && typeof this._environmentMap.dispose === 'function') {
+                this._environmentMap.dispose();
+            }
+            this._environmentMap = null;
+            if (this.scene) {
+                this.scene.environment = null;
+                this.scene.background = null;
+            }
+            if (this.controls) {
+                this.controls.dispose();
+            }
+            if (this.renderer) {
+                this.renderer.dispose();
+            }
             this.container.innerHTML = '';
             this.pickableObjects.length = 0;
             this.galaxyMap.clear();
@@ -791,82 +1084,439 @@
             this._textureLoader = null;
         }
 
+        _disposeStarfieldGroup(group) {
+            if (!group) {
+                return;
+            }
+            const geometries = new Set();
+            const materials = new Set();
+            group.traverse((child) => {
+                if (child.geometry && typeof child.geometry.dispose === 'function') {
+                    geometries.add(child.geometry);
+                }
+                const { material } = child;
+                if (Array.isArray(material)) {
+                    material.forEach((mat) => {
+                        if (mat) {
+                            materials.add(mat);
+                        }
+                    });
+                } else if (material) {
+                    materials.add(material);
+                }
+            });
+            geometries.forEach((geometry) => {
+                if (geometry && typeof geometry.dispose === 'function') {
+                    geometry.dispose();
+                }
+            });
+            materials.forEach((material) => {
+                if (material && material.map && Array.isArray(this._nebulaTextures) && this._nebulaTextures.includes(material.map)) {
+                    material.map = null;
+                }
+                if (material && typeof material.dispose === 'function') {
+                    material.dispose();
+                }
+            });
+            if (typeof group.clear === 'function') {
+                group.clear();
+            }
+        }
+
         _createStarfield() {
-            if (this.starfield) {
-                this.scene.remove(this.starfield);
-                if (this.starfield.geometry) {
-                    this.starfield.geometry.dispose();
-                }
-                if (this.starfield.material) {
-                    this.starfield.material.dispose();
-                }
-                this.starfield = null;
+            if (this.starfieldGroup) {
+                this.scene.remove(this.starfieldGroup);
+                this._disposeStarfieldGroup(this.starfieldGroup);
+                this.starfieldGroup = null;
             }
+            if (Array.isArray(this._nebulaTextures) && this._nebulaTextures.length) {
+                this._nebulaTextures.forEach((texture) => {
+                    if (texture && typeof texture.dispose === 'function') {
+                        texture.dispose();
+                    }
+                });
+            }
+            this._nebulaTextures = [];
+            this._nebulaPlanes = [];
 
-            const count = STARFIELD_CONFIG.count;
-            const positions = new Float32Array(count * 3);
-            const colors = new Float32Array(count * 3);
-            const baseColor = new THREE.Color(0xf6f8ff);
-            const tintColor = new THREE.Color(0x6ca4ff);
-            const tempColor = new THREE.Color();
+            const group = new THREE.Group();
+            group.name = 'skill-universe-sky';
+            group.renderOrder = -5;
 
-            for (let i = 0; i < count; i += 1) {
+            const farCount = Math.floor(STARFIELD_CONFIG.count * 0.55);
+            const farPositions = new Float32Array(farCount * 3);
+            const farColors = new Float32Array(farCount * 3);
+            const farGeometry = new THREE.BufferGeometry();
+            const farRadius = STARFIELD_CONFIG.radius * 1.45;
+            const farVertical = STARFIELD_CONFIG.radius * 0.42;
+            const farBaseColor = new THREE.Color(0xaecbff);
+            const farWarmColor = new THREE.Color(0xffe7c7);
+            const farTempColor = new THREE.Color();
+
+            for (let i = 0; i < farCount; i += 1) {
                 const theta = Math.random() * Math.PI * 2;
-                const phi = Math.acos(Math.max(-1, Math.min(1, (Math.random() * 2) - 1)));
-                const radius = Math.pow(Math.random(), 0.38) * STARFIELD_CONFIG.radius;
+                const phi = Math.acos((Math.random() * 2) - 1);
+                const radius = farRadius * (0.72 + Math.pow(Math.random(), 0.4));
                 const sinPhi = Math.sin(phi);
-                const x = sinPhi * Math.cos(theta) * radius;
-                const z = sinPhi * Math.sin(theta) * radius;
-                const y = Math.cos(phi) * STARFIELD_CONFIG.radius * 0.48
-                    + (Math.random() - 0.5) * STARFIELD_CONFIG.radius * 0.18;
-
                 const offset = i * 3;
-                positions[offset] = x;
-                positions[offset + 1] = y;
-                positions[offset + 2] = z;
+                farPositions[offset] = Math.cos(theta) * sinPhi * radius;
+                farPositions[offset + 1] = (Math.cos(phi) * farVertical) + ((Math.random() - 0.5) * farVertical * 0.4);
+                farPositions[offset + 2] = Math.sin(theta) * sinPhi * radius;
 
-                const twinkle = 0.55 + Math.random() * 0.45;
-                const coolFactor = Math.pow(Math.random(), 2.2) * 0.45;
-                tempColor.copy(baseColor).lerp(tintColor, coolFactor);
-                colors[offset] = tempColor.r * twinkle;
-                colors[offset + 1] = tempColor.g * twinkle;
-                colors[offset + 2] = tempColor.b * twinkle;
+                const hueMix = Math.pow(Math.random(), 1.8) * 0.65;
+                farTempColor.copy(farBaseColor).lerp(farWarmColor, hueMix);
+                const brightness = 0.55 + Math.random() * 0.45;
+                farColors[offset] = farTempColor.r * brightness;
+                farColors[offset + 1] = farTempColor.g * brightness;
+                farColors[offset + 2] = farTempColor.b * brightness;
             }
 
-            const geometry = new THREE.BufferGeometry();
-            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            farGeometry.setAttribute('position', new THREE.BufferAttribute(farPositions, 3));
+            farGeometry.setAttribute('color', new THREE.BufferAttribute(farColors, 3));
 
-            const material = new THREE.PointsMaterial({
-                size: STARFIELD_CONFIG.size,
+            const farMaterial = new THREE.PointsMaterial({
+                size: STARFIELD_CONFIG.size * 1.6,
                 sizeAttenuation: true,
                 transparent: true,
-                opacity: STARFIELD_CONFIG.opacity,
+                opacity: 0.92,
                 depthWrite: false,
                 vertexColors: true
             });
+            if (typeof THREE.AdditiveBlending !== 'undefined') {
+                farMaterial.blending = THREE.AdditiveBlending;
+            }
+            farMaterial.toneMapped = true;
 
-            const starfield = new THREE.Points(geometry, material);
-            starfield.renderOrder = -1;
-            this.scene.add(starfield);
-            this.starfield = starfield;
+            const farStars = new THREE.Points(farGeometry, farMaterial);
+            farStars.name = 'sky-far-stars';
+            farStars.frustumCulled = false;
+            farStars.renderOrder = -5;
+            group.add(farStars);
+            this._farStars = farStars;
+
+            const midCount = Math.floor(STARFIELD_CONFIG.count * 0.35);
+            const midPositions = new Float32Array(midCount * 3);
+            const midColors = new Float32Array(midCount * 3);
+            const midGeometry = new THREE.BufferGeometry();
+            const midRadius = STARFIELD_CONFIG.radius * 0.98;
+            const midVertical = STARFIELD_CONFIG.radius * 0.32;
+            const midBaseColor = new THREE.Color(0x9fb7ff);
+            const midAccentColor = new THREE.Color(0xffaef5);
+
+            for (let i = 0; i < midCount; i += 1) {
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos((Math.random() * 2) - 1);
+                const radius = midRadius * (0.45 + Math.pow(Math.random(), 0.65));
+                const sinPhi = Math.sin(phi);
+                const offset = i * 3;
+                midPositions[offset] = Math.cos(theta) * sinPhi * radius;
+                midPositions[offset + 1] = (Math.cos(phi) * midVertical) + ((Math.random() - 0.5) * midVertical * 0.8);
+                midPositions[offset + 2] = Math.sin(theta) * sinPhi * radius;
+
+                const hueMix = Math.pow(Math.random(), 1.4) * 0.55;
+                const brightness = 0.65 + Math.random() * 0.4;
+                const color = farTempColor.copy(midBaseColor).lerp(midAccentColor, hueMix);
+                midColors[offset] = color.r * brightness;
+                midColors[offset + 1] = color.g * brightness;
+                midColors[offset + 2] = color.b * brightness;
+            }
+
+            midGeometry.setAttribute('position', new THREE.BufferAttribute(midPositions, 3));
+            midGeometry.setAttribute('color', new THREE.BufferAttribute(midColors, 3));
+
+            const midMaterial = new THREE.PointsMaterial({
+                size: STARFIELD_CONFIG.size * 2.6,
+                sizeAttenuation: true,
+                transparent: true,
+                opacity: 0.78,
+                depthWrite: false,
+                vertexColors: true
+            });
+            if (typeof THREE.AdditiveBlending !== 'undefined') {
+                midMaterial.blending = THREE.AdditiveBlending;
+            }
+            midMaterial.toneMapped = true;
+
+            const midStars = new THREE.Points(midGeometry, midMaterial);
+            midStars.name = 'sky-mid-stars';
+            midStars.frustumCulled = false;
+            midStars.renderOrder = -4.5;
+            group.add(midStars);
+            this._midStars = midStars;
+
+            const nebulaConfigs = [
+                {
+                    url: 'assets/skill-universe/material-ingredients/gases/HDR_rich_multi_nebulae_1.hdr',
+                    position: [-2100, 520, -1480],
+                    rotation: [0.12, Math.PI * 0.18, 0.26],
+                    scale: [3600, 2200],
+                    opacity: 0.58
+                },
+                {
+                    url: 'assets/skill-universe/material-ingredients/gases/HDR_rich_multi_nebulae_2.hdr',
+                    position: [1880, 340, -980],
+                    rotation: [-0.08, -Math.PI * 0.26, -0.18],
+                    scale: [3400, 2100],
+                    opacity: 0.52
+                },
+                {
+                    url: 'assets/skill-universe/material-ingredients/gases/HDR_subdued_multi_nebulae.hdr',
+                    position: [0, -220, 1860],
+                    rotation: [0.02, Math.PI, 0.04],
+                    scale: [4200, 2600],
+                    opacity: 0.45
+                },
+                {
+                    url: 'assets/skill-universe/material-ingredients/gases/HDR_hazy_nebulae.hdr',
+                    position: [-1480, -120, 1620],
+                    rotation: [-0.16, Math.PI * 0.62, 0.2],
+                    scale: [3200, 2000],
+                    opacity: 0.38
+                }
+            ];
+
+            nebulaConfigs.forEach((config, index) => {
+                const nebulaMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: config.opacity * 0.2,
+                    depthWrite: false,
+                    side: THREE.DoubleSide,
+                    blending: typeof THREE.AdditiveBlending !== 'undefined' ? THREE.AdditiveBlending : undefined
+                });
+                nebulaMaterial.toneMapped = true;
+                const nebulaGeometry = new THREE.PlaneGeometry(1, 1, 1, 1);
+                const nebulaPlane = new THREE.Mesh(nebulaGeometry, nebulaMaterial);
+                nebulaPlane.name = `sky-nebula-${index}`;
+                nebulaPlane.position.set(config.position[0], config.position[1], config.position[2]);
+                nebulaPlane.rotation.set(config.rotation[0], config.rotation[1], config.rotation[2]);
+                nebulaPlane.scale.set(config.scale[0], config.scale[1], 1);
+                nebulaPlane.renderOrder = -4 + (index * 0.01);
+                nebulaPlane.frustumCulled = false;
+                nebulaPlane.userData.baseRotation = {
+                    x: config.rotation[0],
+                    y: config.rotation[1],
+                    z: config.rotation[2]
+                };
+                nebulaPlane.userData.wobblePhase = Math.random() * Math.PI * 2;
+                nebulaPlane.userData.wobbleSpeed = 0.035 + Math.random() * 0.035;
+                this._nebulaPlanes.push(nebulaPlane);
+                group.add(nebulaPlane);
+
+                this._loadHDRTexture(
+                    config.url,
+                    (texture) => {
+                        if (typeof THREE.LinearFilter !== 'undefined') {
+                            if (typeof texture.minFilter !== 'undefined') {
+                                texture.minFilter = THREE.LinearFilter;
+                            }
+                            if (typeof texture.magFilter !== 'undefined') {
+                                texture.magFilter = THREE.LinearFilter;
+                            }
+                        }
+                        texture.generateMipmaps = false;
+                        nebulaMaterial.map = texture;
+                        nebulaMaterial.opacity = config.opacity;
+                        nebulaMaterial.needsUpdate = true;
+                    },
+                    { track: true }
+                );
+            });
+
+            const fogCount = 900;
+            const fogPositions = new Float32Array(fogCount * 3);
+            const fogColors = new Float32Array(fogCount * 3);
+            const fogGeometry = new THREE.BufferGeometry();
+            const fogRadius = STARFIELD_CONFIG.radius * 0.9;
+            const fogVertical = STARFIELD_CONFIG.radius * 0.5;
+            const fogColorA = new THREE.Color(0x4a6bd6);
+            const fogColorB = new THREE.Color(0xff7abf);
+
+            for (let i = 0; i < fogCount; i += 1) {
+                const theta = Math.random() * Math.PI * 2;
+                const radius = Math.pow(Math.random(), 0.6) * fogRadius;
+                const offset = i * 3;
+                fogPositions[offset] = Math.cos(theta) * radius;
+                fogPositions[offset + 1] = (Math.random() - 0.5) * fogVertical;
+                fogPositions[offset + 2] = Math.sin(theta) * radius;
+
+                const mix = Math.pow(Math.random(), 2.2) * 0.35;
+                const color = farTempColor.copy(fogColorA).lerp(fogColorB, mix);
+                const brightness = 0.08 + Math.random() * 0.12;
+                fogColors[offset] = color.r * brightness;
+                fogColors[offset + 1] = color.g * brightness;
+                fogColors[offset + 2] = color.b * brightness;
+            }
+
+            fogGeometry.setAttribute('position', new THREE.BufferAttribute(fogPositions, 3));
+            fogGeometry.setAttribute('color', new THREE.BufferAttribute(fogColors, 3));
+
+            const fogMaterial = new THREE.PointsMaterial({
+                size: STARFIELD_CONFIG.size * 18,
+                sizeAttenuation: true,
+                transparent: true,
+                opacity: 0.22,
+                depthWrite: false,
+                vertexColors: true
+            });
+            if (typeof THREE.AdditiveBlending !== 'undefined') {
+                fogMaterial.blending = THREE.AdditiveBlending;
+            }
+            fogMaterial.toneMapped = true;
+
+            const fogPoints = new THREE.Points(fogGeometry, fogMaterial);
+            fogPoints.name = 'sky-fog';
+            fogPoints.frustumCulled = false;
+            fogPoints.renderOrder = -3.8;
+            group.add(fogPoints);
+            this._fogPoints = fogPoints;
+
+            this.scene.add(group);
+            this.starfieldGroup = group;
+            this.render();
         }
 
         _setupLights() {
-            const ambient = new THREE.AmbientLight(0x6e7fff, 0.4);
-            this.scene.add(ambient);
+            if (Array.isArray(this._lightRigLights) && this._lightRigLights.length) {
+                this._lightRigLights.forEach((light) => {
+                    if (light && light.parent && typeof light.parent.remove === 'function') {
+                        light.parent.remove(light);
+                    }
+                });
+            }
+            this._lightRigLights = [];
 
-            const keyLight = new THREE.DirectionalLight(0xffffff, 0.85);
-            keyLight.position.set(420, 520, 260);
+            const rig = {};
+
+            const hemiLight = new THREE.HemisphereLight(0x6d9bff, 0x04030c, 0.28);
+            this.scene.add(hemiLight);
+            this._lightRigLights.push(hemiLight);
+            rig.hemi = hemiLight;
+
+            const keyLight = new THREE.DirectionalLight(0xfff1de, 18);
+            keyLight.position.set(640, 820, 420);
+            keyLight.userData.baseIntensity = keyLight.intensity;
+            keyLight.userData.basePosition = keyLight.position.clone();
+            if (typeof keyLight.castShadow !== 'undefined') {
+                keyLight.castShadow = false;
+            }
+            const keyTarget = new THREE.Object3D();
+            keyTarget.position.set(0, 40, 0);
+            this.scene.add(keyTarget);
+            keyLight.target = keyTarget;
             this.scene.add(keyLight);
+            this._lightRigLights.push(keyLight, keyTarget);
+            rig.keyLight = keyLight;
 
-            const rimLight = new THREE.PointLight(0x2e5fff, 0.55, 2600);
-            rimLight.position.set(-620, -260, -480);
+            const rimLight = new THREE.PointLight(0x7aa9ff, 260, 0, 2);
+            rimLight.position.set(-960, -260, -840);
+            rimLight.userData.baseIntensity = rimLight.intensity;
+            rimLight.userData.basePosition = rimLight.position.clone();
+            if (typeof rimLight.decay === 'number') {
+                rimLight.decay = 2;
+            }
             this.scene.add(rimLight);
+            this._lightRigLights.push(rimLight);
+            rig.rimLight = rimLight;
 
-            const fillLight = new THREE.PointLight(0xff7eb6, 0.35, 1800);
-            fillLight.position.set(320, -160, -620);
+            const fillLight = new THREE.PointLight(0xff8ad6, 140, 0, 2);
+            fillLight.position.set(520, -320, -1080);
+            fillLight.userData.baseIntensity = fillLight.intensity;
+            fillLight.userData.basePosition = fillLight.position.clone();
+            if (typeof fillLight.decay === 'number') {
+                fillLight.decay = 2;
+            }
             this.scene.add(fillLight);
+            this._lightRigLights.push(fillLight);
+            rig.fillLight = fillLight;
+
+            const accentLight = new THREE.PointLight(0x9affff, 95, 0, 2);
+            accentLight.position.set(-380, 420, 960);
+            accentLight.userData.baseIntensity = accentLight.intensity;
+            accentLight.userData.basePosition = accentLight.position.clone();
+            if (typeof accentLight.decay === 'number') {
+                accentLight.decay = 1.8;
+            }
+            this.scene.add(accentLight);
+            this._lightRigLights.push(accentLight);
+            rig.accentLight = accentLight;
+
+            const horizonGlow = new THREE.PointLight(0xffe6a1, 70, 0, 1.6);
+            horizonGlow.position.set(0, 260, 0);
+            horizonGlow.userData.baseIntensity = horizonGlow.intensity;
+            horizonGlow.userData.basePosition = horizonGlow.position.clone();
+            if (typeof horizonGlow.decay === 'number') {
+                horizonGlow.decay = 2;
+            }
+            this.scene.add(horizonGlow);
+            this._lightRigLights.push(horizonGlow);
+            rig.horizonGlow = horizonGlow;
+
+            this._lightRig = rig;
+        }
+
+        _updateLights(elapsedTime = 0) {
+            if (!this._lightRig) {
+                return;
+            }
+
+            const keyLight = this._lightRig.keyLight;
+            if (keyLight && keyLight.userData) {
+                const basePos = keyLight.userData.basePosition;
+                if (basePos) {
+                    keyLight.position.x = basePos.x + Math.cos(elapsedTime * 0.045) * 60;
+                    keyLight.position.y = basePos.y + Math.sin(elapsedTime * 0.05) * 45;
+                    keyLight.position.z = basePos.z + Math.sin(elapsedTime * 0.035) * 40;
+                }
+                if (typeof keyLight.intensity === 'number' && keyLight.userData.baseIntensity) {
+                    keyLight.intensity = keyLight.userData.baseIntensity * (1 + 0.08 * Math.sin(elapsedTime * 0.25));
+                }
+            }
+
+            const rimLight = this._lightRig.rimLight;
+            if (rimLight && rimLight.userData) {
+                const basePos = rimLight.userData.basePosition;
+                if (basePos) {
+                    rimLight.position.x = basePos.x + Math.sin(elapsedTime * 0.18) * 140;
+                    rimLight.position.z = basePos.z + Math.cos(elapsedTime * 0.21) * 160;
+                }
+                if (typeof rimLight.intensity === 'number' && rimLight.userData.baseIntensity) {
+                    rimLight.intensity = rimLight.userData.baseIntensity * (0.82 + 0.18 * Math.sin(elapsedTime * 0.6 + Math.PI / 4));
+                }
+            }
+
+            const fillLight = this._lightRig.fillLight;
+            if (fillLight && fillLight.userData) {
+                const basePos = fillLight.userData.basePosition;
+                if (basePos) {
+                    fillLight.position.y = basePos.y + Math.sin(elapsedTime * 0.32) * 55;
+                }
+                if (typeof fillLight.intensity === 'number' && fillLight.userData.baseIntensity) {
+                    fillLight.intensity = fillLight.userData.baseIntensity * (0.9 + 0.1 * Math.sin(elapsedTime * 0.42));
+                }
+            }
+
+            const accentLight = this._lightRig.accentLight;
+            if (accentLight && accentLight.userData) {
+                const basePos = accentLight.userData.basePosition;
+                if (basePos) {
+                    accentLight.position.x = basePos.x + Math.cos(elapsedTime * 0.25) * 120;
+                    accentLight.position.z = basePos.z + Math.sin(elapsedTime * 0.27) * 90;
+                }
+                if (typeof accentLight.intensity === 'number' && accentLight.userData.baseIntensity) {
+                    const pulse = 0.65 + 0.35 * ((Math.sin(elapsedTime * 0.95) + 1) * 0.5);
+                    accentLight.intensity = accentLight.userData.baseIntensity * pulse;
+                }
+            }
+
+            const horizonGlow = this._lightRig.horizonGlow;
+            if (horizonGlow && horizonGlow.userData && horizonGlow.userData.baseIntensity) {
+                horizonGlow.intensity = horizonGlow.userData.baseIntensity * (0.85 + 0.15 * Math.sin(elapsedTime * 0.52 + Math.PI / 3));
+            }
+
+            if (this._lightRig.hemi && typeof this._lightRig.hemi.intensity === 'number') {
+                this._lightRig.hemi.intensity = 0.26 + 0.03 * Math.sin(elapsedTime * 0.2);
+            }
         }
 
         _buildUniverse() {
@@ -2166,6 +2816,9 @@
         _animate() {
             this._animationFrame = global.requestAnimationFrame(this._animate);
 
+            const delta = this._clock ? this._clock.getDelta() : 0;
+            const elapsedTime = this._clock ? this._clock.elapsedTime : 0;
+
             if (this.tweenState) {
                 const now = performance.now();
                 const { startTime, duration, startPosition, endPosition, startTarget, endTarget } = this.tweenState;
@@ -2183,9 +2836,37 @@
             }
 
             this.controls.update();
+            this._updateLights(elapsedTime);
+
+            if (this.starfieldGroup) {
+                this.starfieldGroup.rotation.y += delta * 0.0025;
+            }
+            if (this._farStars) {
+                this._farStars.rotation.y -= delta * 0.0012;
+            }
+            if (this._midStars) {
+                this._midStars.rotation.y += delta * 0.0016;
+            }
+            if (this._fogPoints) {
+                this._fogPoints.rotation.y += delta * 0.0009;
+            }
+            if (Array.isArray(this._nebulaPlanes) && this._nebulaPlanes.length) {
+                this._nebulaPlanes.forEach((plane) => {
+                    if (!plane || !plane.userData || !plane.userData.baseRotation) {
+                        return;
+                    }
+                    const phase = plane.userData.wobblePhase || 0;
+                    const speed = plane.userData.wobbleSpeed || 0.04;
+                    const base = plane.userData.baseRotation;
+                    plane.rotation.x = base.x + Math.sin(elapsedTime * speed + phase) * 0.05;
+                    plane.rotation.y = base.y + Math.cos(elapsedTime * speed * 0.8 + phase * 0.5) * 0.04;
+                    plane.rotation.z = base.z + Math.sin(elapsedTime * speed * 0.65 + phase * 1.2) * 0.03;
+                });
+            }
+
             this._updateGalaxyLabels();
             this._maybeAutoAdjustView();
-            this.render();
+            this.render(delta);
         }
 
         _updateViewUI() {
