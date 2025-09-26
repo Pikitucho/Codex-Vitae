@@ -517,40 +517,112 @@
             this._environmentTarget = null;
             this._environmentMap = null;
             this._rgbeLoader = null;
-            this._clock = typeof THREE.Clock === 'function' ? new THREE.Clock() : null;
+            // modern pipeline handles (created only when fx=on)
+            this._glRenderer = null;
+            this._composer = null;
+            this._clock = this._clock || (typeof THREE.Clock === 'function' ? new THREE.Clock() : null); // reuse existing clock if available
 
             const { width, height } = this._getContainerSize();
+            this._width = width;
+            this._height = height;
             this.camera = new THREE.PerspectiveCamera(57, width / height, 1, 9000);
             const initialHeight = CAMERA_LEVELS.galaxies.height * 1.12;
             const initialDistance = CAMERA_LEVELS.galaxies.distance + 620;
             this.camera.position.set(0, initialHeight, initialDistance);
             this.cameraTarget = new THREE.Vector3(0, 0, 0);
 
-            this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            if (typeof this.renderer.physicallyCorrectLights !== 'undefined') {
-                this.renderer.physicallyCorrectLights = true;
+            if (this.container && typeof this.container.innerHTML !== 'undefined') {
+                this.container.innerHTML = '';
             }
-            if (typeof this.renderer.toneMapping !== 'undefined' && typeof THREE.ACESFilmicToneMapping !== 'undefined') {
-                this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+            const useModern = !!(global.CVPipeline && global.CVPipeline.enabled);
+            if (useModern && global.THREE && global.CVTextures && global.CVPipeline.createComposer) {
+                this._glRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+                this._glRenderer.setPixelRatio(Math.min(global.devicePixelRatio || 1, 2));
+                this._glRenderer.setSize(this._width, this._height, false);
+                this._glRenderer.physicallyCorrectLights = true;
+                this._glRenderer.outputColorSpace = THREE.SRGBColorSpace;
+                this._glRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+                this._glRenderer.toneMappingExposure = 1.0;
+
+                const mount = global.document?.getElementById('skill-universe-canvas-container') || this.container || global.document?.body;
+                if (mount && typeof mount.appendChild === 'function' && !mount.contains(this._glRenderer.domElement)) {
+                    mount.appendChild(this._glRenderer.domElement);
+                }
+
+                try {
+                    global.CVTextures.init?.(this._glRenderer);
+                } catch (initError) {
+                    if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+                        console.warn('SkillUniverseRenderer: CVTextures.init failed:', initError);
+                    }
+                }
+
+                try {
+                    this._composer = global.CVPipeline.createComposer(
+                        this._glRenderer,
+                        this.scene,
+                        this.camera,
+                        { bloom: true, grade: false }
+                    );
+                } catch (composerError) {
+                    if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+                        console.warn('SkillUniverseRenderer: createComposer failed; falling back to legacy renderer.', composerError);
+                    }
+                    if (this._glRenderer && typeof this._glRenderer.dispose === 'function') {
+                        this._glRenderer.dispose();
+                    }
+                    if (this._glRenderer?.domElement && typeof this._glRenderer.domElement.remove === 'function') {
+                        this._glRenderer.domElement.remove();
+                    }
+                    this._glRenderer = null;
+                    this._composer = null;
+                }
+
+                if (this._glRenderer && this._composer) {
+                    this.renderer = this._glRenderer;
+                } else if (this._glRenderer && !this._composer) {
+                    if (typeof this._glRenderer.dispose === 'function') {
+                        this._glRenderer.dispose();
+                    }
+                    if (this._glRenderer.domElement && typeof this._glRenderer.domElement.remove === 'function') {
+                        this._glRenderer.domElement.remove();
+                    }
+                    this._glRenderer = null;
+                }
             }
-            if (typeof this.renderer.toneMappingExposure === 'number') {
-                this.renderer.toneMappingExposure = 1.1;
+
+            if (!this.renderer) {
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                if (typeof this.renderer.physicallyCorrectLights !== 'undefined') {
+                    this.renderer.physicallyCorrectLights = true;
+                }
+                if (typeof this.renderer.toneMapping !== 'undefined' && typeof THREE.ACESFilmicToneMapping !== 'undefined') {
+                    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                }
+                if (typeof this.renderer.toneMappingExposure === 'number') {
+                    this.renderer.toneMappingExposure = 1.1;
+                }
+                if (typeof this.renderer.outputColorSpace !== 'undefined' && typeof THREE.SRGBColorSpace !== 'undefined') {
+                    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+                } else if (typeof this.renderer.outputEncoding !== 'undefined' && typeof THREE.sRGBEncoding !== 'undefined') {
+                    this.renderer.outputEncoding = THREE.sRGBEncoding;
+                }
+                this.renderer.setSize(width, height, false);
+                this.renderer.setPixelRatio(global.devicePixelRatio || 1);
             }
-            if (typeof this.renderer.outputColorSpace !== 'undefined' && typeof THREE.SRGBColorSpace !== 'undefined') {
-                this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-            } else if (typeof this.renderer.outputEncoding !== 'undefined' && typeof THREE.sRGBEncoding !== 'undefined') {
-                this.renderer.outputEncoding = THREE.sRGBEncoding;
-            }
-            this.renderer.setSize(width, height, false);
-            this.renderer.domElement.style.width = '100%';
-            this.renderer.domElement.style.height = '100%';
-            this.renderer.domElement.style.display = 'block';
-            this.renderer.setPixelRatio(global.devicePixelRatio || 1);
-            this.renderer.setClearColor(0x01020a, 1);
-            this.container.innerHTML = '';
-            this.container.appendChild(this.renderer.domElement);
-            if (typeof this.renderer.autoClear === 'boolean') {
-                this.renderer.autoClear = true;
+
+            if (this.renderer?.domElement) {
+                this.renderer.domElement.style.width = '100%';
+                this.renderer.domElement.style.height = '100%';
+                this.renderer.domElement.style.display = 'block';
+                this.renderer.setClearColor(0x01020a, 1);
+                if (this.container && typeof this.container.appendChild === 'function') {
+                    this.container.appendChild(this.renderer.domElement);
+                }
+                if (typeof this.renderer.autoClear === 'boolean') {
+                    this.renderer.autoClear = true;
+                }
             }
             this.starFocusOverlay = this._createStarFocusOverlay();
             this.starFocusOverlayKey = null;
@@ -560,7 +632,9 @@
             this.renderPass = null;
             this._bloomPass = null;
             this._colorGradePass = null;
-            this._initPostProcessing(width, height);
+            if (!this._composer) {
+                this._initPostProcessing(width, height);
+            }
             this._loadEnvironmentMap();
 
             this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
@@ -737,6 +811,18 @@
         }
 
         _resizePostProcessing(width, height) {
+            if (this._glRenderer) {
+                const deviceRatio = Math.min(global.devicePixelRatio || 1, 2);
+                this._glRenderer.setPixelRatio(deviceRatio);
+                this._glRenderer.setSize(width, height, false);
+                if (this._composer && typeof this._composer.setPixelRatio === 'function') {
+                    this._composer.setPixelRatio(deviceRatio);
+                }
+                if (this._composer && typeof this._composer.setSize === 'function') {
+                    this._composer.setSize(width, height);
+                }
+                return;
+            }
             if (!this.renderer) {
                 return;
             }
@@ -883,11 +969,15 @@
 
         handleResize() {
             const { width, height } = this._getContainerSize();
+            this._width = width;
+            this._height = height;
             this.camera.aspect = width / height;
             this.camera.updateProjectionMatrix();
             this._resizePostProcessing(width, height);
-            this.renderer.domElement.style.width = '100%';
-            this.renderer.domElement.style.height = '100%';
+            if (this.renderer?.domElement) {
+                this.renderer.domElement.style.width = '100%';
+                this.renderer.domElement.style.height = '100%';
+            }
             this.render();
         }
 
@@ -988,6 +1078,12 @@
         }
 
         render(delta = null) {
+            if (this._composer && this._glRenderer) {
+                const dt = this._clock ? this._clock.getDelta() : 0;
+                this._composer.render(dt);
+                return;
+            }
+            // Legacy path (unchanged)
             if (this.composer) {
                 if (typeof delta === 'number') {
                     this.composer.render(delta);
@@ -1043,6 +1139,24 @@
             }
             this._lightRigLights = [];
             this._lightRig = null;
+            if (this._composer) {
+                if (typeof this._composer.dispose === 'function') {
+                    this._composer.dispose();
+                }
+                this._composer = null;
+            }
+            if (this._glRenderer) {
+                if (typeof this._glRenderer.dispose === 'function') {
+                    this._glRenderer.dispose();
+                }
+                if (this._glRenderer.domElement && typeof this._glRenderer.domElement.remove === 'function') {
+                    this._glRenderer.domElement.remove();
+                }
+                if (this.renderer === this._glRenderer) {
+                    this.renderer = null;
+                }
+                this._glRenderer = null;
+            }
             if (this.composer && typeof this.composer.dispose === 'function') {
                 this.composer.dispose();
             }
