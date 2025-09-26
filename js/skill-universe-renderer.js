@@ -564,6 +564,15 @@
             this.starMeshMap = new Map();
             this.pickableObjects = [];
 
+            if (THREE.Cache && typeof THREE.Cache.enabled !== 'undefined') {
+                THREE.Cache.enabled = true;
+            }
+            this._textureLoader = new THREE.TextureLoader();
+            this._textureCache = new Map();
+            this._maxAnisotropy = (this.renderer && this.renderer.capabilities && typeof this.renderer.capabilities.getMaxAnisotropy === 'function')
+                ? this.renderer.capabilities.getMaxAnisotropy()
+                : 1;
+
             this.hoveredObject = null;
             this.activeHighlight = null;
             this.tweenState = null;
@@ -740,6 +749,20 @@
 
         destroy() {
             cancelAnimationFrame(this._animationFrame);
+            if (this.starMeshMap && this.starMeshMap.size) {
+                this.starMeshMap.forEach((mesh) => {
+                    this._applyTextureLayers(mesh, null);
+                    if (mesh.material && typeof mesh.material.dispose === 'function') {
+                        mesh.material.dispose();
+                    }
+                    if (mesh.geometry && typeof mesh.geometry.dispose === 'function') {
+                        mesh.geometry.dispose();
+                    }
+                    if (mesh.parent && typeof mesh.parent.remove === 'function') {
+                        mesh.parent.remove(mesh);
+                    }
+                });
+            }
             if (this.starfield) {
                 this.scene.remove(this.starfield);
                 if (this.starfield.geometry) {
@@ -757,6 +780,15 @@
             this.galaxyMap.clear();
             this.constellationMap.clear();
             this.starMeshMap.clear();
+            if (this._textureCache) {
+                this._textureCache.forEach((record) => {
+                    if (record && record.texture && typeof record.texture.dispose === 'function') {
+                        record.texture.dispose();
+                    }
+                });
+                this._textureCache.clear();
+            }
+            this._textureLoader = null;
         }
 
         _createStarfield() {
@@ -1358,8 +1390,198 @@
             }
         }
 
+        _configureTextureForSlot(texture, slot) {
+            if (!texture) {
+                return;
+            }
+            if (slot === 'map' || slot === 'emissiveMap') {
+                if (typeof texture.colorSpace !== 'undefined' && THREE.SRGBColorSpace) {
+                    texture.colorSpace = THREE.SRGBColorSpace;
+                } else if (typeof texture.encoding !== 'undefined' && THREE.sRGBEncoding) {
+                    texture.encoding = THREE.sRGBEncoding;
+                }
+            } else if (typeof texture.colorSpace !== 'undefined' && THREE.LinearSRGBColorSpace) {
+                texture.colorSpace = THREE.LinearSRGBColorSpace;
+            } else if (typeof texture.encoding !== 'undefined' && THREE.LinearEncoding) {
+                texture.encoding = THREE.LinearEncoding;
+            }
+            if (typeof THREE.RepeatWrapping !== 'undefined') {
+                if (typeof texture.wrapS !== 'undefined') {
+                    texture.wrapS = THREE.RepeatWrapping;
+                }
+                if (typeof texture.wrapT !== 'undefined') {
+                    texture.wrapT = THREE.RepeatWrapping;
+                }
+            }
+            if (Number.isFinite(this._maxAnisotropy) && this._maxAnisotropy > 1 && typeof texture.anisotropy === 'number') {
+                texture.anisotropy = this._maxAnisotropy;
+            }
+            texture.needsUpdate = true;
+        }
+
+        _acquireTexture(url, slot) {
+            if (!url) {
+                return null;
+            }
+            if (!this._textureLoader) {
+                this._textureLoader = new THREE.TextureLoader();
+            }
+            if (!this._textureCache) {
+                this._textureCache = new Map();
+            }
+            if (this._textureCache.has(url)) {
+                const existing = this._textureCache.get(url);
+                if (existing) {
+                    existing.refCount = (existing.refCount || 0) + 1;
+                    if (existing.texture) {
+                        this._configureTextureForSlot(existing.texture, slot);
+                        return existing.texture;
+                    }
+                }
+            }
+
+            try {
+                const texture = this._textureLoader.load(
+                    url,
+                    () => {
+                        try {
+                            this.render();
+                        } catch (renderError) {
+                            console.warn('Texture load render update failed:', renderError);
+                        }
+                    },
+                    undefined,
+                    (error) => {
+                        console.warn('Failed to load texture for star material:', url, error);
+                        if (this._textureCache && this._textureCache.has(url)) {
+                            const record = this._textureCache.get(url);
+                            if (record && record.texture && typeof record.texture.dispose === 'function') {
+                                record.texture.dispose();
+                            }
+                            this._textureCache.delete(url);
+                        }
+                    }
+                );
+                this._configureTextureForSlot(texture, slot);
+                this._textureCache.set(url, { texture, refCount: 1 });
+                return texture;
+            } catch (loadError) {
+                console.warn('Texture load threw an exception for URL:', url, loadError);
+            }
+            return null;
+        }
+
+        _releaseTexture(url) {
+            if (!url || !this._textureCache || !this._textureCache.has(url)) {
+                return;
+            }
+            const record = this._textureCache.get(url);
+            if (!record) {
+                return;
+            }
+            record.refCount = (record.refCount || 0) - 1;
+            if (record.refCount <= 0) {
+                if (record.texture && typeof record.texture.dispose === 'function') {
+                    record.texture.dispose();
+                }
+                this._textureCache.delete(url);
+            }
+        }
+
+        _syncMaterialTextures(mesh, assignments = {}) {
+            if (!mesh || !mesh.material) {
+                return;
+            }
+            const mapProps = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap'];
+            const userData = mesh.userData || (mesh.userData = {});
+            const previous = userData.assignedTextureUrls || {};
+            const nextAssignments = {};
+
+            mapProps.forEach((prop) => {
+                const prevUrl = typeof previous[prop] === 'string' ? previous[prop] : null;
+                const nextUrl = typeof assignments[prop] === 'string' ? assignments[prop] : null;
+                if (prevUrl && prevUrl !== nextUrl) {
+                    this._releaseTexture(prevUrl);
+                }
+                if (nextUrl) {
+                    if (prevUrl === nextUrl && mesh.material[prop]) {
+                        nextAssignments[prop] = nextUrl;
+                        this._configureTextureForSlot(mesh.material[prop], prop);
+                    } else {
+                        const texture = this._acquireTexture(nextUrl, prop);
+                        if (texture) {
+                            nextAssignments[prop] = nextUrl;
+                            mesh.material[prop] = texture;
+                        } else {
+                            mesh.material[prop] = null;
+                        }
+                    }
+                } else {
+                    mesh.material[prop] = null;
+                }
+            });
+
+            userData.assignedTextureUrls = nextAssignments;
+            mesh.material.needsUpdate = true;
+        }
+
+        _applyTextureLayers(mesh, recipe) {
+            if (!mesh || !mesh.material) {
+                return null;
+            }
+            const material = mesh.material;
+            const assignments = {};
+            const influence = {
+                map: 0,
+                normalMap: 0,
+                roughnessMap: 0,
+                metalnessMap: 0,
+                emissiveMap: 0
+            };
+
+            if (recipe && recipe.maps) {
+                const maps = recipe.maps;
+                const mapProps = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap'];
+                mapProps.forEach((prop) => {
+                    const mapInfo = maps[prop];
+                    if (!mapInfo || !Array.isArray(mapInfo.entries) || !mapInfo.entries.length) {
+                        return;
+                    }
+                    const primary = mapInfo.entries[0];
+                    if (!primary || typeof primary.url !== 'string' || !primary.url.length) {
+                        return;
+                    }
+                    assignments[prop] = primary.url;
+                    influence[prop] = Math.max(0, Number(mapInfo.totalWeight) || 0);
+                });
+
+                this._syncMaterialTextures(mesh, assignments);
+
+                material.userData = Object.assign({}, material.userData, {
+                    textureLayers: maps,
+                    blendMasks: Array.isArray(maps.blendMasks) ? maps.blendMasks.slice() : [],
+                    textureInfluence: influence
+                });
+                return influence;
+            }
+
+            this._syncMaterialTextures(mesh, {});
+            if (material.userData) {
+                material.userData = Object.assign({}, material.userData);
+                material.userData.textureInfluence = influence;
+                delete material.userData.textureLayers;
+                delete material.userData.blendMasks;
+            } else {
+                material.userData = { textureInfluence: influence };
+            }
+            return influence;
+        }
+
         _applyStarMaterial(mesh, status) {
             const material = mesh.material;
+            if (!material) {
+                return;
+            }
             const defaultColor = STATUS_COLORS[status] || STATUS_COLORS.locked;
             let baseColorHex = defaultColor;
             let highlightHex = null;
@@ -1371,6 +1593,7 @@
                     : 0.26;
             let roughness = Number.isFinite(material.roughness) ? material.roughness : 0.32;
             let metalness = Number.isFinite(material.metalness) ? material.metalness : 0.18;
+            let recipeFromMixer = null;
 
             if (StarMixer && typeof StarMixer.generateStarMaterial === 'function') {
                 const mixerResult = StarMixer.generateStarMaterial({
@@ -1422,8 +1645,37 @@
                         highlightHex = highlightHex || emissiveHex;
                     }
 
-                    mesh.userData.materialRecipe = mixerResult;
+                    recipeFromMixer = mixerResult.recipe;
                 }
+            }
+
+            const previousRecipe = mesh.userData?.materialRecipe || null;
+            const effectiveRecipe = recipeFromMixer || previousRecipe || null;
+            const textureInfluence = this._applyTextureLayers(mesh, effectiveRecipe) || {};
+            mesh.userData.materialRecipe = effectiveRecipe;
+
+            const roughnessInfluence = clamp(Number(textureInfluence.roughnessMap) || 0, 0, 1);
+            const metalnessInfluence = clamp(Number(textureInfluence.metalnessMap) || 0, 0, 1);
+            const emissiveInfluence = clamp(Number(textureInfluence.emissiveMap) || 0, 0, 1);
+            const normalInfluence = clamp(Number(textureInfluence.normalMap) || 0, 0, 1);
+            const blendMaskInfluence = effectiveRecipe && effectiveRecipe.maps && Array.isArray(effectiveRecipe.maps.blendMasks)
+                ? effectiveRecipe.maps.blendMasks.reduce((sum, entry) => sum + (Number(entry.weight) || 0), 0)
+                : 0;
+
+            if (roughnessInfluence > 0) {
+                roughness = clamp(roughness * (0.7 + roughnessInfluence * 0.45), 0.05, 1);
+            }
+            if (metalnessInfluence > 0) {
+                metalness = clamp(metalness * (0.65 + metalnessInfluence * 0.5), 0.02, 1);
+            }
+            if (normalInfluence > 0) {
+                roughness = clamp(roughness * (0.9 - normalInfluence * 0.25), 0.05, 1);
+            }
+            if (emissiveInfluence > 0) {
+                emissiveIntensity = clamp(emissiveIntensity * (0.78 + emissiveInfluence * 0.65), 0.05, 2.1);
+            }
+            if (blendMaskInfluence > 0) {
+                emissiveIntensity += blendMaskInfluence * 0.08;
             }
 
             roughness = clamp(roughness, 0.12, 0.85);

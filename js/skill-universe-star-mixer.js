@@ -149,6 +149,31 @@
 
     const DEFAULT_CATEGORY_FALLBACK = ['metals', 'minerals', 'gases', 'organics', 'other'];
 
+    const MAP_TYPE_ALIASES = {
+        map: 'map',
+        albedo: 'map',
+        basecolor: 'map',
+        basecolour: 'map',
+        base_colour: 'map',
+        colour: 'map',
+        color: 'map',
+        diffuse: 'map',
+        primary: 'map',
+        normal: 'normalMap',
+        normaldx: 'normalMap',
+        normalgl: 'normalMap',
+        normalmap: 'normalMap',
+        roughness: 'roughnessMap',
+        glossiness: 'roughnessMap',
+        metalness: 'metalnessMap',
+        metallic: 'metalnessMap',
+        metalnessmap: 'metalnessMap',
+        emission: 'emissiveMap',
+        emissive: 'emissiveMap',
+        emissivecolor: 'emissiveMap',
+        glow: 'emissiveMap'
+    };
+
     function slugify(value, fallback) {
         if (typeof value !== 'string') {
             return fallback || 'item';
@@ -226,6 +251,168 @@
             }
         });
         return Object.keys(resolved).length ? resolved : null;
+    }
+
+    function normalizeMapKey(mapKey) {
+        if (typeof mapKey !== 'string') {
+            return null;
+        }
+        const normalized = mapKey
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '');
+        if (!normalized.length) {
+            return null;
+        }
+        return MAP_TYPE_ALIASES[normalized] || null;
+    }
+
+    function resolveNoiseOverlayUrl(item) {
+        if (!item || typeof item !== 'object') {
+            return '';
+        }
+        const maps = item.maps && typeof item.maps === 'object' ? item.maps : null;
+        if (maps) {
+            const priorities = ['mask', 'blend', 'noise', 'alpha', 'height', 'displacement', 'roughness', 'albedo', 'primary'];
+            for (let i = 0; i < priorities.length; i += 1) {
+                const key = priorities[i];
+                if (typeof maps[key] === 'string' && maps[key].length) {
+                    return maps[key];
+                }
+            }
+            const mapKeys = Object.keys(maps);
+            if (mapKeys.length) {
+                const fallbackKey = mapKeys.find((key) => typeof maps[key] === 'string' && maps[key].length);
+                if (fallbackKey) {
+                    return maps[fallbackKey];
+                }
+            }
+        }
+        if (typeof item.preview === 'string' && item.preview.length) {
+            return item.preview;
+        }
+        return '';
+    }
+
+    function selectNoiseOverlays(library, rng, layerSummary) {
+        const layers = layerSummary || {};
+        const layerKeys = Object.keys(layers);
+        const blendLayerCount = layerKeys.reduce((count, key) => {
+            const layerEntries = layers[key];
+            if (Array.isArray(layerEntries) && layerEntries.length > 1) {
+                return count + 1;
+            }
+            return count;
+        }, 0);
+        const requiresBlend = blendLayerCount > 0;
+        if (!requiresBlend) {
+            return [];
+        }
+
+        const noisePool = Array.isArray(library?.noise) ? library.noise.filter((entry) => entry && typeof entry === 'object') : [];
+        if (!noisePool.length) {
+            return [];
+        }
+
+        const desiredCount = Math.min(2, noisePool.length, blendLayerCount);
+        if (desiredCount <= 0) {
+            return [];
+        }
+
+        const shuffled = noisePool.slice();
+        for (let i = shuffled.length - 1; i > 0; i -= 1) {
+            const j = Math.floor(rng() * (i + 1));
+            const tmp = shuffled[i];
+            shuffled[i] = shuffled[j];
+            shuffled[j] = tmp;
+        }
+
+        const overlays = [];
+        for (let index = 0; index < shuffled.length && overlays.length < desiredCount; index += 1) {
+            const candidate = shuffled[index];
+            const url = resolveNoiseOverlayUrl(candidate);
+            if (!url) {
+                continue;
+            }
+            overlays.push({
+                id: candidate.id || candidate.name || `noise-${index}`,
+                name: candidate.name || candidate.id || `Noise ${index + 1}`,
+                category: 'noise',
+                url
+            });
+        }
+
+        if (!overlays.length) {
+            return [];
+        }
+
+        const normalizedWeight = 1 / overlays.length;
+        return overlays.map((entry) => Object.assign({}, entry, { weight: normalizedWeight }));
+    }
+
+    function aggregateIngredientMaps(ingredients, library, rng) {
+        const layers = {};
+        if (!Array.isArray(ingredients) || !ingredients.length) {
+            return { blendMasks: [] };
+        }
+
+        ingredients.forEach((ingredient) => {
+            if (!ingredient || typeof ingredient !== 'object' || !ingredient.maps) {
+                return;
+            }
+            const weight = Math.max(0, Number(ingredient.weight) || 0);
+            if (weight <= 0) {
+                return;
+            }
+            Object.entries(ingredient.maps).forEach(([mapKey, url]) => {
+                if (typeof url !== 'string' || !url.length) {
+                    return;
+                }
+                const normalizedKey = normalizeMapKey(mapKey);
+                if (!normalizedKey) {
+                    return;
+                }
+                if (!layers[normalizedKey]) {
+                    layers[normalizedKey] = [];
+                }
+                layers[normalizedKey].push({
+                    url,
+                    weight,
+                    ingredientId: ingredient.id || null,
+                    ingredientName: ingredient.name || null,
+                    originalType: mapKey
+                });
+            });
+        });
+
+        const payload = { blendMasks: [] };
+        Object.keys(layers).forEach((layerKey) => {
+            const entries = layers[layerKey];
+            if (!entries || !entries.length) {
+                return;
+            }
+            const totalWeight = entries.reduce((sum, entry) => sum + entry.weight, 0);
+            if (totalWeight <= 0) {
+                return;
+            }
+            const normalizedEntries = entries
+                .map((entry) => ({
+                    url: entry.url,
+                    weight: entry.weight / totalWeight,
+                    originalWeight: entry.weight,
+                    ingredientId: entry.ingredientId,
+                    ingredientName: entry.ingredientName,
+                    mapType: entry.originalType
+                }))
+                .sort((a, b) => b.weight - a.weight);
+            payload[layerKey] = {
+                totalWeight,
+                entries: normalizedEntries
+            };
+        });
+
+        payload.blendMasks = selectNoiseOverlays(library, rng, layers);
+        return payload;
     }
 
     function normalizeLibraryItem(rawItem, context) {
@@ -622,6 +809,8 @@
             });
         });
 
+        const textureMaps = aggregateIngredientMaps(ingredients, library, rng);
+
         const baseColor = weightedMix(ingredients.map((item) => ({
             color: item.color,
             weight: item.weight
@@ -639,6 +828,7 @@
             weights,
             ingredients,
             usedCategories,
+            maps: textureMaps,
             colors: {
                 albedo: baseColor,
                 highlight: accentColor,
@@ -674,6 +864,7 @@
             seed,
             status,
             recipe,
+            maps: recipe.maps,
             colors: {
                 albedo: recipe.colors.albedo,
                 highlight: recipe.colors.highlight,
