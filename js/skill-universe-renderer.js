@@ -599,7 +599,6 @@
                         try {
                             const doc = global.document;
                             const ui = doc.getElementById('cv-debug') || doc.createElement('div');
-                            const ui = global.document.getElementById('cv-debug') || global.document.createElement('div');
                             ui.id = 'cv-debug';
                             ui.style.cssText = [
                                 'position:fixed',
@@ -621,7 +620,6 @@
                             ui.innerHTML = '';
 
                             const title = doc.createElement('div');
-                            const title = global.document.createElement('div');
                             title.textContent = 'FX Debug';
                             title.style.cssText = 'font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em;';
                             ui.appendChild(title);
@@ -631,16 +629,11 @@
                                 row.style.cssText = 'display:block;margin:6px 0;';
 
                                 const labelSpan = doc.createElement('span');
-                                const row = global.document.createElement('label');
-                                row.style.cssText = 'display:block;margin:6px 0;';
-
-                                const labelSpan = global.document.createElement('span');
                                 labelSpan.textContent = label;
                                 labelSpan.style.cssText = 'display:inline-block;margin-bottom:2px;';
                                 row.appendChild(labelSpan);
 
                                 const input = doc.createElement('input');
-                                const input = global.document.createElement('input');
                                 input.type = 'range';
                                 input.min = String(min);
                                 input.max = String(max);
@@ -650,8 +643,6 @@
                                 input.style.width = '100%';
 
                                 const valueReadout = doc.createElement('div');
-
-                                const valueReadout = global.document.createElement('div');
                                 valueReadout.textContent = formatter(parseFloat(input.value));
                                 valueReadout.style.cssText = 'font-size:11px;opacity:0.72;margin-top:2px;text-align:right;';
 
