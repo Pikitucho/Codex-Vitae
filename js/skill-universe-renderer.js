@@ -3513,10 +3513,11 @@
 
         _bindEvents() {
             const domElement = this.renderer.domElement;
-            domElement.addEventListener('pointermove', (event) => this._onPointerMove(event));
-            domElement.addEventListener('pointerdown', (event) => this._onPointerDown(event));
-            domElement.addEventListener('pointerup', (event) => this._onPointerUp(event));
-            domElement.addEventListener('pointercancel', (event) => this._onPointerCancel(event));
+            const passivePointerOptions = { passive: true };
+            domElement.addEventListener('pointermove', (event) => this._onPointerMove(event), passivePointerOptions);
+            domElement.addEventListener('pointerdown', (event) => this._onPointerDown(event), passivePointerOptions);
+            domElement.addEventListener('pointerup', (event) => this._onPointerUp(event), passivePointerOptions);
+            domElement.addEventListener('pointercancel', (event) => this._onPointerCancel(event), passivePointerOptions);
             domElement.addEventListener('click', (event) => this._onClick(event));
             domElement.addEventListener('keydown', (event) => this._onKeyDown(event));
             domElement.addEventListener('contextmenu', (event) => {
