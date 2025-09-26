@@ -512,6 +512,9 @@
             this._fogPoints = null;
             this._nebulaPlanes = [];
             this._nebulaTextures = [];
+            this._nebulaLayer = null;
+            this._spriteStars = null;
+            this._spriteStarsMat = null;
             this._lightRig = null;
             this._lightRigLights = [];
             this._environmentTarget = null;
@@ -589,6 +592,35 @@
                         this._glRenderer.domElement.remove();
                     }
                     this._glRenderer = null;
+                }
+                this._setDefaultEnvironment();
+                if (this._glRenderer && this._composer && global.NebulaLayer && typeof global.NebulaLayer === 'function' && this.scene) {
+                    try {
+                        this._nebulaLayer = new global.NebulaLayer(this.scene, { intensity: 0.7, layers: 3 });
+                        const initPromise = this._nebulaLayer.initFromManifest();
+                        if (initPromise && typeof initPromise.catch === 'function') {
+                            initPromise.catch((nebulaInitError) => {
+                                if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+                                    console.warn('[SkillUniverse] NebulaLayer manifest load skipped:', nebulaInitError);
+                                }
+                            });
+                        }
+                    } catch (nebulaError) {
+                        if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+                            console.warn('[SkillUniverse] NebulaLayer setup skipped:', nebulaError);
+                        }
+                        if (this._nebulaLayer && typeof this._nebulaLayer.dispose === 'function') {
+                            this._nebulaLayer.dispose();
+                        }
+                        this._nebulaLayer = null;
+                    }
+                } else {
+                    this._disposeNebulaLayer();
+                }
+                if (this._glRenderer && this._composer) {
+                    this._createSpriteStars();
+                } else {
+                    this._disposeSpriteStars();
                 }
             }
 
@@ -841,6 +873,141 @@
             }
         }
 
+        _createSpriteStars() {
+            if (!this.scene || !THREE || !this._glRenderer) {
+                this._disposeSpriteStars();
+                return;
+            }
+            this._disposeSpriteStars();
+
+            const COUNT = 1000;
+            const baseSize = 10;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(COUNT * 3);
+            const baseSizes = new Float32Array(COUNT);
+            const sizeFactors = new Float32Array(COUNT);
+
+            for (let i = 0; i < COUNT; i += 1) {
+                const radius = 45000 + (Math.random() * 15000);
+                const theta = Math.acos((2 * Math.random()) - 1);
+                const phi = 2 * Math.PI * Math.random();
+                const sinTheta = Math.sin(theta);
+                const cosTheta = Math.cos(theta);
+                const sinPhi = Math.sin(phi);
+                const cosPhi = Math.cos(phi);
+                const offset = i * 3;
+                positions[offset] = radius * sinTheta * cosPhi;
+                positions[offset + 1] = radius * sinTheta * sinPhi;
+                positions[offset + 2] = radius * cosTheta;
+
+                const starSize = 6 + (Math.random() * 10);
+                baseSizes[i] = starSize;
+                sizeFactors[i] = starSize / baseSize;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('aSize', new THREE.BufferAttribute(sizeFactors, 1));
+
+            const circle = global.document && typeof global.document.createElement === 'function'
+                ? global.document.createElement('canvas')
+                : null;
+            if (!circle) {
+                geometry.dispose();
+                return;
+            }
+            circle.width = 64;
+            circle.height = 64;
+            const ctx = circle.getContext('2d');
+            if (!ctx) {
+                geometry.dispose();
+                return;
+            }
+            const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+            gradient.addColorStop(0, 'rgba(255,255,255,1)');
+            gradient.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(32, 32, 32, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (typeof THREE.CanvasTexture !== 'function') {
+                geometry.dispose();
+                return;
+            }
+            const spriteTex = new THREE.CanvasTexture(circle);
+            if (typeof THREE.SRGBColorSpace !== 'undefined') {
+                spriteTex.colorSpace = THREE.SRGBColorSpace;
+            } else if (typeof THREE.sRGBEncoding !== 'undefined') {
+                spriteTex.encoding = THREE.sRGBEncoding;
+            }
+            spriteTex.needsUpdate = true;
+
+            const material = new THREE.PointsMaterial({
+                map: spriteTex,
+                size: baseSize,
+                transparent: true,
+                depthWrite: false,
+                blending: typeof THREE.AdditiveBlending !== 'undefined' ? THREE.AdditiveBlending : undefined,
+                sizeAttenuation: true
+            });
+
+            material.onBeforeCompile = (shader) => {
+                shader.vertexShader = shader.vertexShader.replace(
+                    'void main() {',
+                    'attribute float aSize;\nvoid main() {'
+                );
+                shader.vertexShader = shader.vertexShader.replace(
+                    'gl_PointSize = size;',
+                    'gl_PointSize = size * aSize;'
+                );
+            };
+            material.needsUpdate = true;
+
+            const points = new THREE.Points(geometry, material);
+            points.frustumCulled = false;
+            points.renderOrder = -4.2;
+            this.scene.add(points);
+
+            points.userData._baseSizes = baseSizes;
+            points.userData._sizeScale = baseSize;
+            points.userData._sizeAttribute = geometry.getAttribute('aSize');
+
+            this._spriteStars = points;
+            this._spriteStarsMat = material;
+        }
+
+        _disposeSpriteStars() {
+            if (!this._spriteStars) {
+                this._spriteStarsMat = null;
+                return;
+            }
+            if (this.scene && typeof this.scene.remove === 'function') {
+                this.scene.remove(this._spriteStars);
+            }
+            const geometry = this._spriteStars.geometry;
+            const material = this._spriteStars.material;
+            if (geometry && typeof geometry.dispose === 'function') {
+                geometry.dispose();
+            }
+            if (material) {
+                if (material.map && typeof material.map.dispose === 'function') {
+                    material.map.dispose();
+                }
+                if (typeof material.dispose === 'function') {
+                    material.dispose();
+                }
+            }
+            this._spriteStars = null;
+            this._spriteStarsMat = null;
+        }
+
+        _disposeNebulaLayer() {
+            if (this._nebulaLayer && typeof this._nebulaLayer.dispose === 'function') {
+                this._nebulaLayer.dispose();
+            }
+            this._nebulaLayer = null;
+        }
+
         _loadEnvironmentMap() {
             if (!this.renderer || !this.scene) {
                 return;
@@ -1079,8 +1246,11 @@
 
         render(delta = null) {
             if (this._composer && this._glRenderer) {
-                const dt = this._clock ? this._clock.getDelta() : 0;
-                this._composer.render(dt);
+                if (typeof delta === 'number') {
+                    this._composer.render(delta);
+                } else {
+                    this._composer.render();
+                }
                 return;
             }
             // Legacy path (unchanged)
@@ -1130,6 +1300,8 @@
             }
             this._nebulaTextures = [];
             this._nebulaPlanes = [];
+            this._disposeNebulaLayer();
+            this._disposeSpriteStars();
             if (Array.isArray(this._lightRigLights) && this._lightRigLights.length) {
                 this._lightRigLights.forEach((light) => {
                     if (light && light.parent && typeof light.parent.remove === 'function') {
@@ -2374,33 +2546,40 @@
             return influence;
         }
 
-        _applyStarMaterial(mesh, status) {
-            const material = mesh.material;
-            if (!material) {
+        async _applyStarMaterial(mesh, status) {
+            const originalMaterial = mesh.material;
+            if (!originalMaterial) {
                 return;
             }
-            const defaultColor = STATUS_COLORS[status] || STATUS_COLORS.locked;
-            let baseColorHex = defaultColor;
-            let highlightHex = null;
-            let emissiveHex = defaultColor;
-            let emissiveIntensity = status === 'unlocked'
-                ? 0.65
-                : status === 'available'
-                    ? 0.38
-                    : 0.26;
-            let roughness = Number.isFinite(material.roughness) ? material.roughness : 0.32;
-            let metalness = Number.isFinite(material.metalness) ? material.metalness : 0.18;
-            let recipeFromMixer = null;
 
-            if (StarMixer && typeof StarMixer.generateStarMaterial === 'function') {
-                const mixerResult = StarMixer.generateStarMaterial({
+            const descriptor = StarMixer && typeof StarMixer.generateStarMaterial === 'function'
+                ? StarMixer.generateStarMaterial({
                     galaxyName: mesh.userData?.galaxy,
                     constellationName: mesh.userData?.constellation,
                     starSystemName: mesh.userData?.starSystem,
                     starName: mesh.userData?.star,
                     starData: mesh.userData?.data,
                     status
-                });
+                })
+                : null;
+
+            const applyLegacyMaterial = (mixerResult) => {
+                const material = mesh.material;
+                if (!material) {
+                    return;
+                }
+                const defaultColor = STATUS_COLORS[status] || STATUS_COLORS.locked;
+                let baseColorHex = defaultColor;
+                let highlightHex = null;
+                let emissiveHex = defaultColor;
+                let emissiveIntensity = status === 'unlocked'
+                    ? 0.65
+                    : status === 'available'
+                        ? 0.38
+                        : 0.26;
+                let roughness = Number.isFinite(material.roughness) ? material.roughness : 0.32;
+                let metalness = Number.isFinite(material.metalness) ? material.metalness : 0.18;
+                let recipeFromMixer = null;
 
                 if (mixerResult && mixerResult.colors && mixerResult.recipe) {
                     baseColorHex = mixerResult.colors.albedo ?? baseColorHex;
@@ -2444,60 +2623,212 @@
 
                     recipeFromMixer = mixerResult.recipe;
                 }
+
+                const previousRecipe = mesh.userData?.materialRecipe || null;
+                const effectiveRecipe = recipeFromMixer || previousRecipe || null;
+                const textureInfluence = this._applyTextureLayers(mesh, effectiveRecipe) || {};
+                mesh.userData.materialRecipe = effectiveRecipe;
+
+                const roughnessInfluence = clamp(Number(textureInfluence.roughnessMap) || 0, 0, 1);
+                const metalnessInfluence = clamp(Number(textureInfluence.metalnessMap) || 0, 0, 1);
+                const emissiveInfluence = clamp(Number(textureInfluence.emissiveMap) || 0, 0, 1);
+                const normalInfluence = clamp(Number(textureInfluence.normalMap) || 0, 0, 1);
+                const blendMaskInfluence = effectiveRecipe && effectiveRecipe.maps && Array.isArray(effectiveRecipe.maps.blendMasks)
+                    ? effectiveRecipe.maps.blendMasks.reduce((sum, entry) => sum + (Number(entry.weight) || 0), 0)
+                    : 0;
+
+                if (roughnessInfluence > 0) {
+                    roughness = clamp(roughness * (0.7 + roughnessInfluence * 0.45), 0.05, 1);
+                }
+                if (metalnessInfluence > 0) {
+                    metalness = clamp(metalness * (0.65 + metalnessInfluence * 0.5), 0.02, 1);
+                }
+                if (normalInfluence > 0) {
+                    roughness = clamp(roughness * (0.9 - normalInfluence * 0.25), 0.05, 1);
+                }
+                if (emissiveInfluence > 0) {
+                    emissiveIntensity = clamp(emissiveIntensity * (0.78 + emissiveInfluence * 0.65), 0.05, 2.1);
+                }
+                if (blendMaskInfluence > 0) {
+                    emissiveIntensity += blendMaskInfluence * 0.08;
+                }
+
+                roughness = clamp(roughness, 0.12, 0.85);
+                metalness = clamp(metalness, 0.05, 0.95);
+                emissiveIntensity = clamp(emissiveIntensity, 0.15, 1.1);
+
+                const baseColor = ensureColorInstance(baseColorHex, defaultColor);
+                if (status === 'available' && highlightHex !== null) {
+                    baseColor.lerp(ensureColorInstance(highlightHex, baseColorHex), 0.25);
+                } else if (status === 'unlocked') {
+                    baseColor.lerp(new THREE.Color(0xffffff), 0.12);
+                } else {
+                    baseColor.lerp(new THREE.Color(0x06080d), 0.38);
+                }
+                material.color.copy(baseColor);
+
+                const emissiveColor = ensureColorInstance(emissiveHex, defaultColor);
+                if (status === 'locked') {
+                    emissiveColor.lerp(baseColor, 0.7);
+                    emissiveIntensity = Math.min(emissiveIntensity, 0.32);
+                }
+                material.emissive.copy(emissiveColor);
+                material.emissiveIntensity = emissiveIntensity;
+                material.roughness = roughness;
+                material.metalness = metalness;
+            };
+
+            const texturesApi = global.CVTextures || (typeof window !== 'undefined' ? window.CVTextures : null);
+            if (!texturesApi || !descriptor) {
+                applyLegacyMaterial(descriptor);
+                return;
             }
 
-            const previousRecipe = mesh.userData?.materialRecipe || null;
-            const effectiveRecipe = recipeFromMixer || previousRecipe || null;
-            const textureInfluence = this._applyTextureLayers(mesh, effectiveRecipe) || {};
-            mesh.userData.materialRecipe = effectiveRecipe;
-
-            const roughnessInfluence = clamp(Number(textureInfluence.roughnessMap) || 0, 0, 1);
-            const metalnessInfluence = clamp(Number(textureInfluence.metalnessMap) || 0, 0, 1);
-            const emissiveInfluence = clamp(Number(textureInfluence.emissiveMap) || 0, 0, 1);
-            const normalInfluence = clamp(Number(textureInfluence.normalMap) || 0, 0, 1);
-            const blendMaskInfluence = effectiveRecipe && effectiveRecipe.maps && Array.isArray(effectiveRecipe.maps.blendMasks)
-                ? effectiveRecipe.maps.blendMasks.reduce((sum, entry) => sum + (Number(entry.weight) || 0), 0)
-                : 0;
-
-            if (roughnessInfluence > 0) {
-                roughness = clamp(roughness * (0.7 + roughnessInfluence * 0.45), 0.05, 1);
-            }
-            if (metalnessInfluence > 0) {
-                metalness = clamp(metalness * (0.65 + metalnessInfluence * 0.5), 0.02, 1);
-            }
-            if (normalInfluence > 0) {
-                roughness = clamp(roughness * (0.9 - normalInfluence * 0.25), 0.05, 1);
-            }
-            if (emissiveInfluence > 0) {
-                emissiveIntensity = clamp(emissiveIntensity * (0.78 + emissiveInfluence * 0.65), 0.05, 2.1);
-            }
-            if (blendMaskInfluence > 0) {
-                emissiveIntensity += blendMaskInfluence * 0.08;
+            const availableMapKeys = descriptor.maps
+                ? Object.keys(descriptor.maps).filter((key) => descriptor.maps[key] && descriptor.maps[key].url)
+                : [];
+            if (!availableMapKeys.length) {
+                applyLegacyMaterial(descriptor);
+                return;
             }
 
-            roughness = clamp(roughness, 0.12, 0.85);
-            metalness = clamp(metalness, 0.05, 0.95);
-            emissiveIntensity = clamp(emissiveIntensity, 0.15, 1.1);
+            try {
+                const m = new THREE.MeshStandardMaterial({
+                    color: new THREE.Color(descriptor.color || '#ffffff'),
+                    emissive: new THREE.Color(descriptor.emissive || '#000000'),
+                    roughness: ('roughness' in descriptor) ? descriptor.roughness : 0.8,
+                    metalness: ('metalness' in descriptor) ? descriptor.metalness : 0.0
+                });
+                if (typeof descriptor.emissiveIntensity === 'number') {
+                    m.emissiveIntensity = descriptor.emissiveIntensity;
+                }
 
-            const baseColor = ensureColorInstance(baseColorHex, defaultColor);
-            if (status === 'available' && highlightHex !== null) {
-                baseColor.lerp(ensureColorInstance(highlightHex, baseColorHex), 0.25);
-            } else if (status === 'unlocked') {
-                baseColor.lerp(new THREE.Color(0xffffff), 0.12);
-            } else {
-                baseColor.lerp(new THREE.Color(0x06080d), 0.38);
-            }
-            material.color.copy(baseColor);
+                const maps = descriptor.maps || {};
+                const loadMap = async (slot, key) => {
+                    const d = maps[key];
+                    if (!d || !d.url) {
+                        return;
+                    }
+                    const tex = await texturesApi.getTexture(d.url, {
+                        srgb: !!d.srgb,
+                        repeat: Array.isArray(d.repeat) ? d.repeat : undefined,
+                        offset: Array.isArray(d.offset) ? d.offset : undefined
+                    });
+                    if (!tex) {
+                        return;
+                    }
+                    m[slot] = tex;
+                    if (key === 'normal' && Array.isArray(d.normalScale)) {
+                        m.normalScale = new THREE.Vector2(d.normalScale[0], d.normalScale[1]);
+                    }
+                    if (key === 'emissive' && typeof d.intensity === 'number') {
+                        m.emissiveIntensity = d.intensity;
+                    }
+                };
 
-            const emissiveColor = ensureColorInstance(emissiveHex, defaultColor);
-            if (status === 'locked') {
-                emissiveColor.lerp(baseColor, 0.7);
-                emissiveIntensity = Math.min(emissiveIntensity, 0.32);
+                await Promise.all([
+                    loadMap('map', 'albedo'),
+                    loadMap('normalMap', 'normal'),
+                    loadMap('roughnessMap', 'roughness'),
+                    loadMap('metalnessMap', 'metalness'),
+                    loadMap('aoMap', 'ao'),
+                    loadMap('emissiveMap', 'emissive')
+                ]);
+
+                const compositeMask = async (baseTex, noiseLayers) => {
+                    if (!baseTex || !noiseLayers || !noiseLayers.length) {
+                        return null;
+                    }
+                    const img = baseTex.image;
+                    const W = (img && img.width) || 1024;
+                    const H = (img && img.height) || 1024;
+                    if (!W || !H) {
+                        return null;
+                    }
+                    const cvs = document.createElement('canvas');
+                    cvs.width = W;
+                    cvs.height = H;
+                    const ctx = cvs.getContext('2d');
+                    if (!ctx) {
+                        return null;
+                    }
+                    if (img) {
+                        ctx.drawImage(img, 0, 0, W, H);
+                    }
+                    for (const layer of noiseLayers) {
+                        if (!layer || !layer.url) {
+                            continue;
+                        }
+                        const mask = await new Promise((resolve, reject) => {
+                            const im = new Image();
+                            im.crossOrigin = 'anonymous';
+                            im.onload = () => resolve(im);
+                            im.onerror = reject;
+                            im.src = layer.url;
+                        }).catch(() => null);
+                        if (!mask) {
+                            continue;
+                        }
+                        ctx.globalCompositeOperation = (layer.mode === 'screen') ? 'screen' : 'multiply';
+                        ctx.globalAlpha = (typeof layer.amount === 'number') ? layer.amount : 0.5;
+                        ctx.drawImage(mask, 0, 0, W, H);
+                    }
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.globalAlpha = 1;
+                    const out = new THREE.CanvasTexture(cvs);
+                    if (baseTex.colorSpace) {
+                        out.colorSpace = baseTex.colorSpace;
+                    }
+                    if (typeof baseTex.wrapS !== 'undefined') {
+                        out.wrapS = baseTex.wrapS;
+                    }
+                    if (typeof baseTex.wrapT !== 'undefined') {
+                        out.wrapT = baseTex.wrapT;
+                    }
+                    if (baseTex.repeat && out.repeat) {
+                        out.repeat.copy(baseTex.repeat);
+                    }
+                    if (baseTex.offset && out.offset) {
+                        out.offset.copy(baseTex.offset);
+                    }
+                    if (typeof baseTex.anisotropy === 'number') {
+                        out.anisotropy = baseTex.anisotropy;
+                    }
+                    out.needsUpdate = true;
+                    return out;
+                };
+
+                const noiseLayers = Array.isArray(descriptor.noise) ? descriptor.noise.filter((layer) => layer && layer.url) : null;
+                if (noiseLayers && (m.map || m.emissiveMap)) {
+                    if (m.map) {
+                        const cm = await compositeMask(m.map, noiseLayers);
+                        if (cm) {
+                            m.map = cm;
+                        }
+                    }
+                    if (m.emissiveMap) {
+                        const cm = await compositeMask(m.emissiveMap, noiseLayers);
+                        if (cm) {
+                            m.emissiveMap = cm;
+                        }
+                    }
+                }
+
+                if (!m.map && !m.normalMap && !m.roughnessMap && !m.metalnessMap && !m.aoMap && !m.emissiveMap) {
+                    m.dispose();
+                    applyLegacyMaterial(descriptor);
+                    return;
+                }
+
+                mesh.userData.materialRecipe = descriptor.recipe || null;
+                if (originalMaterial && typeof originalMaterial.dispose === 'function') {
+                    originalMaterial.dispose();
+                }
+                mesh.material = m;
+                mesh.material.needsUpdate = true;
+            } catch (err) {
+                applyLegacyMaterial(descriptor);
             }
-            material.emissive.copy(emissiveColor);
-            material.emissiveIntensity = emissiveIntensity;
-            material.roughness = roughness;
-            material.metalness = metalness;
         }
 
         _createStarFocusOverlay() {
@@ -3013,7 +3344,62 @@
 
             this._updateGalaxyLabels();
             this._maybeAutoAdjustView();
-            this.render(delta);
+
+            if (this._composer && this._glRenderer) {
+                if (this._nebulaLayer && typeof this._nebulaLayer.update === 'function') {
+                    this._nebulaLayer.update(delta);
+                }
+                const spritePoints = this._spriteStars;
+                if (spritePoints && spritePoints.geometry) {
+                    const attribute = spritePoints.userData ? spritePoints.userData._sizeAttribute : null;
+                    const base = spritePoints.userData ? spritePoints.userData._baseSizes : null;
+                    if (attribute && base) {
+                        const timeSource = (typeof performance !== 'undefined' && typeof performance.now === 'function')
+                            ? performance.now() * 0.001
+                            : elapsedTime;
+                        const scale = spritePoints.userData._sizeScale || 1;
+                        const safeScale = scale === 0 ? 1 : scale;
+                        for (let i = 0; i < attribute.count; i += 1) {
+                            const wobble = 0.85 + (0.15 * Math.sin((timeSource * 1.3) + (i * 3.7)));
+                            attribute.array[i] = (base[i] * wobble) / safeScale;
+                        }
+                        attribute.needsUpdate = true;
+                    }
+                }
+                this._composer.render(delta);
+            } else {
+                this.render(delta);
+            }
+        }
+
+        async _setDefaultEnvironment() {
+            const fetchFn = typeof global.fetch === 'function' ? global.fetch.bind(global) : (typeof fetch === 'function' ? fetch : null);
+            if (!fetchFn || !global.CVTextures || typeof global.CVTextures.getEnvironmentFromHDR !== 'function' || !this.scene) {
+                return;
+            }
+            try {
+                const res = await fetchFn('assets/skill-universe/ingredient-library.json', { cache: 'no-store' });
+                if (!res || !res.ok) {
+                    return;
+                }
+                const lib = await res.json();
+                if (!Array.isArray(lib)) {
+                    return;
+                }
+                const neb = lib.find((e) => e && e.type === 'nebula' && e.maps && e.maps.environment && /\.hdr$/i.test(e.maps.environment));
+                if (!neb) {
+                    return;
+                }
+                const hdrUrl = neb.maps.environment;
+                const envTex = await global.CVTextures.getEnvironmentFromHDR(hdrUrl);
+                if (envTex) {
+                    this.scene.environment = envTex;
+                }
+            } catch (err) {
+                if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+                    console.warn('[SkillUniverse] Environment HDR load skipped:', err);
+                }
+            }
         }
 
         _updateViewUI() {

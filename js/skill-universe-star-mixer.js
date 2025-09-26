@@ -149,6 +149,12 @@
 
     const DEFAULT_CATEGORY_FALLBACK = ['metals', 'minerals', 'gases', 'organics', 'other'];
 
+    const STATUS_COLORS = {
+        unlocked: 0x00b894,
+        available: 0xffc048,
+        locked: 0x4b4b4b
+    };
+
     const MAP_TYPE_ALIASES = {
         map: 'map',
         albedo: 'map',
@@ -168,6 +174,10 @@
         metalness: 'metalnessMap',
         metallic: 'metalnessMap',
         metalnessmap: 'metalnessMap',
+        ao: 'aoMap',
+        ambientocclusion: 'aoMap',
+        occlusion: 'aoMap',
+        occ: 'aoMap',
         emission: 'emissiveMap',
         emissive: 'emissiveMap',
         emissivecolor: 'emissiveMap',
@@ -644,6 +654,24 @@
         });
     }
 
+    function clamp(value, min, max) {
+        if (!Number.isFinite(value)) {
+            return min;
+        }
+        if (value < min) {
+            return min;
+        }
+        if (value > max) {
+            return max;
+        }
+        return value;
+    }
+
+    function toCssHex(value) {
+        const hex = Number.isFinite(value) ? value >>> 0 : 0xffffff;
+        return `#${hex.toString(16).padStart(6, '0')}`;
+    }
+
     function normalizeRecipeWeights(weights) {
         if (!Array.isArray(weights) || !weights.length) {
             return [1];
@@ -856,22 +884,151 @@
         }, library);
 
         const status = typeof context.status === 'string' ? context.status : 'locked';
-        const emissiveIntensity = Number.isFinite(options.emissiveIntensity)
+        let emissiveIntensity = Number.isFinite(options.emissiveIntensity)
             ? options.emissiveIntensity
             : DEFAULT_STATUS_INTENSITY[status] ?? DEFAULT_STATUS_INTENSITY.locked;
 
-        return {
+        const baseEmissiveIntensity = emissiveIntensity;
+
+        let roughness = 0.32;
+        let metalness = 0.18;
+
+        const categoryWeights = {};
+        recipe.ingredients.forEach((ingredient) => {
+            if (!ingredient || !ingredient.category) {
+                return;
+            }
+            const weight = Number.isFinite(ingredient.weight) ? Math.max(ingredient.weight, 0) : 0;
+            if (!weight) {
+                return;
+            }
+            categoryWeights[ingredient.category] = (categoryWeights[ingredient.category] || 0) + weight;
+        });
+
+        if (categoryWeights.metals) {
+            metalness += categoryWeights.metals * 0.42;
+            roughness -= categoryWeights.metals * 0.18;
+        }
+        if (categoryWeights.minerals) {
+            metalness += categoryWeights.minerals * 0.18;
+            roughness += categoryWeights.minerals * 0.12;
+        }
+        if (categoryWeights.organics) {
+            roughness += categoryWeights.organics * 0.25;
+        }
+        if (categoryWeights.gases) {
+            roughness -= categoryWeights.gases * 0.22;
+            emissiveIntensity += categoryWeights.gases * 0.18;
+        }
+        if (categoryWeights.other) {
+            emissiveIntensity += categoryWeights.other * 0.24;
+        }
+
+        roughness = clamp(roughness, 0.12, 0.85);
+        metalness = clamp(metalness, 0.05, 0.95);
+        emissiveIntensity = clamp(emissiveIntensity, 0.15, 1.1);
+
+        const descriptorMaps = {};
+        const srgbSlots = new Set(['albedo', 'emissive']);
+        const recipeMaps = recipe.maps || {};
+        const mapSelections = {
+            map: 'albedo',
+            normalMap: 'normal',
+            roughnessMap: 'roughness',
+            metalnessMap: 'metalness',
+            aoMap: 'ao',
+            emissiveMap: 'emissive'
+        };
+
+        Object.entries(mapSelections).forEach(([recipeKey, descriptorKey]) => {
+            const layer = recipeMaps[recipeKey];
+            const primary = layer && Array.isArray(layer.entries) ? layer.entries[0] : null;
+            if (!primary || typeof primary.url !== 'string' || !primary.url.length) {
+                return;
+            }
+            const mapDescriptor = {
+                url: primary.url,
+                srgb: srgbSlots.has(descriptorKey)
+            };
+            mapDescriptor.repeat = [1, 1];
+            mapDescriptor.offset = [0, 0];
+            if (descriptorKey === 'normal') {
+                mapDescriptor.normalScale = [1, 1];
+            }
+            if (descriptorKey === 'emissive') {
+                mapDescriptor.intensity = emissiveIntensity;
+            }
+            descriptorMaps[descriptorKey] = mapDescriptor;
+        });
+
+        const blendMasks = Array.isArray(recipeMaps.blendMasks) ? recipeMaps.blendMasks : [];
+        const noiseLayers = [];
+        if (blendMasks.length) {
+            const affectsTargets = [];
+            if (descriptorMaps.albedo) {
+                affectsTargets.push('albedo');
+            }
+            if (descriptorMaps.emissive) {
+                affectsTargets.push('emissive');
+            }
+            const effectiveAffects = affectsTargets.length ? affectsTargets : ['albedo'];
+            const maxLayers = Math.min(2, blendMasks.length);
+            for (let i = 0; i < maxLayers; i += 1) {
+                const mask = blendMasks[i];
+                if (!mask || typeof mask.url !== 'string' || !mask.url.length) {
+                    continue;
+                }
+                const amount = clamp(Number(mask.weight) || 0.5, 0.1, 0.9);
+                noiseLayers.push({
+                    url: mask.url,
+                    channel: 'R',
+                    mode: i % 2 === 0 ? 'multiply' : 'screen',
+                    affects: effectiveAffects.slice(),
+                    amount,
+                    repeat: [2, 2]
+                });
+            }
+        }
+
+        const defaultColor = STATUS_COLORS[status] || STATUS_COLORS.locked;
+        let baseColorHex = recipe.colors.albedo ?? defaultColor;
+        const highlightHex = recipe.colors.highlight ?? null;
+        let emissiveHex = recipe.colors.emissive ?? defaultColor;
+
+        if (status === 'available' && highlightHex !== null) {
+            baseColorHex = lerpColor(baseColorHex, highlightHex, 0.25);
+        } else if (status === 'unlocked') {
+            baseColorHex = lerpColor(baseColorHex, 0xffffff, 0.12);
+        } else {
+            baseColorHex = lerpColor(baseColorHex, 0x06080d, 0.38);
+        }
+
+        if (status === 'locked') {
+            emissiveHex = lerpColor(emissiveHex, baseColorHex, 0.7);
+            emissiveIntensity = Math.min(emissiveIntensity, 0.32);
+        }
+
+        const descriptor = {
             seed,
             status,
             recipe,
-            maps: recipe.maps,
+            model: 'MeshStandardMaterial',
+            color: toCssHex(baseColorHex),
+            emissive: toCssHex(emissiveHex),
+            roughness,
+            metalness,
+            emissiveIntensity,
+            maps: Object.keys(descriptorMaps).length ? descriptorMaps : undefined,
+            noise: noiseLayers.length ? noiseLayers : undefined,
             colors: {
                 albedo: recipe.colors.albedo,
                 highlight: recipe.colors.highlight,
                 emissive: recipe.colors.emissive,
-                emissiveIntensity
+                emissiveIntensity: baseEmissiveIntensity
             }
         };
+
+        return descriptor;
     }
 
     function listMissingAssets() {
