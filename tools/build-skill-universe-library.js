@@ -148,6 +148,15 @@ function categorizeFiles(files) {
                 maps[mapType] = fileName;
             }
         }
+        if (!Object.keys(maps).some((key) => maps[key] === fileName)) {
+            if ((ext === '.hdr' || ext === '.exr') && !maps.environment) {
+                maps.environment = fileName;
+            } else if ((ext === '.tif' || ext === '.tiff') && !maps.albedo) {
+                maps.albedo = fileName;
+            } else if (!maps.primary) {
+                maps.primary = fileName;
+            }
+        }
     }
     return maps;
 }
@@ -173,26 +182,42 @@ function gatherCategory(categoryName) {
 
     for (const entry of entries) {
         const entryPath = path.join(categoryPath, entry);
-        if (!fs.statSync(entryPath).isDirectory()) {
-            continue;
-        }
-        const files = fs.readdirSync(entryPath).filter((file) => !file.startsWith('.'));
-        if (!files.length) {
+        const stat = fs.statSync(entryPath);
+        let files = [];
+        let displayName = entry;
+        let relativeBasePath;
+
+        if (stat.isDirectory()) {
+            files = fs.readdirSync(entryPath).filter((file) => !file.startsWith('.'));
+            if (!files.length) {
+                continue;
+            }
+            relativeBasePath = path.join('material-ingredients', categoryName, entry);
+        } else if (stat.isFile()) {
+            const ext = path.extname(entry).toLowerCase();
+            if (!IMAGE_EXTENSIONS.has(ext)) {
+                continue;
+            }
+            files = [entry];
+            displayName = path.parse(entry).name;
+            relativeBasePath = path.join('material-ingredients', categoryName);
+        } else {
             continue;
         }
 
         const maps = categorizeFiles(files);
-        const colors = deriveColors(categoryName, entry);
+        const colors = deriveColors(categoryName, displayName);
         const provider = detectProvider(files);
-        const tags = entry
+        const tags = displayName
+            .replace(/[_-]+/g, ' ')
             .split(/\s+/)
             .map((token) => token.replace(/[^a-z0-9-]/gi, ''))
             .filter(Boolean);
 
         libraryEntries.push({
-            id: slugify(entry),
-            name: entry,
-            relativePath: path.join('material-ingredients', categoryName, entry).replace(/\\/g, '/'),
+            id: slugify(displayName),
+            name: displayName,
+            relativePath: relativeBasePath.replace(/\\/g, '/'),
             maps,
             color: colors.color,
             emissive: colors.emissive,
