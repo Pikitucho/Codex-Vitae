@@ -882,6 +882,7 @@
                 this.renderer.domElement.style.width = '100%';
                 this.renderer.domElement.style.height = '100%';
                 this.renderer.domElement.style.display = 'block';
+                this.renderer.domElement.style.touchAction = 'none';
                 this.renderer.setClearColor(0x01020a, 1);
                 if (this.container && typeof this.container.appendChild === 'function') {
                     this.container.appendChild(this.renderer.domElement);
@@ -915,6 +916,20 @@
             this.controls.rotateSpeed = 0.35;
             this.controls.zoomSpeed = 0.65;
             this.controls.panSpeed = 0.8;
+            if (THREE?.MOUSE) {
+                this.controls.mouseButtons = {
+                    LEFT: THREE.MOUSE.PAN,
+                    MIDDLE: THREE.MOUSE.DOLLY,
+                    RIGHT: THREE.MOUSE.ROTATE
+                };
+            }
+            if (THREE?.TOUCH) {
+                this.controls.touches = {
+                    ONE: THREE.TOUCH.ROTATE,
+                    TWO: THREE.TOUCH.DOLLY_PAN,
+                    THREE: THREE.TOUCH.PAN
+                };
+            }
             this.controls.target.copy(this.cameraTarget);
             this.controls.addEventListener('start', () => {
                 this._cancelTween();
@@ -3492,24 +3507,35 @@
             domElement.addEventListener('pointercancel', (event) => this._onPointerCancel(event));
             domElement.addEventListener('click', (event) => this._onClick(event));
             domElement.addEventListener('keydown', (event) => this._onKeyDown(event));
+            domElement.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+            });
         }
 
         _onPointerDown(event) {
             if (event.pointerType === 'touch') {
                 this.activeTouchPointers.add(event.pointerId);
-                if (this.activeTouchPointers.size > 1) {
+                if (!event.isPrimary || this.activeTouchPointers.size > 1) {
                     this.pointerDownInfo = null;
                     return;
                 }
             } else {
                 this.activeTouchPointers.clear();
+                const isPrimary = event.isPrimary !== false;
+                const button = typeof event.button === 'number' ? event.button : 0;
+                const isLeftClick = button === 0;
+                if (!isPrimary || !isLeftClick) {
+                    this.pointerDownInfo = null;
+                    return;
+                }
             }
             this.pointerDownInfo = {
                 x: event.clientX,
                 y: event.clientY,
                 time: performance.now(),
                 pointerId: event.pointerId,
-                pointerType: event.pointerType || 'mouse'
+                pointerType: event.pointerType || 'mouse',
+                button: typeof event.button === 'number' ? event.button : 0
             };
         }
 
@@ -3522,6 +3548,10 @@
                 if (!this.activeTouchPointers.size) {
                     this.pointerDownInfo = null;
                 }
+                return;
+            }
+            if (downInfo.pointerType === 'mouse' && downInfo.button !== 0) {
+                this.pointerDownInfo = null;
                 return;
             }
             if (event.pointerType === 'touch' && this.activeTouchPointers.size > 0) {

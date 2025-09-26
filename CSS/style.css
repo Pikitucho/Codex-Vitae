@@ -597,8 +597,6 @@ model-viewer.avatar-viewer {
 
 #skill-search-form button:hover {
     box-shadow: 0 12px 24px rgba(245, 178, 103, 0.34);
-
-    gap: 12px;
 }
 
 #skill-tree-controls {
