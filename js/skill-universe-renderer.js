@@ -803,6 +803,8 @@
                                 }, 1000);
                             }
                         } catch (debugError) {
+                        }
+                    } catch (debugError) {
                             if (typeof console !== 'undefined' && typeof console.warn === 'function') {
                                 console.warn('SkillUniverseRenderer: debug panel failed to initialize', debugError);
                             }
