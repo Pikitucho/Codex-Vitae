@@ -68,13 +68,15 @@ if (!AI_FEATURES_AVAILABLE) {
 }
 
 // --- Firebase Initialization ---
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+const firebaseApp = (firebase.apps && firebase.apps.length)
+    ? firebase.app()
+    : firebase.initializeApp(firebaseConfig);
+const auth = firebaseApp.auth();
+const db = firebaseApp.firestore();
 let storage = null;
 if (firebaseConfig.storageBucket && typeof firebaseConfig.storageBucket === 'string' && firebaseConfig.storageBucket.trim()) {
     try {
-        storage = firebase.storage();
+        storage = firebase.storage(firebaseApp);
     } catch (error) {
         console.warn('Firebase Storage could not be initialized:', error);
     }

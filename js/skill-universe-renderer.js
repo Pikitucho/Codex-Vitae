@@ -589,18 +589,20 @@
 
                 if (this._glRenderer && this._composer) {
                     this.renderer = this._glRenderer;
-                    if (
+
+                    const shouldShowDebugPanel =
                         useModern &&
                         typeof global.location?.search === 'string' &&
                         global.location.search.includes('debug') &&
                         global.document &&
-                        typeof global.document.createElement === 'function'
-                    ) {
+                        typeof global.document.createElement === 'function';
+
+                    if (shouldShowDebugPanel) {
                         try {
                             const doc = global.document;
-                            const ui = doc.getElementById('cv-debug') || doc.createElement('div');
-                            ui.id = 'cv-debug';
-                            ui.style.cssText = [
+                            const debugPanel = doc.getElementById('cv-debug') || doc.createElement('div');
+                            debugPanel.id = 'cv-debug';
+                            debugPanel.style.cssText = [
                                 'position:fixed',
                                 'top:8px',
                                 'right:8px',
@@ -617,12 +619,12 @@
                                 'box-shadow:0 6px 18px rgba(0,0,0,0.35)',
                                 'backdrop-filter:blur(6px)'
                             ].join(';');
-                            ui.innerHTML = '';
+                            debugPanel.innerHTML = '';
 
                             const title = doc.createElement('div');
                             title.textContent = 'FX Debug';
                             title.style.cssText = 'font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em;';
-                            ui.appendChild(title);
+                            debugPanel.appendChild(title);
 
                             const slider = (label, min, max, step, get, set, formatter = (v) => v.toFixed(2)) => {
                                 const row = doc.createElement('label');
@@ -639,7 +641,7 @@
                                 input.max = String(max);
                                 input.step = String(step);
                                 const current = get();
-                                input.value = isNaN(current) ? String(min) : String(current);
+                                input.value = Number.isNaN(current) ? String(min) : String(current);
                                 input.style.width = '100%';
 
                                 const valueReadout = doc.createElement('div');
@@ -656,7 +658,7 @@
 
                                 row.appendChild(input);
                                 row.appendChild(valueReadout);
-                                ui.appendChild(row);
+                                debugPanel.appendChild(row);
                             };
 
                             slider(
@@ -736,10 +738,10 @@
                                 }
                             }
 
-                            if (!ui.parentElement) {
-                                doc.body.appendChild(ui);
+                            if (!debugPanel.parentElement) {
+                                doc.body.appendChild(debugPanel);
                             }
-                            this._debugUIPanel = ui;
+                            this._debugUIPanel = debugPanel;
 
                             const diag = doc.getElementById('cv-diag') || doc.createElement('div');
                             diag.id = 'cv-diag';
@@ -800,9 +802,6 @@
                                     this._updateDiagnostics();
                                 }, 1000);
                             }
-                                global.document.body.appendChild(ui);
-                            }
-                            this._debugUIPanel = ui;
                         } catch (debugError) {
                             if (typeof console !== 'undefined' && typeof console.warn === 'function') {
                                 console.warn('SkillUniverseRenderer: debug panel failed to initialize', debugError);
