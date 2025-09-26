@@ -321,5 +321,12 @@
     <!-- Configuration values (firebase config, backend URL) -->
     <script src="config.js?v=20240610"></script>
     <script src="js/main.js?v=20240610"></script>
+    <script src="vendor/three-r160.min.js"></script>
+    <script type="module" src="js/pipeline/webgl-pipeline.js"></script>
+    <script src="js/pipeline/texture-store.js"></script>
+    <script>
+      window.CVPipeline = window.CVPipeline || {};
+      if (location.search.includes('fx=on')) window.CVPipeline.enabled = true;
+    </script>
 </body>
 </html>
