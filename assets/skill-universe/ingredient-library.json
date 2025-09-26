@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-09-26T14:15:06.035Z",
+  "generatedAt": "2025-09-26T17:15:31.114Z",
   "basePath": "assets/skill-universe",
   "defaultLicense": "Verify before distribution",
   "categories": {
@@ -2470,6 +2470,246 @@
         ]
       },
       {
+        "id": "nebula_hdr-blue-local-star",
+        "name": "HDR Blue Local Star",
+        "type": "nebula",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "maps": {
+          "environment": "assets/skill-universe/material-ingredients/gases/HDR_blue_local_star.hdr"
+        },
+        "tags": [
+          "gas",
+          "nebula",
+          "hdr"
+        ]
+      },
+      {
+        "id": "nebula_hdr-blue-nebulae-1",
+        "name": "HDR Blue Nebulae 1",
+        "type": "nebula",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "maps": {
+          "environment": "assets/skill-universe/material-ingredients/gases/HDR_blue_nebulae-1.hdr"
+        },
+        "tags": [
+          "gas",
+          "nebula",
+          "hdr"
+        ]
+      },
+      {
+        "id": "nebula_hdr-galactic-plane-hazy-nebulae",
+        "name": "HDR Galactic Plane Hazy Nebulae",
+        "type": "nebula",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "maps": {
+          "environment": "assets/skill-universe/material-ingredients/gases/HDR_galactic_plane_hazy_nebulae.hdr"
+        },
+        "tags": [
+          "gas",
+          "nebula",
+          "hdr"
+        ]
+      },
+      {
+        "id": "nebula_hdr-hazy-nebulae",
+        "name": "HDR Hazy Nebulae",
+        "type": "nebula",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "maps": {
+          "environment": "assets/skill-universe/material-ingredients/gases/HDR_hazy_nebulae.hdr"
+        },
+        "tags": [
+          "gas",
+          "nebula",
+          "hdr"
+        ]
+      },
+      {
+        "id": "nebula_hdr-multi-nebulae",
+        "name": "HDR Multi Nebulae",
+        "type": "nebula",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "maps": {
+          "environment": "assets/skill-universe/material-ingredients/gases/HDR_multi_nebulae.hdr"
+        },
+        "tags": [
+          "gas",
+          "nebula",
+          "hdr"
+        ]
+      },
+      {
+        "id": "nebula_hdr-red-local-star",
+        "name": "HDR Red Local Star",
+        "type": "nebula",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "maps": {
+          "environment": "assets/skill-universe/material-ingredients/gases/HDR_red_local_star.hdr"
+        },
+        "tags": [
+          "gas",
+          "nebula",
+          "hdr"
+        ]
+      },
+      {
+        "id": "nebula_hdr-rich-blue-nebulae-1",
+        "name": "HDR Rich Blue Nebulae 1",
+        "type": "nebula",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "maps": {
+          "environment": "assets/skill-universe/material-ingredients/gases/HDR_rich_blue_nebulae_1.hdr"
+        },
+        "tags": [
+          "gas",
+          "nebula",
+          "hdr"
+        ]
+      },
+      {
+        "id": "nebula_hdr-rich-blue-nebulae-2",
+        "name": "HDR Rich Blue Nebulae 2",
+        "type": "nebula",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "maps": {
+          "environment": "assets/skill-universe/material-ingredients/gases/HDR_rich_blue_nebulae_2.hdr"
+        },
+        "tags": [
+          "gas",
+          "nebula",
+          "hdr"
+        ]
+      },
+      {
+        "id": "nebula_hdr-rich-multi-nebulae-1",
+        "name": "HDR Rich Multi Nebulae 1",
+        "type": "nebula",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "maps": {
+          "environment": "assets/skill-universe/material-ingredients/gases/HDR_rich_multi_nebulae_1.hdr"
+        },
+        "tags": [
+          "gas",
+          "nebula",
+          "hdr"
+        ]
+      },
+      {
+        "id": "nebula_hdr-rich-multi-nebulae-2",
+        "name": "HDR Rich Multi Nebulae 2",
+        "type": "nebula",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "maps": {
+          "environment": "assets/skill-universe/material-ingredients/gases/HDR_rich_multi_nebulae_2.hdr"
+        },
+        "tags": [
+          "gas",
+          "nebula",
+          "hdr"
+        ]
+      },
+      {
+        "id": "nebula_hdr-silver-and-gold-nebulae",
+        "name": "HDR Silver And Gold Nebulae",
+        "type": "nebula",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "maps": {
+          "environment": "assets/skill-universe/material-ingredients/gases/HDR_silver_and_gold_nebulae.hdr"
+        },
+        "tags": [
+          "gas",
+          "nebula",
+          "hdr"
+        ]
+      },
+      {
+        "id": "nebula_hdr-subdued-blue-nebulae",
+        "name": "HDR Subdued Blue Nebulae",
+        "type": "nebula",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "maps": {
+          "environment": "assets/skill-universe/material-ingredients/gases/HDR_subdued_blue_nebulae.hdr"
+        },
+        "tags": [
+          "gas",
+          "nebula",
+          "hdr"
+        ]
+      },
+      {
+        "id": "nebula_hdr-subdued-multi-nebulae",
+        "name": "HDR Subdued Multi Nebulae",
+        "type": "nebula",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "maps": {
+          "environment": "assets/skill-universe/material-ingredients/gases/HDR_subdued_multi_nebulae.hdr"
+        },
+        "tags": [
+          "gas",
+          "nebula",
+          "hdr"
+        ]
+      },
+      {
+        "id": "nebula_hdr-white-dwarf-star",
+        "name": "HDR White Dwarf Star",
+        "type": "nebula",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "maps": {
+          "environment": "assets/skill-universe/material-ingredients/gases/HDR_white_dwarf_star.hdr"
+        },
+        "tags": [
+          "gas",
+          "nebula",
+          "hdr"
+        ]
+      },
+      {
+        "id": "nebula_hdr-white-dwarf-star-no-nebulae",
+        "name": "HDR White Dwarf Star No Nebulae",
+        "type": "nebula",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "maps": {
+          "environment": "assets/skill-universe/material-ingredients/gases/HDR_white_dwarf_star_no_nebulae.hdr"
+        },
+        "tags": [
+          "gas",
+          "nebula",
+          "hdr"
+        ]
+      },
+      {
+        "id": "nebula_hdr-white-local-star",
+        "name": "HDR White Local Star",
+        "type": "nebula",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "maps": {
+          "environment": "assets/skill-universe/material-ingredients/gases/HDR_white_local_star.hdr"
+        },
+        "tags": [
+          "gas",
+          "nebula",
+          "hdr"
+        ]
+      },
+      {
         "id": "hdr-blue-local-star",
         "name": "HDR_blue_local_star",
         "relativePath": "material-ingredients/gases",
@@ -3305,6 +3545,204 @@
         "license": "Verify before sharing",
         "tags": [
           "Smokes"
+        ]
+      }
+    ],
+    "noise": [
+      {
+        "id": "noise_super-noise-1-512x512",
+        "name": "Super Noise 1 512x512",
+        "type": "noise",
+        "maps": {
+          "mask": "assets/skill-universe/material-ingredients/noise/Super Noise/Super Noise 1 - 512x512.png"
+        },
+        "format": "L8",
+        "tags": [
+          "noise",
+          "mask",
+          "custom"
+        ]
+      },
+      {
+        "id": "noise_super-noise-10-512x512",
+        "name": "Super Noise 10 512x512",
+        "type": "noise",
+        "maps": {
+          "mask": "assets/skill-universe/material-ingredients/noise/Super Noise/Super Noise 10 - 512x512.png"
+        },
+        "format": "L8",
+        "tags": [
+          "noise",
+          "mask",
+          "custom"
+        ]
+      },
+      {
+        "id": "noise_super-noise-11-512x512",
+        "name": "Super Noise 11 512x512",
+        "type": "noise",
+        "maps": {
+          "mask": "assets/skill-universe/material-ingredients/noise/Super Noise/Super Noise 11 - 512x512.png"
+        },
+        "format": "L8",
+        "tags": [
+          "noise",
+          "mask",
+          "custom"
+        ]
+      },
+      {
+        "id": "noise_super-noise-12-512x512",
+        "name": "Super Noise 12 512x512",
+        "type": "noise",
+        "maps": {
+          "mask": "assets/skill-universe/material-ingredients/noise/Super Noise/Super Noise 12 - 512x512.png"
+        },
+        "format": "L8",
+        "tags": [
+          "noise",
+          "mask",
+          "custom"
+        ]
+      },
+      {
+        "id": "noise_super-noise-13-512x512",
+        "name": "Super Noise 13 512x512",
+        "type": "noise",
+        "maps": {
+          "mask": "assets/skill-universe/material-ingredients/noise/Super Noise/Super Noise 13 - 512x512.png"
+        },
+        "format": "L8",
+        "tags": [
+          "noise",
+          "mask",
+          "custom"
+        ]
+      },
+      {
+        "id": "noise_super-noise-14-512x512",
+        "name": "Super Noise 14 512x512",
+        "type": "noise",
+        "maps": {
+          "mask": "assets/skill-universe/material-ingredients/noise/Super Noise/Super Noise 14 - 512x512.png"
+        },
+        "format": "L8",
+        "tags": [
+          "noise",
+          "mask",
+          "custom"
+        ]
+      },
+      {
+        "id": "noise_super-noise-2-512x512",
+        "name": "Super Noise 2 512x512",
+        "type": "noise",
+        "maps": {
+          "mask": "assets/skill-universe/material-ingredients/noise/Super Noise/Super Noise 2 - 512x512.png"
+        },
+        "format": "L8",
+        "tags": [
+          "noise",
+          "mask",
+          "custom"
+        ]
+      },
+      {
+        "id": "noise_super-noise-3-512x512",
+        "name": "Super Noise 3 512x512",
+        "type": "noise",
+        "maps": {
+          "mask": "assets/skill-universe/material-ingredients/noise/Super Noise/Super Noise 3 - 512x512.png"
+        },
+        "format": "L8",
+        "tags": [
+          "noise",
+          "mask",
+          "custom"
+        ]
+      },
+      {
+        "id": "noise_super-noise-4-512x512",
+        "name": "Super Noise 4 512x512",
+        "type": "noise",
+        "maps": {
+          "mask": "assets/skill-universe/material-ingredients/noise/Super Noise/Super Noise 4 - 512x512.png"
+        },
+        "format": "L8",
+        "tags": [
+          "noise",
+          "mask",
+          "custom"
+        ]
+      },
+      {
+        "id": "noise_super-noise-5-512x512",
+        "name": "Super Noise 5 512x512",
+        "type": "noise",
+        "maps": {
+          "mask": "assets/skill-universe/material-ingredients/noise/Super Noise/Super Noise 5 - 512x512.png"
+        },
+        "format": "L8",
+        "tags": [
+          "noise",
+          "mask",
+          "custom"
+        ]
+      },
+      {
+        "id": "noise_super-noise-6-512x512",
+        "name": "Super Noise 6 512x512",
+        "type": "noise",
+        "maps": {
+          "mask": "assets/skill-universe/material-ingredients/noise/Super Noise/Super Noise 6 - 512x512.png"
+        },
+        "format": "L8",
+        "tags": [
+          "noise",
+          "mask",
+          "custom"
+        ]
+      },
+      {
+        "id": "noise_super-noise-7-512x512",
+        "name": "Super Noise 7 512x512",
+        "type": "noise",
+        "maps": {
+          "mask": "assets/skill-universe/material-ingredients/noise/Super Noise/Super Noise 7 - 512x512.png"
+        },
+        "format": "L8",
+        "tags": [
+          "noise",
+          "mask",
+          "custom"
+        ]
+      },
+      {
+        "id": "noise_super-noise-8-512x512",
+        "name": "Super Noise 8 512x512",
+        "type": "noise",
+        "maps": {
+          "mask": "assets/skill-universe/material-ingredients/noise/Super Noise/Super Noise 8 - 512x512.png"
+        },
+        "format": "L8",
+        "tags": [
+          "noise",
+          "mask",
+          "custom"
+        ]
+      },
+      {
+        "id": "noise_super-noise-9-512x512",
+        "name": "Super Noise 9 512x512",
+        "type": "noise",
+        "maps": {
+          "mask": "assets/skill-universe/material-ingredients/noise/Super Noise/Super Noise 9 - 512x512.png"
+        },
+        "format": "L8",
+        "tags": [
+          "noise",
+          "mask",
+          "custom"
         ]
       }
     ]
