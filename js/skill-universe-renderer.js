@@ -589,13 +589,15 @@
 
                 if (this._glRenderer && this._composer) {
                     this.renderer = this._glRenderer;
-                    if (
+
+                    const shouldShowDebugPanel =
                         useModern &&
                         typeof global.location?.search === 'string' &&
                         global.location.search.includes('debug') &&
                         global.document &&
-                        typeof global.document.createElement === 'function'
-                    ) {
+                        typeof global.document.createElement === 'function';
+
+                    if (shouldShowDebugPanel) {
                         try {
                             const doc = global.document;
                             const debugPanel = doc.getElementById('cv-debug') || doc.createElement('div');
@@ -639,7 +641,7 @@
                                 input.max = String(max);
                                 input.step = String(step);
                                 const current = get();
-                                input.value = isNaN(current) ? String(min) : String(current);
+                                input.value = Number.isNaN(current) ? String(min) : String(current);
                                 input.style.width = '100%';
 
                                 const valueReadout = doc.createElement('div');
@@ -800,6 +802,7 @@
                                     this._updateDiagnostics();
                                 }, 1000);
                             }
+                        } catch (debugError) {
                         }
                     } catch (debugError) {
                             if (typeof console !== 'undefined' && typeof console.warn === 'function') {
