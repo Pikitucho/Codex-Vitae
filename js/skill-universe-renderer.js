@@ -566,7 +566,7 @@
                         this._glRenderer,
                         this.scene,
                         this.camera,
-                        { bloom: true, grade: false }
+                        { bloom: true, grade: true }
                     );
                 } catch (composerError) {
                     if (typeof console !== 'undefined' && typeof console.warn === 'function') {
@@ -584,6 +584,162 @@
 
                 if (this._glRenderer && this._composer) {
                     this.renderer = this._glRenderer;
+                    if (
+                        useModern &&
+                        typeof global.location?.search === 'string' &&
+                        global.location.search.includes('debug') &&
+                        global.document &&
+                        typeof global.document.createElement === 'function'
+                    ) {
+                        try {
+                            const ui = global.document.getElementById('cv-debug') || global.document.createElement('div');
+                            ui.id = 'cv-debug';
+                            ui.style.cssText = [
+                                'position:fixed',
+                                'top:8px',
+                                'right:8px',
+                                'z-index:9999',
+                                'background:rgba(12,16,28,0.88)',
+                                'color:#fff',
+                                'padding:8px 10px',
+                                'min-width:180px',
+                                'max-width:220px',
+                                'font-family:system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                                'font-size:12px',
+                                'line-height:1.4',
+                                'border-radius:6px',
+                                'box-shadow:0 6px 18px rgba(0,0,0,0.35)',
+                                'backdrop-filter:blur(6px)'
+                            ].join(';');
+                            ui.innerHTML = '';
+
+                            const title = global.document.createElement('div');
+                            title.textContent = 'FX Debug';
+                            title.style.cssText = 'font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em;';
+                            ui.appendChild(title);
+
+                            const slider = (label, min, max, step, get, set, formatter = (v) => v.toFixed(2)) => {
+                                const row = global.document.createElement('label');
+                                row.style.cssText = 'display:block;margin:6px 0;';
+
+                                const labelSpan = global.document.createElement('span');
+                                labelSpan.textContent = label;
+                                labelSpan.style.cssText = 'display:inline-block;margin-bottom:2px;';
+                                row.appendChild(labelSpan);
+
+                                const input = global.document.createElement('input');
+                                input.type = 'range';
+                                input.min = String(min);
+                                input.max = String(max);
+                                input.step = String(step);
+                                const current = get();
+                                input.value = isNaN(current) ? String(min) : String(current);
+                                input.style.width = '100%';
+
+                                const valueReadout = global.document.createElement('div');
+                                valueReadout.textContent = formatter(parseFloat(input.value));
+                                valueReadout.style.cssText = 'font-size:11px;opacity:0.72;margin-top:2px;text-align:right;';
+
+                                input.addEventListener('input', () => {
+                                    const value = parseFloat(input.value);
+                                    if (!Number.isNaN(value)) {
+                                        set(value);
+                                        valueReadout.textContent = formatter(value);
+                                    }
+                                });
+
+                                row.appendChild(input);
+                                row.appendChild(valueReadout);
+                                ui.appendChild(row);
+                            };
+
+                            slider(
+                                'Exposure',
+                                0.1,
+                                2.5,
+                                0.01,
+                                () => this._glRenderer.toneMappingExposure,
+                                (value) => {
+                                    this._glRenderer.toneMappingExposure = value;
+                                }
+                            );
+
+                            const bloom = this._composer.__bloom;
+                            if (bloom) {
+                                slider('Bloom Strength', 0.0, 2.0, 0.01, () => bloom.strength, (value) => {
+                                    bloom.strength = value;
+                                });
+                                slider('Bloom Threshold', 0.0, 1.5, 0.01, () => bloom.threshold, (value) => {
+                                    bloom.threshold = value;
+                                });
+                                slider('Bloom Radius', 0.0, 1.5, 0.01, () => bloom.radius, (value) => {
+                                    bloom.radius = value;
+                                });
+                            }
+
+                            const grade = this._composer.__grade;
+                            if (grade?.uniforms) {
+                                const { uniforms } = grade;
+                                const monoVecSlider = (label, key, min, max, step) => {
+                                    if (!uniforms[key]?.value) {
+                                        return;
+                                    }
+                                    slider(
+                                        label,
+                                        min,
+                                        max,
+                                        step,
+                                        () => uniforms[key].value.x ?? 0,
+                                        (value) => {
+                                            if (typeof uniforms[key].value.set === 'function') {
+                                                uniforms[key].value.set(value, value, value);
+                                            }
+                                        }
+                                    );
+                                };
+
+                                monoVecSlider('Lift', -0.3, 0.3, 0.005);
+                                monoVecSlider('Gamma', 0.5, 2.0, 0.01);
+                                monoVecSlider('Gain', 0.5, 1.6, 0.01);
+
+                                if (uniforms.uVignetteStrength) {
+                                    slider(
+                                        'Vignette',
+                                        0.0,
+                                        0.6,
+                                        0.01,
+                                        () => uniforms.uVignetteStrength.value ?? 0,
+                                        (value) => {
+                                            uniforms.uVignetteStrength.value = value;
+                                        }
+                                    );
+                                }
+
+                                if (uniforms.uCAStrength) {
+                                    slider(
+                                        'Chromatic Aberration',
+                                        0.0,
+                                        0.02,
+                                        0.0005,
+                                        () => uniforms.uCAStrength.value ?? 0,
+                                        (value) => {
+                                            uniforms.uCAStrength.value = value;
+                                        },
+                                        (value) => value.toFixed(4)
+                                    );
+                                }
+                            }
+
+                            if (!ui.parentElement) {
+                                global.document.body.appendChild(ui);
+                            }
+                            this._debugUIPanel = ui;
+                        } catch (debugError) {
+                            if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+                                console.warn('SkillUniverseRenderer: debug panel failed to initialize', debugError);
+                            }
+                        }
+                    }
                 } else if (this._glRenderer && !this._composer) {
                     if (typeof this._glRenderer.dispose === 'function') {
                         this._glRenderer.dispose();
