@@ -13,6 +13,9 @@ const PROJECT_ROOT = path.join(__dirname, '..');
 const INGREDIENT_ROOT = path.join(PROJECT_ROOT, 'assets/skill-universe/material-ingredients');
 const OUTPUT_FILE = path.join(PROJECT_ROOT, 'assets/skill-universe/ingredient-library.json');
 const BASE_PATH = 'assets/skill-universe';
+const GASES_ROOT = path.join(INGREDIENT_ROOT, 'gases');
+const NOISE_ROOT = path.join(INGREDIENT_ROOT, 'noise');
+const ABSOLUTE_PREFIX = path.join('assets', 'skill-universe', 'material-ingredients');
 
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.tif', '.tiff', '.webp', '.exr', '.hdr']);
 
@@ -56,12 +59,63 @@ const KEYWORD_COLOR_OVERRIDES = [
     { pattern: /cloth|fabric|carpet/i, color: '#7c5186', emissive: '#d5a4e2' }
 ];
 
+const NOISE_TAG_HINTS = [
+    { pattern: /perlin/i, tag: 'perlin' },
+    { pattern: /voronoi|worley/i, tag: 'voronoi' },
+    { pattern: /fbm|fractal/i, tag: 'fbm' },
+    { pattern: /simplex/i, tag: 'simplex' },
+    { pattern: /cell|cellular/i, tag: 'cellular' },
+    { pattern: /value/i, tag: 'value' },
+    { pattern: /gauss|gaussian/i, tag: 'gaussian' },
+    { pattern: /cloud/i, tag: 'cloud' },
+    { pattern: /ridge/i, tag: 'ridge' }
+];
+
 function slugify(value) {
     return value
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
         .replace(/-{2,}/g, '-');
+}
+
+function toPrettyName(value) {
+    return value
+        .replace(/[_.-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .replace(/\b([a-z])/g, (match, letter) => letter.toUpperCase())
+        .trim();
+}
+
+function toPosixPath(value) {
+    return value.replace(/\\/g, '/');
+}
+
+function walkFiles(root) {
+    if (!fs.existsSync(root)) {
+        return [];
+    }
+
+    const stack = [root];
+    const files = [];
+
+    while (stack.length) {
+        const current = stack.pop();
+        const entries = fs.readdirSync(current, { withFileTypes: true });
+        for (const entry of entries) {
+            if (entry.name.startsWith('.')) {
+                continue;
+            }
+            const entryPath = path.join(current, entry.name);
+            if (entry.isDirectory()) {
+                stack.push(entryPath);
+            } else if (entry.isFile()) {
+                files.push(entryPath);
+            }
+        }
+    }
+
+    return files;
 }
 
 function createRng(seed) {
@@ -171,6 +225,153 @@ function detectProvider(files) {
     return 'Local import';
 }
 
+function mergeEntry(existing, incoming) {
+    if (!existing) {
+        return { ...incoming };
+    }
+
+    const merged = { ...existing };
+
+    if (incoming.maps) {
+        merged.maps = { ...(existing.maps || {}), ...incoming.maps };
+    }
+
+    if (incoming.tags) {
+        const tags = new Set([...(existing.tags || []), ...incoming.tags]);
+        merged.tags = Array.from(tags);
+    }
+
+    for (const [key, value] of Object.entries(incoming)) {
+        if (key === 'maps' || key === 'tags') {
+            continue;
+        }
+        if (value === undefined || value === null) {
+            continue;
+        }
+        if ((key === 'provider' || key === 'license')
+            && value === 'Unknown'
+            && existing[key]
+            && existing[key] !== 'Unknown') {
+            continue;
+        }
+        merged[key] = value;
+    }
+
+    return merged;
+}
+
+function upsertEntries(target, entries) {
+    const list = Array.isArray(target) ? target.slice() : [];
+    const index = new Map(list.map((entry, position) => [entry.id, position]));
+
+    for (const incoming of entries) {
+        if (index.has(incoming.id)) {
+            const existingIndex = index.get(incoming.id);
+            list[existingIndex] = mergeEntry(list[existingIndex], incoming);
+        } else {
+            index.set(incoming.id, list.length);
+            list.push({ ...incoming });
+        }
+    }
+
+    return list;
+}
+
+function gatherNebulaEntries(existingGases) {
+    if (!fs.existsSync(GASES_ROOT)) {
+        return [];
+    }
+
+    const existingBySlug = new Map(
+        (existingGases || []).map((item) => [item.id, item])
+    );
+
+    const files = walkFiles(GASES_ROOT).filter((file) => path.extname(file).toLowerCase() === '.hdr');
+    const nebulae = [];
+
+    for (const filePath of files) {
+        const relativePath = toPosixPath(path.relative(GASES_ROOT, filePath));
+        const baseName = path.parse(filePath).name;
+        const prettyName = toPrettyName(baseName);
+        const slug = slugify(prettyName);
+        const id = `nebula_${slug}`;
+
+        const environmentPath = toPosixPath(path.join(ABSOLUTE_PREFIX, 'gases', relativePath));
+        const folder = path.dirname(filePath);
+        const candidateBase = path.join(folder, baseName);
+        let platePath;
+        for (const ext of ['.tif', '.tiff', '.png']) {
+            const candidate = `${candidateBase}${ext}`;
+            if (fs.existsSync(candidate)) {
+                platePath = toPosixPath(path.join(
+                    ABSOLUTE_PREFIX,
+                    'gases',
+                    path.relative(GASES_ROOT, candidate)
+                ));
+                break;
+            }
+        }
+
+        const sourceMetadata = existingBySlug.get(slug) || null;
+        const provider = sourceMetadata?.provider || 'Unknown';
+        const license = sourceMetadata?.license || 'Unknown';
+
+        const entry = {
+            id,
+            name: prettyName,
+            type: 'nebula',
+            provider,
+            license,
+            maps: {
+                environment: environmentPath
+            },
+            tags: ['gas', 'nebula', 'hdr']
+        };
+
+        if (platePath) {
+            entry.maps.plate = platePath;
+        }
+
+        nebulae.push(entry);
+    }
+
+    return nebulae;
+}
+
+function gatherNoiseEntries() {
+    if (!fs.existsSync(NOISE_ROOT)) {
+        return [];
+    }
+
+    const files = walkFiles(NOISE_ROOT).filter((file) => path.extname(file).toLowerCase() === '.png');
+    const noises = [];
+
+    for (const filePath of files) {
+        const relativePath = toPosixPath(path.relative(NOISE_ROOT, filePath));
+        const baseName = path.parse(filePath).name;
+        const prettyName = toPrettyName(baseName);
+        const slug = slugify(prettyName);
+        const maskPath = toPosixPath(path.join(ABSOLUTE_PREFIX, 'noise', relativePath));
+
+        const lower = baseName.toLowerCase();
+        const hint = NOISE_TAG_HINTS.find((item) => item.pattern.test(lower));
+        const detailTag = hint ? hint.tag : 'custom';
+
+        noises.push({
+            id: `noise_${slug}`,
+            name: prettyName,
+            type: 'noise',
+            maps: {
+                mask: maskPath
+            },
+            format: 'L8',
+            tags: ['noise', 'mask', detailTag]
+        });
+    }
+
+    return noises;
+}
+
 function gatherCategory(categoryName) {
     const categoryPath = path.join(INGREDIENT_ROOT, categoryName);
     if (!fs.existsSync(categoryPath)) {
@@ -237,6 +438,16 @@ function buildLibrary() {
 
     for (const category of categories) {
         results[category] = gatherCategory(category);
+    }
+
+    const nebulaEntries = gatherNebulaEntries(results.gases);
+    if (nebulaEntries.length) {
+        results.gases = upsertEntries(results.gases, nebulaEntries).sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    const noiseEntries = gatherNoiseEntries();
+    if (noiseEntries.length) {
+        results.noise = upsertEntries(results.noise, noiseEntries).sort((a, b) => a.name.localeCompare(b.name));
     }
 
     return {
