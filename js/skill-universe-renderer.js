@@ -601,7 +601,16 @@
             if (THREE.Cache && typeof THREE.Cache.enabled !== 'undefined') {
                 THREE.Cache.enabled = true;
             }
-            this._textureLoader = new THREE.TextureLoader();
+            if (typeof THREE.TextureLoader === 'function') {
+                this._textureLoader = new THREE.TextureLoader();
+            } else {
+                this._textureLoader = null;
+                if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+                    console.warn(
+                        'SkillUniverseRenderer: TextureLoader is unavailable; star materials will use flat colors.'
+                    );
+                }
+            }
             this._textureCache = new Map();
             this._maxAnisotropy = (this.renderer && this.renderer.capabilities && typeof this.renderer.capabilities.getMaxAnisotropy === 'function')
                 ? this.renderer.capabilities.getMaxAnisotropy()
@@ -1387,70 +1396,90 @@
             this._lightRigLights = [];
 
             const rig = {};
+            const missingLights = [];
 
-            const hemiLight = new THREE.HemisphereLight(0x6d9bff, 0x04030c, 0.28);
-            this.scene.add(hemiLight);
-            this._lightRigLights.push(hemiLight);
-            rig.hemi = hemiLight;
-
-            const keyLight = new THREE.DirectionalLight(0xfff1de, 18);
-            keyLight.position.set(640, 820, 420);
-            keyLight.userData.baseIntensity = keyLight.intensity;
-            keyLight.userData.basePosition = keyLight.position.clone();
-            if (typeof keyLight.castShadow !== 'undefined') {
-                keyLight.castShadow = false;
+            if (typeof THREE.HemisphereLight === 'function') {
+                const hemiLight = new THREE.HemisphereLight(0x6d9bff, 0x04030c, 0.28);
+                this.scene.add(hemiLight);
+                this._lightRigLights.push(hemiLight);
+                rig.hemi = hemiLight;
+            } else {
+                missingLights.push('HemisphereLight');
             }
-            const keyTarget = new THREE.Object3D();
-            keyTarget.position.set(0, 40, 0);
-            this.scene.add(keyTarget);
-            keyLight.target = keyTarget;
-            this.scene.add(keyLight);
-            this._lightRigLights.push(keyLight, keyTarget);
-            rig.keyLight = keyLight;
 
-            const rimLight = new THREE.PointLight(0x7aa9ff, 260, 0, 2);
-            rimLight.position.set(-960, -260, -840);
-            rimLight.userData.baseIntensity = rimLight.intensity;
-            rimLight.userData.basePosition = rimLight.position.clone();
-            if (typeof rimLight.decay === 'number') {
-                rimLight.decay = 2;
+            if (typeof THREE.DirectionalLight === 'function' && typeof THREE.Object3D === 'function') {
+                const keyLight = new THREE.DirectionalLight(0xfff1de, 18);
+                keyLight.position.set(640, 820, 420);
+                keyLight.userData.baseIntensity = keyLight.intensity;
+                keyLight.userData.basePosition = keyLight.position.clone();
+                if (typeof keyLight.castShadow !== 'undefined') {
+                    keyLight.castShadow = false;
+                }
+                const keyTarget = new THREE.Object3D();
+                keyTarget.position.set(0, 40, 0);
+                this.scene.add(keyTarget);
+                keyLight.target = keyTarget;
+                this.scene.add(keyLight);
+                this._lightRigLights.push(keyLight, keyTarget);
+                rig.keyLight = keyLight;
+            } else {
+                missingLights.push('DirectionalLight');
             }
-            this.scene.add(rimLight);
-            this._lightRigLights.push(rimLight);
-            rig.rimLight = rimLight;
 
-            const fillLight = new THREE.PointLight(0xff8ad6, 140, 0, 2);
-            fillLight.position.set(520, -320, -1080);
-            fillLight.userData.baseIntensity = fillLight.intensity;
-            fillLight.userData.basePosition = fillLight.position.clone();
-            if (typeof fillLight.decay === 'number') {
-                fillLight.decay = 2;
-            }
-            this.scene.add(fillLight);
-            this._lightRigLights.push(fillLight);
-            rig.fillLight = fillLight;
+            if (typeof THREE.PointLight === 'function') {
+                const rimLight = new THREE.PointLight(0x7aa9ff, 260, 0, 2);
+                rimLight.position.set(-960, -260, -840);
+                rimLight.userData.baseIntensity = rimLight.intensity;
+                rimLight.userData.basePosition = rimLight.position.clone();
+                if (typeof rimLight.decay === 'number') {
+                    rimLight.decay = 2;
+                }
+                this.scene.add(rimLight);
+                this._lightRigLights.push(rimLight);
+                rig.rimLight = rimLight;
 
-            const accentLight = new THREE.PointLight(0x9affff, 95, 0, 2);
-            accentLight.position.set(-380, 420, 960);
-            accentLight.userData.baseIntensity = accentLight.intensity;
-            accentLight.userData.basePosition = accentLight.position.clone();
-            if (typeof accentLight.decay === 'number') {
-                accentLight.decay = 1.8;
-            }
-            this.scene.add(accentLight);
-            this._lightRigLights.push(accentLight);
-            rig.accentLight = accentLight;
+                const fillLight = new THREE.PointLight(0xff8ad6, 140, 0, 2);
+                fillLight.position.set(520, -320, -1080);
+                fillLight.userData.baseIntensity = fillLight.intensity;
+                fillLight.userData.basePosition = fillLight.position.clone();
+                if (typeof fillLight.decay === 'number') {
+                    fillLight.decay = 2;
+                }
+                this.scene.add(fillLight);
+                this._lightRigLights.push(fillLight);
+                rig.fillLight = fillLight;
 
-            const horizonGlow = new THREE.PointLight(0xffe6a1, 70, 0, 1.6);
-            horizonGlow.position.set(0, 260, 0);
-            horizonGlow.userData.baseIntensity = horizonGlow.intensity;
-            horizonGlow.userData.basePosition = horizonGlow.position.clone();
-            if (typeof horizonGlow.decay === 'number') {
-                horizonGlow.decay = 2;
+                const accentLight = new THREE.PointLight(0x9affff, 95, 0, 2);
+                accentLight.position.set(-380, 420, 960);
+                accentLight.userData.baseIntensity = accentLight.intensity;
+                accentLight.userData.basePosition = accentLight.position.clone();
+                if (typeof accentLight.decay === 'number') {
+                    accentLight.decay = 1.8;
+                }
+                this.scene.add(accentLight);
+                this._lightRigLights.push(accentLight);
+                rig.accentLight = accentLight;
+
+                const horizonGlow = new THREE.PointLight(0xffe6a1, 70, 0, 1.6);
+                horizonGlow.position.set(0, 260, 0);
+                horizonGlow.userData.baseIntensity = horizonGlow.intensity;
+                horizonGlow.userData.basePosition = horizonGlow.position.clone();
+                if (typeof horizonGlow.decay === 'number') {
+                    horizonGlow.decay = 2;
+                }
+                this.scene.add(horizonGlow);
+                this._lightRigLights.push(horizonGlow);
+                rig.horizonGlow = horizonGlow;
+            } else {
+                missingLights.push('PointLight');
             }
-            this.scene.add(horizonGlow);
-            this._lightRigLights.push(horizonGlow);
-            rig.horizonGlow = horizonGlow;
+
+            if (missingLights.length && typeof console !== 'undefined' && typeof console.warn === 'function') {
+                console.warn(
+                    'SkillUniverseRenderer: Some Three.js light types are unavailable and will be skipped:',
+                    missingLights.join(', ')
+                );
+            }
 
             this._lightRig = rig;
         }
@@ -2074,7 +2103,11 @@
                 return null;
             }
             if (!this._textureLoader) {
-                this._textureLoader = new THREE.TextureLoader();
+                if (typeof THREE.TextureLoader === 'function') {
+                    this._textureLoader = new THREE.TextureLoader();
+                } else {
+                    return null;
+                }
             }
             if (!this._textureCache) {
                 this._textureCache = new Map();
