@@ -520,6 +520,11 @@
             this._environmentTarget = null;
             this._environmentMap = null;
             this._rgbeLoader = null;
+            this._debugUIPanel = null;
+            this._diagnosticsPanel = null;
+            this._diagnosticsFields = null;
+            this._diagnosticsInterval = null;
+            this._environmentName = null;
             // modern pipeline handles (created only when fx=on)
             this._glRenderer = null;
             this._composer = null;
@@ -566,7 +571,7 @@
                         this._glRenderer,
                         this.scene,
                         this.camera,
-                        { bloom: true, grade: false }
+                        { bloom: true, grade: true }
                     );
                 } catch (composerError) {
                     if (typeof console !== 'undefined' && typeof console.warn === 'function') {
@@ -584,6 +589,223 @@
 
                 if (this._glRenderer && this._composer) {
                     this.renderer = this._glRenderer;
+                    if (
+                        useModern &&
+                        typeof global.location?.search === 'string' &&
+                        global.location.search.includes('debug') &&
+                        global.document &&
+                        typeof global.document.createElement === 'function'
+                    ) {
+                        try {
+                            const doc = global.document;
+                            const ui = doc.getElementById('cv-debug') || doc.createElement('div');
+                            ui.id = 'cv-debug';
+                            ui.style.cssText = [
+                                'position:fixed',
+                                'top:8px',
+                                'right:8px',
+                                'z-index:9999',
+                                'background:rgba(12,16,28,0.88)',
+                                'color:#fff',
+                                'padding:8px 10px',
+                                'min-width:180px',
+                                'max-width:220px',
+                                'font-family:system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                                'font-size:12px',
+                                'line-height:1.4',
+                                'border-radius:6px',
+                                'box-shadow:0 6px 18px rgba(0,0,0,0.35)',
+                                'backdrop-filter:blur(6px)'
+                            ].join(';');
+                            ui.innerHTML = '';
+
+                            const title = doc.createElement('div');
+                            title.textContent = 'FX Debug';
+                            title.style.cssText = 'font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em;';
+                            ui.appendChild(title);
+
+                            const slider = (label, min, max, step, get, set, formatter = (v) => v.toFixed(2)) => {
+                                const row = doc.createElement('label');
+                                row.style.cssText = 'display:block;margin:6px 0;';
+
+                                const labelSpan = doc.createElement('span');
+                                labelSpan.textContent = label;
+                                labelSpan.style.cssText = 'display:inline-block;margin-bottom:2px;';
+                                row.appendChild(labelSpan);
+
+                                const input = doc.createElement('input');
+                                input.type = 'range';
+                                input.min = String(min);
+                                input.max = String(max);
+                                input.step = String(step);
+                                const current = get();
+                                input.value = isNaN(current) ? String(min) : String(current);
+                                input.style.width = '100%';
+
+                                const valueReadout = doc.createElement('div');
+                                valueReadout.textContent = formatter(parseFloat(input.value));
+                                valueReadout.style.cssText = 'font-size:11px;opacity:0.72;margin-top:2px;text-align:right;';
+
+                                input.addEventListener('input', () => {
+                                    const value = parseFloat(input.value);
+                                    if (!Number.isNaN(value)) {
+                                        set(value);
+                                        valueReadout.textContent = formatter(value);
+                                    }
+                                });
+
+                                row.appendChild(input);
+                                row.appendChild(valueReadout);
+                                ui.appendChild(row);
+                            };
+
+                            slider(
+                                'Exposure',
+                                0.1,
+                                2.5,
+                                0.01,
+                                () => this._glRenderer.toneMappingExposure,
+                                (value) => {
+                                    this._glRenderer.toneMappingExposure = value;
+                                }
+                            );
+
+                            const bloom = this._composer.__bloom;
+                            if (bloom) {
+                                slider('Bloom Strength', 0.0, 2.0, 0.01, () => bloom.strength, (value) => {
+                                    bloom.strength = value;
+                                });
+                                slider('Bloom Threshold', 0.0, 1.5, 0.01, () => bloom.threshold, (value) => {
+                                    bloom.threshold = value;
+                                });
+                                slider('Bloom Radius', 0.0, 1.5, 0.01, () => bloom.radius, (value) => {
+                                    bloom.radius = value;
+                                });
+                            }
+
+                            const grade = this._composer.__grade;
+                            if (grade?.uniforms) {
+                                const { uniforms } = grade;
+                                const monoVecSlider = (label, key, min, max, step) => {
+                                    if (!uniforms[key]?.value) {
+                                        return;
+                                    }
+                                    slider(
+                                        label,
+                                        min,
+                                        max,
+                                        step,
+                                        () => uniforms[key].value.x ?? 0,
+                                        (value) => {
+                                            if (typeof uniforms[key].value.set === 'function') {
+                                                uniforms[key].value.set(value, value, value);
+                                            }
+                                        }
+                                    );
+                                };
+
+                                monoVecSlider('Lift', -0.3, 0.3, 0.005);
+                                monoVecSlider('Gamma', 0.5, 2.0, 0.01);
+                                monoVecSlider('Gain', 0.5, 1.6, 0.01);
+
+                                if (uniforms.uVignetteStrength) {
+                                    slider(
+                                        'Vignette',
+                                        0.0,
+                                        0.6,
+                                        0.01,
+                                        () => uniforms.uVignetteStrength.value ?? 0,
+                                        (value) => {
+                                            uniforms.uVignetteStrength.value = value;
+                                        }
+                                    );
+                                }
+
+                                if (uniforms.uCAStrength) {
+                                    slider(
+                                        'Chromatic Aberration',
+                                        0.0,
+                                        0.02,
+                                        0.0005,
+                                        () => uniforms.uCAStrength.value ?? 0,
+                                        (value) => {
+                                            uniforms.uCAStrength.value = value;
+                                        },
+                                        (value) => value.toFixed(4)
+                                    );
+                                }
+                            }
+
+                            if (!ui.parentElement) {
+                                doc.body.appendChild(ui);
+                            }
+                            this._debugUIPanel = ui;
+
+                            const diag = doc.getElementById('cv-diag') || doc.createElement('div');
+                            diag.id = 'cv-diag';
+                            diag.style.cssText = [
+                                'position:fixed',
+                                'top:8px',
+                                'left:8px',
+                                'z-index:9998',
+                                'background:rgba(6,10,20,0.82)',
+                                'color:#d8f1ff',
+                                'padding:6px 8px',
+                                'font-family:"IBM Plex Mono", SFMono-Regular, Menlo, Monaco, monospace',
+                                'font-size:11px',
+                                'line-height:1.45',
+                                'border-radius:4px',
+                                'pointer-events:none',
+                                'user-select:none',
+                                'box-shadow:0 4px 12px rgba(0,0,0,0.35)',
+                                'max-width:220px'
+                            ].join(';');
+                            diag.innerHTML = '';
+
+                            const createRow = (label, key) => {
+                                const row = doc.createElement('div');
+                                row.style.cssText = 'display:flex;gap:6px;justify-content:space-between;';
+                                const labelSpan = doc.createElement('span');
+                                labelSpan.textContent = `${label}:`;
+                                labelSpan.style.cssText = 'opacity:0.7;';
+                                const valueSpan = doc.createElement('span');
+                                valueSpan.dataset.field = key;
+                                valueSpan.textContent = '…';
+                                row.appendChild(labelSpan);
+                                row.appendChild(valueSpan);
+                                diag.appendChild(row);
+                                return valueSpan;
+                            };
+
+                            this._diagnosticsFields = {
+                                pipeline: createRow('Pipeline', 'pipeline'),
+                                passes: createRow('Composer', 'passes'),
+                                tone: createRow('Tone mapping', 'tone'),
+                                ibl: createRow('IBL', 'ibl'),
+                                nebula: createRow('Nebula planes', 'nebula'),
+                                sprites: createRow('Sprite stars', 'sprites'),
+                                pbr: createRow('PBR stars', 'pbr')
+                            };
+
+                            if (!diag.parentElement) {
+                                doc.body.appendChild(diag);
+                            }
+                            this._diagnosticsPanel = diag;
+                            this._updateDiagnostics();
+                            if (this._diagnosticsInterval && typeof global.clearInterval === 'function') {
+                                global.clearInterval(this._diagnosticsInterval);
+                            }
+                            if (typeof global.setInterval === 'function') {
+                                this._diagnosticsInterval = global.setInterval(() => {
+                                    this._updateDiagnostics();
+                                }, 1000);
+                            }
+                        } catch (debugError) {
+                            if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+                                console.warn('SkillUniverseRenderer: debug panel failed to initialize', debugError);
+                            }
+                        }
+                    }
                 } else if (this._glRenderer && !this._composer) {
                     if (typeof this._glRenderer.dispose === 'function') {
                         this._glRenderer.dispose();
@@ -1045,6 +1267,7 @@
                         if (this._environmentMap && typeof this._environmentMap.mapping !== 'undefined' && typeof THREE.EquirectangularReflectionMapping !== 'undefined') {
                             this._environmentMap.mapping = THREE.EquirectangularReflectionMapping;
                         }
+                        this._environmentName = hdrUrl;
                         if (this.scene) {
                             this.scene.environment = this._environmentMap;
                             this.scene.background = this._environmentMap;
@@ -1267,8 +1490,104 @@
             }
         }
 
+        _updateDiagnostics() {
+            if (!this._diagnosticsPanel || !this._diagnosticsFields) {
+                return;
+            }
+
+            const fields = this._diagnosticsFields;
+            const pipelineActive = (this._glRenderer && this._composer) ? 'Modern WebGL' : 'Legacy';
+            fields.pipeline.textContent = pipelineActive;
+
+            if (this._composer) {
+                const bloomPass = this._composer.__bloom;
+                const gradePass = this._composer.__grade;
+                const bloomState = bloomPass && bloomPass.enabled === false ? 'off' : (bloomPass ? 'on' : 'missing');
+                const gradeState = gradePass && gradePass.enabled === false ? 'off' : (gradePass ? 'on' : 'missing');
+                fields.passes.textContent = `Render • Bloom: ${bloomState} • Grade: ${gradeState}`;
+            } else {
+                fields.passes.textContent = 'n/a';
+            }
+
+            const renderer = this._glRenderer || this.renderer || null;
+            if (renderer && typeof renderer.toneMapping !== 'undefined') {
+                let toneLabel = 'Custom';
+                if (renderer.toneMapping === THREE.ACESFilmicToneMapping) {
+                    toneLabel = 'ACES';
+                }
+                const exposure = typeof renderer.toneMappingExposure === 'number'
+                    ? renderer.toneMappingExposure.toFixed(2)
+                    : null;
+                fields.tone.textContent = exposure ? `${toneLabel} (exp ${exposure})` : toneLabel;
+            } else {
+                fields.tone.textContent = 'n/a';
+            }
+
+            const environmentLabel = (() => {
+                if (typeof this._environmentName === 'string' && this._environmentName.length) {
+                    const parts = this._environmentName.split(/[/\\]/);
+                    const base = parts[parts.length - 1] || this._environmentName;
+                    return base;
+                }
+                if (this.scene?.environment) {
+                    return this.scene.environment.name || 'active';
+                }
+                return 'none';
+            })();
+            fields.ibl.textContent = environmentLabel;
+
+            const nebulaCount = Array.isArray(this._nebulaPlanes) ? this._nebulaPlanes.length : 0;
+            const dynamicLayerCount = (this._nebulaLayer && typeof this._nebulaLayer.getPlaneCount === 'function')
+                ? Number(this._nebulaLayer.getPlaneCount()) || 0
+                : 0;
+            fields.nebula.textContent = dynamicLayerCount
+                ? `${nebulaCount} + ${dynamicLayerCount}`
+                : String(nebulaCount);
+
+            let spriteCount = 0;
+            const spritePoints = this._spriteStars;
+            if (spritePoints?.geometry?.getAttribute) {
+                const attr = spritePoints.geometry.getAttribute('position');
+                if (attr && typeof attr.count === 'number') {
+                    spriteCount = attr.count;
+                }
+            }
+            fields.sprites.textContent = String(spriteCount);
+
+            let totalStars = 0;
+            let pbrStars = 0;
+            if (this.starMeshMap && typeof this.starMeshMap.forEach === 'function') {
+                this.starMeshMap.forEach((mesh) => {
+                    if (!mesh) {
+                        return;
+                    }
+                    totalStars += 1;
+                    if (mesh.userData && mesh.userData.usesPBR) {
+                        pbrStars += 1;
+                    }
+                });
+            }
+            const fallbackStars = totalStars - pbrStars;
+            fields.pbr.textContent = totalStars
+                ? `${pbrStars}/${totalStars} using PBR • ${fallbackStars} fallback`
+                : '0 using PBR • 0 fallback';
+        }
+
         destroy() {
             cancelAnimationFrame(this._animationFrame);
+            if (this._diagnosticsInterval && typeof global.clearInterval === 'function') {
+                global.clearInterval(this._diagnosticsInterval);
+            }
+            this._diagnosticsInterval = null;
+            if (this._diagnosticsPanel && this._diagnosticsPanel.parentElement) {
+                this._diagnosticsPanel.parentElement.removeChild(this._diagnosticsPanel);
+            }
+            this._diagnosticsPanel = null;
+            this._diagnosticsFields = null;
+            if (this._debugUIPanel && this._debugUIPanel.parentElement) {
+                this._debugUIPanel.parentElement.removeChild(this._debugUIPanel);
+            }
+            this._debugUIPanel = null;
             if (this.starMeshMap && this.starMeshMap.size) {
                 this.starMeshMap.forEach((mesh) => {
                     this._applyTextureLayers(mesh, null);
@@ -1353,6 +1672,7 @@
                 this._environmentMap.dispose();
             }
             this._environmentMap = null;
+            this._environmentName = null;
             if (this.scene) {
                 this.scene.environment = null;
                 this.scene.background = null;
@@ -2676,6 +2996,8 @@
                 material.emissiveIntensity = emissiveIntensity;
                 material.roughness = roughness;
                 material.metalness = metalness;
+                mesh.userData = Object.assign({}, mesh.userData, { usesPBR: false });
+                this._updateDiagnostics();
             };
 
             const texturesApi = global.CVTextures || (typeof window !== 'undefined' ? window.CVTextures : null);
@@ -2813,96 +3135,6 @@
                         }
                     }
                 }
-
-
-                await Promise.all([
-                    loadMap('map', 'albedo'),
-                    loadMap('normalMap', 'normal'),
-                    loadMap('roughnessMap', 'roughness'),
-                    loadMap('metalnessMap', 'metalness'),
-                    loadMap('aoMap', 'ao'),
-                    loadMap('emissiveMap', 'emissive')
-                ]);
-
-                const compositeMask = async (baseTex, noiseLayers) => {
-                    if (!baseTex || !noiseLayers || !noiseLayers.length) {
-                        return null;
-                    }
-                    const img = baseTex.image;
-                    const W = (img && img.width) || 1024;
-                    const H = (img && img.height) || 1024;
-                    if (!W || !H) {
-                        return null;
-                    }
-                    const cvs = document.createElement('canvas');
-                    cvs.width = W;
-                    cvs.height = H;
-                    const ctx = cvs.getContext('2d');
-                    if (!ctx) {
-                        return null;
-                    }
-                    if (img) {
-                        ctx.drawImage(img, 0, 0, W, H);
-                    }
-                    for (const layer of noiseLayers) {
-                        if (!layer || !layer.url) {
-                            continue;
-                        }
-                        const mask = await new Promise((resolve, reject) => {
-                            const im = new Image();
-                            im.crossOrigin = 'anonymous';
-                            im.onload = () => resolve(im);
-                            im.onerror = reject;
-                            im.src = layer.url;
-                        }).catch(() => null);
-                        if (!mask) {
-                            continue;
-                        }
-                        ctx.globalCompositeOperation = (layer.mode === 'screen') ? 'screen' : 'multiply';
-                        ctx.globalAlpha = (typeof layer.amount === 'number') ? layer.amount : 0.5;
-                        ctx.drawImage(mask, 0, 0, W, H);
-                    }
-                    ctx.globalCompositeOperation = 'source-over';
-                    ctx.globalAlpha = 1;
-                    const out = new THREE.CanvasTexture(cvs);
-                    if (baseTex.colorSpace) {
-                        out.colorSpace = baseTex.colorSpace;
-                    }
-                    if (typeof baseTex.wrapS !== 'undefined') {
-                        out.wrapS = baseTex.wrapS;
-                    }
-                    if (typeof baseTex.wrapT !== 'undefined') {
-                        out.wrapT = baseTex.wrapT;
-                    }
-                    if (baseTex.repeat && out.repeat) {
-                        out.repeat.copy(baseTex.repeat);
-                    }
-                    if (baseTex.offset && out.offset) {
-                        out.offset.copy(baseTex.offset);
-                    }
-                    if (typeof baseTex.anisotropy === 'number') {
-                        out.anisotropy = baseTex.anisotropy;
-                    }
-                    out.needsUpdate = true;
-                    return out;
-                };
-
-                const noiseLayers = Array.isArray(descriptor.noise) ? descriptor.noise.filter((layer) => layer && layer.url) : null;
-                if (noiseLayers && (m.map || m.emissiveMap)) {
-                    if (m.map) {
-                        const cm = await compositeMask(m.map, noiseLayers);
-                        if (cm) {
-                            m.map = cm;
-                        }
-                    }
-                    if (m.emissiveMap) {
-                        const cm = await compositeMask(m.emissiveMap, noiseLayers);
-                        if (cm) {
-                            m.emissiveMap = cm;
-                        }
-                    }
-                }
-
                 if (!m.map && !m.normalMap && !m.roughnessMap && !m.metalnessMap && !m.aoMap && !m.emissiveMap) {
                     m.dispose();
                     applyLegacyMaterial(descriptor);
@@ -2915,6 +3147,8 @@
                 }
                 mesh.material = m;
                 mesh.material.needsUpdate = true;
+                mesh.userData = Object.assign({}, mesh.userData, { usesPBR: true });
+                this._updateDiagnostics();
             } catch (err) {
                 applyLegacyMaterial(descriptor);
             }
@@ -3482,36 +3716,7 @@
                 const hdrUrl = neb.maps.environment;
                 const envTex = await global.CVTextures.getEnvironmentFromHDR(hdrUrl);
                 if (envTex) {
-                    this.scene.environment = envTex;
-                }
-            } catch (err) {
-                if (typeof console !== 'undefined' && typeof console.warn === 'function') {
-                    console.warn('[SkillUniverse] Environment HDR load skipped:', err);
-                }
-            }
-        }
-
-        async _setDefaultEnvironment() {
-            const fetchFn = typeof global.fetch === 'function' ? global.fetch.bind(global) : (typeof fetch === 'function' ? fetch : null);
-            if (!fetchFn || !global.CVTextures || typeof global.CVTextures.getEnvironmentFromHDR !== 'function' || !this.scene) {
-                return;
-            }
-            try {
-                const res = await fetchFn('assets/skill-universe/ingredient-library.json', { cache: 'no-store' });
-                if (!res || !res.ok) {
-                    return;
-                }
-                const lib = await res.json();
-                if (!Array.isArray(lib)) {
-                    return;
-                }
-                const neb = lib.find((e) => e && e.type === 'nebula' && e.maps && e.maps.environment && /\.hdr$/i.test(e.maps.environment));
-                if (!neb) {
-                    return;
-                }
-                const hdrUrl = neb.maps.environment;
-                const envTex = await global.CVTextures.getEnvironmentFromHDR(hdrUrl);
-                if (envTex) {
+                    this._environmentName = hdrUrl;
                     this.scene.environment = envTex;
                 }
             } catch (err) {
