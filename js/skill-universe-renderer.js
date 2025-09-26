@@ -631,7 +631,6 @@
                                 row.style.cssText = 'display:block;margin:6px 0;';
 
                                 const labelSpan = doc.createElement('span');
-
                                 const row = global.document.createElement('label');
                                 row.style.cssText = 'display:block;margin:6px 0;';
 
@@ -651,6 +650,7 @@
                                 input.style.width = '100%';
 
                                 const valueReadout = doc.createElement('div');
+
                                 const valueReadout = global.document.createElement('div');
                                 valueReadout.textContent = formatter(parseFloat(input.value));
                                 valueReadout.style.cssText = 'font-size:11px;opacity:0.72;margin-top:2px;text-align:right;';
@@ -3147,96 +3147,6 @@
                         }
                     }
                 }
-
-
-                await Promise.all([
-                    loadMap('map', 'albedo'),
-                    loadMap('normalMap', 'normal'),
-                    loadMap('roughnessMap', 'roughness'),
-                    loadMap('metalnessMap', 'metalness'),
-                    loadMap('aoMap', 'ao'),
-                    loadMap('emissiveMap', 'emissive')
-                ]);
-
-                const compositeMask = async (baseTex, noiseLayers) => {
-                    if (!baseTex || !noiseLayers || !noiseLayers.length) {
-                        return null;
-                    }
-                    const img = baseTex.image;
-                    const W = (img && img.width) || 1024;
-                    const H = (img && img.height) || 1024;
-                    if (!W || !H) {
-                        return null;
-                    }
-                    const cvs = document.createElement('canvas');
-                    cvs.width = W;
-                    cvs.height = H;
-                    const ctx = cvs.getContext('2d');
-                    if (!ctx) {
-                        return null;
-                    }
-                    if (img) {
-                        ctx.drawImage(img, 0, 0, W, H);
-                    }
-                    for (const layer of noiseLayers) {
-                        if (!layer || !layer.url) {
-                            continue;
-                        }
-                        const mask = await new Promise((resolve, reject) => {
-                            const im = new Image();
-                            im.crossOrigin = 'anonymous';
-                            im.onload = () => resolve(im);
-                            im.onerror = reject;
-                            im.src = layer.url;
-                        }).catch(() => null);
-                        if (!mask) {
-                            continue;
-                        }
-                        ctx.globalCompositeOperation = (layer.mode === 'screen') ? 'screen' : 'multiply';
-                        ctx.globalAlpha = (typeof layer.amount === 'number') ? layer.amount : 0.5;
-                        ctx.drawImage(mask, 0, 0, W, H);
-                    }
-                    ctx.globalCompositeOperation = 'source-over';
-                    ctx.globalAlpha = 1;
-                    const out = new THREE.CanvasTexture(cvs);
-                    if (baseTex.colorSpace) {
-                        out.colorSpace = baseTex.colorSpace;
-                    }
-                    if (typeof baseTex.wrapS !== 'undefined') {
-                        out.wrapS = baseTex.wrapS;
-                    }
-                    if (typeof baseTex.wrapT !== 'undefined') {
-                        out.wrapT = baseTex.wrapT;
-                    }
-                    if (baseTex.repeat && out.repeat) {
-                        out.repeat.copy(baseTex.repeat);
-                    }
-                    if (baseTex.offset && out.offset) {
-                        out.offset.copy(baseTex.offset);
-                    }
-                    if (typeof baseTex.anisotropy === 'number') {
-                        out.anisotropy = baseTex.anisotropy;
-                    }
-                    out.needsUpdate = true;
-                    return out;
-                };
-
-                const noiseLayers = Array.isArray(descriptor.noise) ? descriptor.noise.filter((layer) => layer && layer.url) : null;
-                if (noiseLayers && (m.map || m.emissiveMap)) {
-                    if (m.map) {
-                        const cm = await compositeMask(m.map, noiseLayers);
-                        if (cm) {
-                            m.map = cm;
-                        }
-                    }
-                    if (m.emissiveMap) {
-                        const cm = await compositeMask(m.emissiveMap, noiseLayers);
-                        if (cm) {
-                            m.emissiveMap = cm;
-                        }
-                    }
-                }
-
                 if (!m.map && !m.normalMap && !m.roughnessMap && !m.metalnessMap && !m.aoMap && !m.emissiveMap) {
                     m.dispose();
                     applyLegacyMaterial(descriptor);
