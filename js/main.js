@@ -95,6 +95,12 @@ const skillSearchInput = document.getElementById('skill-search-input');
 const skillTreePanControls = document.getElementById('skill-tree-pan-controls');
 const skillPanLeftBtn = document.getElementById('skill-pan-left');
 const skillPanRightBtn = document.getElementById('skill-pan-right');
+const skillOrbitControls = document.getElementById('skill-tree-orbit-controls');
+const skillOrbitUpBtn = document.getElementById('skill-orbit-up');
+const skillOrbitDownBtn = document.getElementById('skill-orbit-down');
+const skillOrbitLeftBtn = document.getElementById('skill-orbit-left');
+const skillOrbitRightBtn = document.getElementById('skill-orbit-right');
+const skillOrbitResetBtn = document.getElementById('skill-orbit-reset');
 const authEmailInput = document.getElementById('email-input');
 const authPasswordInput = document.getElementById('password-input');
 const loginButton = document.getElementById('login-btn');
@@ -114,6 +120,8 @@ const LEGACY_ROLLOVER_THRESHOLD = 1000;
 const MAX_MAJOR_STAT_VALUE = 100;
 const STATS_PER_PERK_POINT = 10;
 const QUARTERLY_MILESTONE_GOAL = 60;
+const CAMERA_ORBIT_AZIMUTH_STEP = Math.PI / 24;
+const CAMERA_ORBIT_POLAR_STEP = Math.PI / 40;
 
 function getQuarterIdentifier(date) {
     const reference = date instanceof Date ? date : new Date(date);
@@ -2402,10 +2410,35 @@ function renderSkillTreeBreadcrumbs(breadcrumbs) {
     });
 }
 
+function updateOrbitControlsState() {
+    if (!skillOrbitControls) {
+        return;
+    }
+
+    const rendererReady = !!(skillRenderer && typeof skillRenderer.nudgeOrbit === 'function');
+    skillOrbitControls.classList.toggle('hidden', !rendererReady);
+    skillOrbitControls.setAttribute('aria-hidden', rendererReady ? 'false' : 'true');
+
+    const orbitButtons = [
+        skillOrbitUpBtn,
+        skillOrbitDownBtn,
+        skillOrbitLeftBtn,
+        skillOrbitRightBtn,
+        skillOrbitResetBtn
+    ];
+
+    orbitButtons.forEach((button) => {
+        if (button) {
+            button.disabled = !rendererReady;
+        }
+    });
+}
+
 function updateSkillTreeUI(title, breadcrumbs, showBack) {
     skillTreeTitle.textContent = title;
     renderSkillTreeBreadcrumbs(breadcrumbs);
     skillBackBtn.classList.toggle('hidden', !showBack);
+    updateOrbitControlsState();
 }
 
 function deriveSkillPathType(path) {
@@ -2621,6 +2654,8 @@ function updateSkillTreeUI(title, breadcrumbs, showBack) {
             skillPanRightBtn.disabled = !showPanControls;
         }
     }
+
+    updateOrbitControlsState();
 }
 
 function showToast(message) {
@@ -3149,6 +3184,46 @@ function setupEventListeners() {
         skillPanRightBtn.addEventListener('click', () => nudgeConstellations(CONSTELLATION_PAN_NUDGE));
     }
 
+    if (skillOrbitUpBtn) {
+        skillOrbitUpBtn.addEventListener('click', () => {
+            if (skillRenderer && typeof skillRenderer.nudgeOrbit === 'function') {
+                skillRenderer.nudgeOrbit(0, -CAMERA_ORBIT_POLAR_STEP);
+            }
+        });
+    }
+
+    if (skillOrbitDownBtn) {
+        skillOrbitDownBtn.addEventListener('click', () => {
+            if (skillRenderer && typeof skillRenderer.nudgeOrbit === 'function') {
+                skillRenderer.nudgeOrbit(0, CAMERA_ORBIT_POLAR_STEP);
+            }
+        });
+    }
+
+    if (skillOrbitLeftBtn) {
+        skillOrbitLeftBtn.addEventListener('click', () => {
+            if (skillRenderer && typeof skillRenderer.nudgeOrbit === 'function') {
+                skillRenderer.nudgeOrbit(-CAMERA_ORBIT_AZIMUTH_STEP, 0);
+            }
+        });
+    }
+
+    if (skillOrbitRightBtn) {
+        skillOrbitRightBtn.addEventListener('click', () => {
+            if (skillRenderer && typeof skillRenderer.nudgeOrbit === 'function') {
+                skillRenderer.nudgeOrbit(CAMERA_ORBIT_AZIMUTH_STEP, 0);
+            }
+        });
+    }
+
+    if (skillOrbitResetBtn) {
+        skillOrbitResetBtn.addEventListener('click', () => {
+            if (skillRenderer && typeof skillRenderer.resetOrbit === 'function') {
+                skillRenderer.resetOrbit();
+            }
+        });
+    }
+
     if (skillBackBtn) {
         skillBackBtn.addEventListener('click', () => {
             starDetailController.hide();
@@ -3308,6 +3383,7 @@ if (typeof window.SkillUniverseRenderer === 'function') {
         }
     });
 
+    updateOrbitControlsState();
     rebuildSkillUniverseIfReady();
 } else {
     console.warn(
@@ -3317,6 +3393,7 @@ if (typeof window.SkillUniverseRenderer === 'function') {
         skillTreeContainer.innerHTML =
             '<p class="skill-tree-unavailable">3D skill tree unavailable (offline or missing Three.js).</p>';
     }
+    updateOrbitControlsState();
 }
 
 })();
