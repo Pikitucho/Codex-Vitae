@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2025-09-26T12:38:23.056Z",
+  "generatedAt": "2025-09-26T14:15:06.035Z",
   "basePath": "assets/skill-universe",
   "defaultLicense": "Verify before distribution",
   "categories": {
@@ -9,6 +9,7 @@
         "name": "Aluminum Brushed Circular Metal",
         "relativePath": "material-ingredients/metals/Aluminum Brushed Circular Metal",
         "maps": {
+          "primary": "Metal051A.png",
           "albedo": "Metal051A_4K-JPG_Color.jpg",
           "height": "Metal051A_4K-JPG_Displacement.jpg",
           "metalness": "Metal051A_4K-JPG_Metalness.jpg",
@@ -31,6 +32,7 @@
         "name": "Aluminum Clean Metal Smooth",
         "relativePath": "material-ingredients/metals/Aluminum Clean Metal Smooth",
         "maps": {
+          "primary": "Metal050A.png",
           "albedo": "Metal050A_4K-JPG_Color.jpg",
           "height": "Metal050A_4K-JPG_Displacement.jpg",
           "metalness": "Metal050A_4K-JPG_Metalness.jpg",
@@ -53,6 +55,7 @@
         "name": "Black Clean Dark Metal",
         "relativePath": "material-ingredients/metals/Black Clean Dark Metal",
         "maps": {
+          "primary": "Metal046A.png",
           "albedo": "Metal046A_4K-JPG_Color.jpg",
           "height": "Metal046A_4K-JPG_Displacement.jpg",
           "metalness": "Metal046A_4K-JPG_Metalness.jpg",
@@ -75,6 +78,7 @@
         "name": "Black Covered Metal Painted Powder Steel",
         "relativePath": "material-ingredients/metals/Black Covered Metal Painted Powder Steel",
         "maps": {
+          "primary": "Metal027.png",
           "albedo": "Metal027_4K-JPG_Color.jpg",
           "height": "Metal027_4K-JPG_Displacement.jpg",
           "metalness": "Metal027_4K-JPG_Metalness.jpg",
@@ -99,6 +103,7 @@
         "name": "Bronze Bumpy Copper Metal Scratches Silver Steel",
         "relativePath": "material-ingredients/metals/Bronze Bumpy Copper Metal Scratches Silver Steel",
         "maps": {
+          "primary": "Metal008.png",
           "albedo": "Metal008_4K-JPG_Color.jpg",
           "height": "Metal008_4K-JPG_Displacement.jpg",
           "metalness": "Metal008_4K-JPG_Metalness.jpg",
@@ -124,6 +129,7 @@
         "name": "Bronze Dark Erode Erosion Metal Old Rust Rusted Scratched Scratches",
         "relativePath": "material-ingredients/metals/Bronze Dark Erode Erosion Metal Old Rust Rusted Scratched Scratches",
         "maps": {
+          "primary": "Metal018.png",
           "albedo": "Metal018_4K-JPG_Color.jpg",
           "height": "Metal018_4K-JPG_Displacement.jpg",
           "metalness": "Metal018_4K-JPG_Metalness.jpg",
@@ -152,6 +158,7 @@
         "name": "Bronze Dark Erode Erosion Metal Old Scratched Scratches",
         "relativePath": "material-ingredients/metals/Bronze Dark Erode Erosion Metal Old Scratched Scratches",
         "maps": {
+          "primary": "Metal017.png",
           "albedo": "Metal017_4K-JPG_Color.jpg",
           "height": "Metal017_4K-JPG_Displacement.jpg",
           "metalness": "Metal017_4K-JPG_Metalness.jpg",
@@ -178,6 +185,7 @@
         "name": "Bronze Dark Eroded Erosion Metal Old Rough",
         "relativePath": "material-ingredients/metals/Bronze Dark Eroded Erosion Metal Old Rough",
         "maps": {
+          "primary": "Metal013.png",
           "albedo": "Metal013_4K-JPG_Color.jpg",
           "height": "Metal013_4K-JPG_Displacement.jpg",
           "metalness": "Metal013_4K-JPG_Metalness.jpg",
@@ -203,6 +211,7 @@
         "name": "Brown Copper Metal Orange Smooth",
         "relativePath": "material-ingredients/metals/Brown Copper Metal Orange Smooth",
         "maps": {
+          "primary": "Metal035.png",
           "albedo": "Metal035_4K-JPG_Color.jpg",
           "height": "Metal035_4K-JPG_Displacement.jpg",
           "metalness": "Metal035_4K-JPG_Metalness.jpg",
@@ -226,6 +235,7 @@
         "name": "Brushed Bumpy Metal Scratches Silver Steel",
         "relativePath": "material-ingredients/metals/Brushed Bumpy Metal Scratches Silver Steel",
         "maps": {
+          "primary": "Metal009.png",
           "albedo": "Metal009_4K-JPG_Color.jpg",
           "height": "Metal009_4K-JPG_Displacement.jpg",
           "metalness": "Metal009_4K-JPG_Metalness.jpg",
@@ -250,6 +260,7 @@
         "name": "Brushed Bumpy Metal Scratches Silver Steel 2",
         "relativePath": "material-ingredients/metals/Brushed Bumpy Metal Scratches Silver Steel 2",
         "maps": {
+          "primary": "Metal011.png",
           "albedo": "Metal011_4K-JPG_Color.jpg",
           "height": "Metal011_4K-JPG_Displacement.jpg",
           "metalness": "Metal011_4K-JPG_Metalness.jpg",
@@ -275,6 +286,7 @@
         "name": "Bumpy Gold Metal Scratches Silver Steel",
         "relativePath": "material-ingredients/metals/Bumpy Gold Metal Scratches Silver Steel",
         "maps": {
+          "primary": "Metal007.png",
           "albedo": "Metal007_4K-JPG_Color.jpg",
           "height": "Metal007_4K-JPG_Displacement.jpg",
           "metalness": "Metal007_4K-JPG_Metalness.jpg",
@@ -299,6 +311,7 @@
         "name": "Bumpy Metal Scratches Silver Steel",
         "relativePath": "material-ingredients/metals/Bumpy Metal Scratches Silver Steel",
         "maps": {
+          "primary": "Metal001.png",
           "albedo": "Metal001_4K-JPG_Color.jpg",
           "height": "Metal001_4K-JPG_Displacement.jpg",
           "metalness": "Metal001_4K-JPG_Metalness.jpg",
@@ -322,6 +335,7 @@
         "name": "Bumpy Metal Scratches Silver Steel 2",
         "relativePath": "material-ingredients/metals/Bumpy Metal Scratches Silver Steel 2",
         "maps": {
+          "primary": "Metal005.png",
           "albedo": "Metal005_4K-JPG_Color.jpg",
           "height": "Metal005_4K-JPG_Displacement.jpg",
           "metalness": "Metal005_4K-JPG_Metalness.jpg",
@@ -346,6 +360,7 @@
         "name": "Clean Copper Metal Shiny",
         "relativePath": "material-ingredients/metals/Clean Copper Metal Shiny",
         "maps": {
+          "primary": "Metal043A.png",
           "albedo": "Metal043A_4K-JPG_Color.jpg",
           "height": "Metal043A_4K-JPG_Displacement.jpg",
           "metalness": "Metal043A_4K-JPG_Metalness.jpg",
@@ -368,6 +383,7 @@
         "name": "Clean Copper Metal Smooth",
         "relativePath": "material-ingredients/metals/Clean Copper Metal Smooth",
         "maps": {
+          "primary": "Metal057A.png",
           "albedo": "Metal057A_4K-JPG_Color.jpg",
           "height": "Metal057A_4K-JPG_Displacement.jpg",
           "metalness": "Metal057A_4K-JPG_Metalness.jpg",
@@ -390,6 +406,7 @@
         "name": "Clean Gold Metal Shiny",
         "relativePath": "material-ingredients/metals/Clean Gold Metal Shiny",
         "maps": {
+          "primary": "Metal042A.png",
           "albedo": "Metal042A_4K-JPG_Color.jpg",
           "height": "Metal042A_4K-JPG_Displacement.jpg",
           "metalness": "Metal042A_4K-JPG_Metalness.jpg",
@@ -412,6 +429,7 @@
         "name": "Clean Grey Light Metal Reflection Rough Scratch Steel",
         "relativePath": "material-ingredients/metals/Clean Grey Light Metal Reflection Rough Scratch Steel",
         "maps": {
+          "primary": "Metal014.png",
           "albedo": "Metal014_4K-JPG_Color.jpg",
           "height": "Metal014_4K-JPG_Displacement.jpg",
           "metalness": "Metal014_4K-JPG_Metalness.jpg",
@@ -438,6 +456,7 @@
         "name": "Clean Iron Metal",
         "relativePath": "material-ingredients/metals/Clean Iron Metal",
         "maps": {
+          "primary": "Metal041A.png",
           "albedo": "Metal041A_4K-JPG_Color.jpg",
           "height": "Metal041A_4K-JPG_Displacement.jpg",
           "metalness": "Metal041A_4K-JPG_Metalness.jpg",
@@ -459,6 +478,7 @@
         "name": "Clean Metal Nickel Shiny",
         "relativePath": "material-ingredients/metals/Clean Metal Nickel Shiny",
         "maps": {
+          "primary": "Metal045A.png",
           "albedo": "Metal045A_4K-JPG_Color.jpg",
           "height": "Metal045A_4K-JPG_Displacement.jpg",
           "metalness": "Metal045A_4K-JPG_Metalness.jpg",
@@ -481,6 +501,7 @@
         "name": "Clean Metal Titanium",
         "relativePath": "material-ingredients/metals/Clean Metal Titanium",
         "maps": {
+          "primary": "Metal059A.png",
           "albedo": "Metal059A_4K-JPG_Color.jpg",
           "height": "Metal059A_4K-JPG_Displacement.jpg",
           "metalness": "Metal059A_4K-JPG_Metalness.jpg",
@@ -502,6 +523,7 @@
         "name": "Cobalt Metal",
         "relativePath": "material-ingredients/metals/Cobalt Metal",
         "maps": {
+          "primary": "Metal061A.png",
           "albedo": "Metal061A_4K-JPG_Color.jpg",
           "height": "Metal061A_4K-JPG_Displacement.jpg",
           "metalness": "Metal061A_4K-JPG_Metalness.jpg",
@@ -522,6 +544,7 @@
         "name": "Damaged Iron Metal Rusted Scratched",
         "relativePath": "material-ingredients/metals/Damaged Iron Metal Rusted Scratched",
         "maps": {
+          "primary": "Metal056A.png",
           "albedo": "Metal056A_4K-JPG_Color.jpg",
           "height": "Metal056A_4K-JPG_Displacement.jpg",
           "metalness": "Metal056A_4K-JPG_Metalness.jpg",
@@ -545,6 +568,7 @@
         "name": "Dark Dirty Metal Rough Smooth Smudge",
         "relativePath": "material-ingredients/metals/Dark Dirty Metal Rough Smooth Smudge",
         "maps": {
+          "primary": "Metal019.png",
           "albedo": "Metal019_4K-JPG_Color.jpg",
           "height": "Metal019_4K-JPG_Displacement.jpg",
           "metalness": "Metal019_4K-JPG_Metalness.jpg",
@@ -569,6 +593,7 @@
         "name": "Gold Metal Smooth",
         "relativePath": "material-ingredients/metals/Gold Metal Smooth",
         "maps": {
+          "primary": "Metal034.png",
           "albedo": "Metal034_4K-JPG_Color.jpg",
           "height": "Metal034_4K-JPG_Displacement.jpg",
           "metalness": "Metal034_4K-JPG_Metalness.jpg",
@@ -590,6 +615,7 @@
         "name": "Grey Metal Smooth",
         "relativePath": "material-ingredients/metals/Grey Metal Smooth",
         "maps": {
+          "primary": "Metal030.png",
           "albedo": "Metal030_4K-JPG_Color.jpg",
           "height": "Metal030_4K-JPG_Displacement.jpg",
           "metalness": "Metal030_4K-JPG_Metalness.jpg",
@@ -611,6 +637,7 @@
         "name": "Iron Metal Scratched",
         "relativePath": "material-ingredients/metals/Iron Metal Scratched",
         "maps": {
+          "primary": "Metal054A.png",
           "albedo": "Metal054A_4K-JPG_Color.jpg",
           "height": "Metal054A_4K-JPG_Displacement.jpg",
           "metalness": "Metal054A_4K-JPG_Metalness.jpg",
@@ -632,6 +659,7 @@
         "name": "Iron Metal Smooth",
         "relativePath": "material-ingredients/metals/Iron Metal Smooth",
         "maps": {
+          "primary": "Metal052A.png",
           "albedo": "Metal052A_4K-JPG_Color.jpg",
           "height": "Metal052A_4K-JPG_Displacement.jpg",
           "metalness": "Metal052A_4K-JPG_Metalness.jpg",
@@ -653,6 +681,7 @@
         "name": "Leaks Metal Old Rust Rusty Spots Steel",
         "relativePath": "material-ingredients/metals/Leaks Metal Old Rust Rusty Spots Steel",
         "maps": {
+          "primary": "Metal023.png",
           "albedo": "Metal023_4K-JPG_Color.jpg",
           "height": "Metal023_4K-JPG_Displacement.jpg",
           "metalness": "Metal023_4K-JPG_Metalness.jpg",
@@ -678,6 +707,7 @@
         "name": "Light Metal Painted Rough Scratched Steel White",
         "relativePath": "material-ingredients/metals/Light Metal Painted Rough Scratched Steel White",
         "maps": {
+          "primary": "Metal016.png",
           "albedo": "Metal016_4K-JPG_Color.jpg",
           "height": "Metal016_4K-JPG_Displacement.jpg",
           "metalness": "Metal016_4K-JPG_Metalness.jpg",
@@ -703,6 +733,7 @@
         "name": "Metal Nickel",
         "relativePath": "material-ingredients/metals/Metal Nickel",
         "maps": {
+          "primary": "Metal060A.png",
           "albedo": "Metal060A_4K-JPG_Color.jpg",
           "height": "Metal060A_4K-JPG_Displacement.jpg",
           "metalness": "Metal060A_4K-JPG_Metalness.jpg",
@@ -723,6 +754,7 @@
         "name": "Metal Platinum",
         "relativePath": "material-ingredients/metals/Metal Platinum",
         "maps": {
+          "primary": "Metal062A.png",
           "albedo": "Metal062A_4K-JPG_Color.jpg",
           "height": "Metal062A_4K-JPG_Displacement.jpg",
           "metalness": "Metal062A_4K-JPG_Metalness.jpg",
@@ -743,6 +775,7 @@
         "name": "Metal Steel",
         "relativePath": "material-ingredients/metals/Metal Steel",
         "maps": {
+          "primary": "Metal040.png",
           "albedo": "Metal040_4K-JPG_Color.jpg",
           "height": "Metal040_4K-JPG_Displacement.jpg",
           "metalness": "Metal040_4K-JPG_Metalness.jpg",
@@ -765,6 +798,7 @@
         "name": "Bed Flat Gray Grey River Rocks",
         "relativePath": "material-ingredients/minerals/Bed Flat Gray Grey River Rocks",
         "maps": {
+          "primary": "Rocks024L.png",
           "ao": "Rocks024L_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Rocks024L_2K-JPG_Color.jpg",
           "height": "Rocks024L_2K-JPG_Displacement.jpg",
@@ -789,6 +823,7 @@
         "name": "Beige Brown Cliff Rock Stone Wall",
         "relativePath": "material-ingredients/minerals/Beige Brown Cliff Rock Stone Wall",
         "maps": {
+          "primary": "Rock055.png",
           "ao": "Rock055_4K-JPG_AmbientOcclusion.jpg",
           "albedo": "Rock055_4K-JPG_Color.jpg",
           "height": "Rock055_4K-JPG_Displacement.jpg",
@@ -813,6 +848,7 @@
         "name": "Beige Light Marble Smooth Stone",
         "relativePath": "material-ingredients/minerals/Beige Light Marble Smooth Stone",
         "maps": {
+          "primary": "Marble014.png",
           "albedo": "Marble014_4K-JPG_Color.jpg",
           "height": "Marble014_4K-JPG_Displacement.jpg",
           "normal": "Marble014_4K-JPG_NormalDX.jpg",
@@ -835,6 +871,7 @@
         "name": "Beige Marble Onyx Smooth Stone",
         "relativePath": "material-ingredients/minerals/Beige Marble Onyx Smooth Stone",
         "maps": {
+          "primary": "Onyx012.png",
           "albedo": "Onyx012_4K-JPG_Color.jpg",
           "height": "Onyx012_4K-JPG_Displacement.jpg",
           "normal": "Onyx012_4K-JPG_NormalDX.jpg",
@@ -857,6 +894,7 @@
         "name": "Beige Marble Smooth Stone",
         "relativePath": "material-ingredients/minerals/Beige Marble Smooth Stone",
         "maps": {
+          "primary": "Marble015.png",
           "albedo": "Marble015_4K-JPG_Color.jpg",
           "height": "Marble015_4K-JPG_Displacement.jpg",
           "normal": "Marble015_4K-JPG_NormalDX.jpg",
@@ -878,6 +916,7 @@
         "name": "Black Cliff Dirty Leaks Rock Stone",
         "relativePath": "material-ingredients/minerals/Black Cliff Dirty Leaks Rock Stone",
         "maps": {
+          "primary": "Rock037.png",
           "ao": "Rock037_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Rock037_2K-JPG_Color.jpg",
           "height": "Rock037_2K-JPG_Displacement.jpg",
@@ -902,6 +941,7 @@
         "name": "Black Dark Marble Onyx Smooth Stone",
         "relativePath": "material-ingredients/minerals/Black Dark Marble Onyx Smooth Stone",
         "maps": {
+          "primary": "Onyx013.png",
           "albedo": "Onyx013_4K-JPG_Color.jpg",
           "height": "Onyx013_4K-JPG_Displacement.jpg",
           "normal": "Onyx013_4K-JPG_NormalDX.jpg",
@@ -925,6 +965,7 @@
         "name": "Black Dark Marble Stone",
         "relativePath": "material-ingredients/minerals/Black Dark Marble Stone",
         "maps": {
+          "primary": "Marble013.png",
           "albedo": "Marble013_4K-JPG_Color.jpg",
           "height": "Marble013_4K-JPG_Displacement.jpg",
           "normal": "Marble013_4K-JPG_NormalDX.jpg",
@@ -946,6 +987,7 @@
         "name": "Black Rock Smooth",
         "relativePath": "material-ingredients/minerals/Black Rock Smooth",
         "maps": {
+          "primary": "Rock041.png",
           "ao": "Rock041_4K-JPG_AmbientOcclusion.jpg",
           "albedo": "Rock041_4K-JPG_Color.jpg",
           "height": "Rock041_4K-JPG_Displacement.jpg",
@@ -967,6 +1009,7 @@
         "name": "Bright Clean Fluffy Fresh Snow White",
         "relativePath": "material-ingredients/minerals/Bright Clean Fluffy Fresh Snow White",
         "maps": {
+          "primary": "Snow005.png",
           "albedo": "Snow005_4K-JPG_Color.jpg",
           "height": "Snow005_4K-JPG_Displacement.jpg",
           "normal": "Snow005_4K-JPG_NormalDX.jpg",
@@ -990,6 +1033,7 @@
         "name": "Brown Cliff Grey Rock Sand",
         "relativePath": "material-ingredients/minerals/Brown Cliff Grey Rock Sand",
         "maps": {
+          "primary": "Rock061.png",
           "ao": "Rock061_4K-JPG_AmbientOcclusion.jpg",
           "albedo": "Rock061_4K-JPG_Color.jpg",
           "height": "Rock061_4K-JPG_Displacement.jpg",
@@ -1013,6 +1057,7 @@
         "name": "Brown Dirty Grey Molten Path Snow",
         "relativePath": "material-ingredients/minerals/Brown Dirty Grey Molten Path Snow",
         "maps": {
+          "primary": "Snow012.png",
           "ao": "Snow012_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Snow012_2K-JPG_Color.jpg",
           "height": "Snow012_2K-JPG_Displacement.jpg",
@@ -1037,6 +1082,7 @@
         "name": "Clean Light Snow White Winter",
         "relativePath": "material-ingredients/minerals/Clean Light Snow White Winter",
         "maps": {
+          "primary": "Snow004.png",
           "albedo": "Snow004_4K-JPG_Color.jpg",
           "height": "Snow004_4K-JPG_Displacement.jpg",
           "normal": "Snow004_4K-JPG_NormalDX.jpg",
@@ -1059,6 +1105,7 @@
         "name": "Clean Snow White",
         "relativePath": "material-ingredients/minerals/Clean Snow White",
         "maps": {
+          "primary": "Snow010A.png",
           "ao": "Snow010A_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Snow010A_2K-JPG_Color.jpg",
           "height": "Snow010A_2K-JPG_Displacement.jpg",
@@ -1080,6 +1127,7 @@
         "name": "Cliff Green Grey Mossy Rock Stone",
         "relativePath": "material-ingredients/minerals/Cliff Green Grey Mossy Rock Stone",
         "maps": {
+          "primary": "Rock057.png",
           "ao": "Rock057_4K-JPG_AmbientOcclusion.jpg",
           "albedo": "Rock057_4K-JPG_Color.jpg",
           "height": "Rock057_4K-JPG_Displacement.jpg",
@@ -1104,6 +1152,7 @@
         "name": "Cliff Grey Rock",
         "relativePath": "material-ingredients/minerals/Cliff Grey Rock",
         "maps": {
+          "primary": "Rock058.png",
           "ao": "Rock058_4K-JPG_AmbientOcclusion.jpg",
           "albedo": "Rock058_4K-JPG_Color.jpg",
           "height": "Rock058_4K-JPG_Displacement.jpg",
@@ -1125,6 +1174,7 @@
         "name": "Cliff Ground Rock Rocks Stone Stones",
         "relativePath": "material-ingredients/minerals/Cliff Ground Rock Rocks Stone Stones",
         "maps": {
+          "primary": "Rocks011.png",
           "ao": "Rocks011_4K-JPG_AmbientOcclusion.jpg",
           "albedo": "Rocks011_4K-JPG_Color.jpg",
           "height": "Rocks011_4K-JPG_Displacement.jpg",
@@ -1149,6 +1199,7 @@
         "name": "Cliff Mountain Rock Stone Wall",
         "relativePath": "material-ingredients/minerals/Cliff Mountain Rock Stone Wall",
         "maps": {
+          "primary": "Rock051.png",
           "ao": "Rock051_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Rock051_2K-JPG_Color.jpg",
           "height": "Rock051_2K-JPG_Displacement.jpg",
@@ -1173,6 +1224,7 @@
         "name": "Cliff Rocks Stone",
         "relativePath": "material-ingredients/minerals/Cliff Rocks Stone",
         "maps": {
+          "primary": "Rocks016.png",
           "albedo": "Rocks016_4K-JPG_Color.jpg",
           "height": "Rocks016_4K-JPG_Displacement.jpg",
           "normal": "Rocks016_4K-JPG_NormalDX.jpg",
@@ -1193,6 +1245,7 @@
         "name": "Cold Flat Ice Snow Steps Stomped",
         "relativePath": "material-ingredients/minerals/Cold Flat Ice Snow Steps Stomped",
         "maps": {
+          "primary": "Snow006.png",
           "ao": "Snow006_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Snow006_2K-JPG_Color.jpg",
           "height": "Snow006_2K-JPG_Displacement.jpg",
@@ -1217,6 +1270,7 @@
         "name": "Crystal Jewelery Magic Marble Onyx Smooth Stone",
         "relativePath": "material-ingredients/minerals/Crystal Jewelery Magic Marble Onyx Smooth Stone",
         "maps": {
+          "primary": "Onyx006.png",
           "albedo": "Onyx006_4K-JPG_Color.jpg",
           "height": "Onyx006_4K-JPG_Displacement.jpg",
           "normal": "Onyx006_4K-JPG_NormalDX.jpg",
@@ -1241,6 +1295,7 @@
         "name": "Dark Marble Onyx Polished Smooth",
         "relativePath": "material-ingredients/minerals/Dark Marble Onyx Polished Smooth",
         "maps": {
+          "primary": "Onyx014.png",
           "albedo": "Onyx014_4K-JPG_Color.jpg",
           "height": "Onyx014_4K-JPG_Displacement.jpg",
           "normal": "Onyx014_4K-JPG_NormalDX.jpg",
@@ -1263,6 +1318,7 @@
         "name": "Desert Pebbles Rocks Sand Small",
         "relativePath": "material-ingredients/minerals/Desert Pebbles Rocks Sand Small",
         "maps": {
+          "primary": "Rocks013.png",
           "albedo": "Rocks013_4K-JPG_Color.jpg",
           "height": "Rocks013_4K-JPG_Displacement.jpg",
           "normal": "Rocks013_4K-JPG_NormalDX.jpg",
@@ -1285,6 +1341,7 @@
         "name": "Desert Pebbles Rocks Sand Stone",
         "relativePath": "material-ingredients/minerals/Desert Pebbles Rocks Sand Stone",
         "maps": {
+          "primary": "Rocks012.png",
           "albedo": "Rocks012_4K-JPG_Color.jpg",
           "height": "Rocks012_4K-JPG_Displacement.jpg",
           "normal": "Rocks012_4K-JPG_NormalDX.jpg",
@@ -1307,6 +1364,7 @@
         "name": "Desert Pebbles Rocks Sand Stone 2",
         "relativePath": "material-ingredients/minerals/Desert Pebbles Rocks Sand Stone 2",
         "maps": {
+          "primary": "Rocks014.png",
           "albedo": "Rocks014_4K-JPG_Color.jpg",
           "height": "Rocks014_4K-JPG_Displacement.jpg",
           "normal": "Rocks014_4K-JPG_NormalDX.jpg",
@@ -1330,6 +1388,7 @@
         "name": "Dirt Dirty Floor Ground Snow",
         "relativePath": "material-ingredients/minerals/Dirt Dirty Floor Ground Snow",
         "maps": {
+          "primary": "Snow011.png",
           "ao": "Snow011_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Snow011_2K-JPG_Color.jpg",
           "height": "Snow011_2K-JPG_Displacement.jpg",
@@ -1353,6 +1412,7 @@
         "name": "Dunes Snow",
         "relativePath": "material-ingredients/minerals/Dunes Snow",
         "maps": {
+          "primary": "Snow009A.png",
           "ao": "Snow009A_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Snow009A_2K-JPG_Color.jpg",
           "height": "Snow009A_2K-JPG_Displacement.jpg",
@@ -1373,6 +1433,7 @@
         "name": "Dunes Snow Waves",
         "relativePath": "material-ingredients/minerals/Dunes Snow Waves",
         "maps": {
+          "primary": "Snow008A.png",
           "ao": "Snow008A_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Snow008A_2K-JPG_Color.jpg",
           "height": "Snow008A_2K-JPG_Displacement.jpg",
@@ -1394,6 +1455,7 @@
         "name": "Floor Medieval Rocks Stone Wall",
         "relativePath": "material-ingredients/minerals/Floor Medieval Rocks Stone Wall",
         "maps": {
+          "primary": "Rocks025.png",
           "ao": "Rocks025_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Rocks025_2K-JPG_Color.jpg",
           "height": "Rocks025_2K-JPG_Displacement.jpg",
@@ -1417,6 +1479,7 @@
         "name": "Frozen Green Ice Lake Shiny",
         "relativePath": "material-ingredients/minerals/Frozen Green Ice Lake Shiny",
         "maps": {
+          "primary": "Ice004.png",
           "albedo": "Ice004_4K-JPG_Color.jpg",
           "height": "Ice004_4K-JPG_Displacement.jpg",
           "normal": "Ice004_4K-JPG_NormalDX.jpg",
@@ -1439,6 +1502,7 @@
         "name": "Frozen Green Ice Lake Shiny Water",
         "relativePath": "material-ingredients/minerals/Frozen Green Ice Lake Shiny Water",
         "maps": {
+          "primary": "Ice003.png",
           "albedo": "Ice003_4K-JPG_Color.jpg",
           "height": "Ice003_4K-JPG_Displacement.jpg",
           "normal": "Ice003_4K-JPG_NormalDX.jpg",
@@ -1462,6 +1526,7 @@
         "name": "Gravel Pebble Pebbles Rocks Small",
         "relativePath": "material-ingredients/minerals/Gravel Pebble Pebbles Rocks Small",
         "maps": {
+          "primary": "Rocks022.png",
           "ao": "Rocks022_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Rocks022_2K-JPG_Color.jpg",
           "height": "Rocks022_2K-JPG_Displacement.jpg",
@@ -1485,6 +1550,7 @@
         "name": "Gray Grey Light Marble Stone",
         "relativePath": "material-ingredients/minerals/Gray Grey Light Marble Stone",
         "maps": {
+          "primary": "Marble012.png",
           "albedo": "Marble012_4K-JPG_Color.jpg",
           "height": "Marble012_4K-JPG_Displacement.jpg",
           "normal": "Marble012_4K-JPG_NormalDX.jpg",
@@ -1507,6 +1573,7 @@
         "name": "Honey Marble Onyx Orange Smooth Stone Yellow",
         "relativePath": "material-ingredients/minerals/Honey Marble Onyx Orange Smooth Stone Yellow",
         "maps": {
+          "primary": "Onyx007.png",
           "albedo": "Onyx007_4K-JPG_Color.jpg",
           "height": "Onyx007_4K-JPG_Displacement.jpg",
           "normal": "Onyx007_4K-JPG_NormalDX.jpg",
@@ -1531,6 +1598,7 @@
         "name": "Marble Onyx Orange Smooth Stone",
         "relativePath": "material-ingredients/minerals/Marble Onyx Orange Smooth Stone",
         "maps": {
+          "primary": "Onyx002.png",
           "albedo": "Onyx002_4K-JPG_Color.jpg",
           "height": "Onyx002_4K-JPG_Displacement.jpg",
           "normal": "Onyx002_4K-JPG_NormalDX.jpg",
@@ -1553,6 +1621,7 @@
         "name": "Marble Onyx Polished Smooth",
         "relativePath": "material-ingredients/minerals/Marble Onyx Polished Smooth",
         "maps": {
+          "primary": "Onyx015.png",
           "albedo": "Onyx015_4K-JPG_Color.jpg",
           "height": "Onyx015_4K-JPG_Displacement.jpg",
           "normal": "Onyx015_4K-JPG_NormalDX.jpg",
@@ -1574,6 +1643,7 @@
         "name": "Marble Onyx Red Smooth Stone",
         "relativePath": "material-ingredients/minerals/Marble Onyx Red Smooth Stone",
         "maps": {
+          "primary": "Onyx010.png",
           "albedo": "Onyx010_4K-JPG_Color.jpg",
           "height": "Onyx010_4K-JPG_Displacement.jpg",
           "normal": "Onyx010_4K-JPG_NormalDX.jpg",
@@ -1596,6 +1666,7 @@
         "name": "Marble Onyx Smooth Stone",
         "relativePath": "material-ingredients/minerals/Marble Onyx Smooth Stone",
         "maps": {
+          "primary": "Onyx011.png",
           "albedo": "Onyx011_4K-JPG_Color.jpg",
           "height": "Onyx011_4K-JPG_Displacement.jpg",
           "normal": "Onyx011_4K-JPG_NormalDX.jpg",
@@ -1617,6 +1688,7 @@
         "name": "Marble Onyx Smooth Stone White",
         "relativePath": "material-ingredients/minerals/Marble Onyx Smooth Stone White",
         "maps": {
+          "primary": "Onyx004.png",
           "albedo": "Onyx004_4K-JPG_Color.jpg",
           "height": "Onyx004_4K-JPG_Displacement.jpg",
           "normal": "Onyx004_4K-JPG_NormalDX.jpg",
@@ -1641,6 +1713,7 @@
         "name": "Bark Brown Fir Forest Tree Wood",
         "relativePath": "material-ingredients/organics/Bark Brown Fir Forest Tree Wood",
         "maps": {
+          "primary": "Bark014.png",
           "ao": "Bark014_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Bark014_2K-JPG_Color.jpg",
           "height": "Bark014_2K-JPG_Displacement.jpg",
@@ -1665,6 +1738,7 @@
         "name": "Bark Brown Green Moss Tree Wood",
         "relativePath": "material-ingredients/organics/Bark Brown Green Moss Tree Wood",
         "maps": {
+          "primary": "Bark008.png",
           "ao": "Bark008_4K-JPG_AmbientOcclusion.jpg",
           "albedo": "Bark008_4K-JPG_Color.jpg",
           "height": "Bark008_4K-JPG_Displacement.jpg",
@@ -1689,6 +1763,7 @@
         "name": "Bark Brown Green Rough",
         "relativePath": "material-ingredients/organics/Bark Brown Green Rough",
         "maps": {
+          "primary": "Bark010.png",
           "albedo": "Bark010_4K-JPG_Color.jpg",
           "height": "Bark010_4K-JPG_Displacement.jpg",
           "normal": "Bark010_4K-JPG_NormalDX.jpg",
@@ -1710,6 +1785,7 @@
         "name": "Bark Brown Oak Tree",
         "relativePath": "material-ingredients/organics/Bark Brown Oak Tree",
         "maps": {
+          "primary": "Bark012.png",
           "ao": "Bark012_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Bark012_2K-JPG_Color.jpg",
           "height": "Bark012_2K-JPG_Displacement.jpg",
@@ -1732,6 +1808,7 @@
         "name": "Bark Green Grey Moss",
         "relativePath": "material-ingredients/organics/Bark Green Grey Moss",
         "maps": {
+          "primary": "Bark011.png",
           "ao": "Bark011_4K-JPG_AmbientOcclusion.jpg",
           "albedo": "Bark011_4K-JPG_Color.jpg",
           "height": "Bark011_4K-JPG_Displacement.jpg",
@@ -1754,6 +1831,7 @@
         "name": "Bark Green Mossy Tree",
         "relativePath": "material-ingredients/organics/Bark Green Mossy Tree",
         "maps": {
+          "primary": "Bark013.png",
           "ao": "Bark013_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Bark013_2K-JPG_Color.jpg",
           "height": "Bark013_2K-JPG_Displacement.jpg",
@@ -1776,6 +1854,7 @@
         "name": "Beige Brown Carpet Cloth Fabric Floor Orange Tiled",
         "relativePath": "material-ingredients/organics/Beige Brown Carpet Cloth Fabric Floor Orange Tiled",
         "maps": {
+          "primary": "Fabric025.png",
           "albedo": "Fabric025_2K-JPG_Color.jpg",
           "height": "Fabric025_2K-JPG_Displacement.jpg",
           "normal": "Fabric025_2K-JPG_NormalDX.jpg",
@@ -1801,6 +1880,7 @@
         "name": "Black Brown Carpet Cloth Dark Dirty Fabric Floor Smudge",
         "relativePath": "material-ingredients/organics/Black Brown Carpet Cloth Dark Dirty Fabric Floor Smudge",
         "maps": {
+          "primary": "Fabric029.png",
           "albedo": "Fabric029_2K-JPG_Color.jpg",
           "height": "Fabric029_2K-JPG_Displacement.jpg",
           "normal": "Fabric029_2K-JPG_NormalDX.jpg",
@@ -1827,6 +1907,7 @@
         "name": "Blue Carpet Cloth Dark Fabric Floor",
         "relativePath": "material-ingredients/organics/Blue Carpet Cloth Dark Fabric Floor",
         "maps": {
+          "primary": "Fabric023.png",
           "albedo": "Fabric023_2K-JPG_Color.jpg",
           "height": "Fabric023_2K-JPG_Displacement.jpg",
           "normal": "Fabric023_2K-JPG_NormalDX.jpg",
@@ -1850,6 +1931,7 @@
         "name": "Brown Clean Fine Orange Smooth Wood Wooden",
         "relativePath": "material-ingredients/organics/Brown Clean Fine Orange Smooth Wood Wooden",
         "maps": {
+          "primary": "Wood092.png",
           "albedo": "Wood092_4K-JPG_Color.jpg",
           "height": "Wood092_4K-JPG_Displacement.jpg",
           "normal": "Wood092_4K-JPG_NormalDX.jpg",
@@ -1874,6 +1956,7 @@
         "name": "Brown Dark Rough Wood",
         "relativePath": "material-ingredients/organics/Brown Dark Rough Wood",
         "maps": {
+          "primary": "Wood077.png",
           "ao": "Wood077_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Wood077_2K-JPG_Color.jpg",
           "height": "Wood077_2K-JPG_Displacement.jpg",
@@ -1896,6 +1979,7 @@
         "name": "Brown Dark Wood",
         "relativePath": "material-ingredients/organics/Brown Dark Wood",
         "maps": {
+          "primary": "Wood085A.png",
           "albedo": "Wood085A_4K-JPG_Color.jpg",
           "height": "Wood085A_4K-JPG_Displacement.jpg",
           "normal": "Wood085A_4K-JPG_NormalDX.jpg",
@@ -1916,6 +2000,7 @@
         "name": "Brown Dirt Ground Leaves Mud",
         "relativePath": "material-ingredients/organics/Brown Dirt Ground Leaves Mud",
         "maps": {
+          "primary": "Ground042.png",
           "ao": "Ground042_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Ground042_2K-JPG_Color.jpg",
           "height": "Ground042_2K-JPG_Displacement.jpg",
@@ -1939,6 +2024,7 @@
         "name": "Brown Dirt Ground Leaves Mud 2",
         "relativePath": "material-ingredients/organics/Brown Dirt Ground Leaves Mud 2",
         "maps": {
+          "primary": "Ground040.png",
           "ao": "Ground040_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Ground040_2K-JPG_Color.jpg",
           "height": "Ground040_2K-JPG_Displacement.jpg",
@@ -1963,6 +2049,7 @@
         "name": "Brown Dirt Ground Soil",
         "relativePath": "material-ingredients/organics/Brown Dirt Ground Soil",
         "maps": {
+          "primary": "Ground048.png",
           "ao": "Ground048_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Ground048_2K-JPG_Color.jpg",
           "height": "Ground048_2K-JPG_Displacement.jpg",
@@ -1985,6 +2072,7 @@
         "name": "Brown Light Rough Wood",
         "relativePath": "material-ingredients/organics/Brown Light Rough Wood",
         "maps": {
+          "primary": "Wood079.png",
           "ao": "Wood079_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Wood079_2K-JPG_Color.jpg",
           "height": "Wood079_2K-JPG_Displacement.jpg",
@@ -2007,6 +2095,7 @@
         "name": "Brown Orange Wood",
         "relativePath": "material-ingredients/organics/Brown Orange Wood",
         "maps": {
+          "primary": "Wood081.png",
           "albedo": "Wood081_4K-JPG_Color.jpg",
           "height": "Wood081_4K-JPG_Displacement.jpg",
           "normal": "Wood081_4K-JPG_NormalDX.jpg",
@@ -2027,6 +2116,7 @@
         "name": "Brown Rough Wood",
         "relativePath": "material-ingredients/organics/Brown Rough Wood",
         "maps": {
+          "primary": "Wood086.png",
           "ao": "Wood086_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Wood086_2K-JPG_Color.jpg",
           "height": "Wood086_2K-JPG_Displacement.jpg",
@@ -2048,6 +2138,7 @@
         "name": "Carpet Cloth Fabric Floor Green Tiled",
         "relativePath": "material-ingredients/organics/Carpet Cloth Fabric Floor Green Tiled",
         "maps": {
+          "primary": "Fabric024.png",
           "albedo": "Fabric024_2K-JPG_Color.jpg",
           "height": "Fabric024_2K-JPG_Displacement.jpg",
           "normal": "Fabric024_2K-JPG_NormalDX.jpg",
@@ -2071,6 +2162,7 @@
         "name": "Carpet Cloth Fabric Floor Red Tiled",
         "relativePath": "material-ingredients/organics/Carpet Cloth Fabric Floor Red Tiled",
         "maps": {
+          "primary": "Fabric026.png",
           "albedo": "Fabric026_2K-JPG_Color.jpg",
           "height": "Fabric026_2K-JPG_Displacement.jpg",
           "normal": "Fabric026_2K-JPG_NormalDX.jpg",
@@ -2094,6 +2186,7 @@
         "name": "Carpet Fabric Green Woven",
         "relativePath": "material-ingredients/organics/Carpet Fabric Green Woven",
         "maps": {
+          "primary": "Fabric033.png",
           "albedo": "Fabric033_4K-JPG_Color.jpg",
           "height": "Fabric033_4K-JPG_Displacement.jpg",
           "normal": "Fabric033_4K-JPG_NormalDX.jpg",
@@ -2115,6 +2208,7 @@
         "name": "Clean Grass Green Lawn Short",
         "relativePath": "material-ingredients/organics/Clean Grass Green Lawn Short",
         "maps": {
+          "primary": "Grass005.png",
           "ao": "Grass005_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Grass005_2K-JPG_Color.jpg",
           "height": "Grass005_2K-JPG_Displacement.jpg",
@@ -2138,6 +2232,7 @@
         "name": "Cloth Fabric White Wool",
         "relativePath": "material-ingredients/organics/Cloth Fabric White Wool",
         "maps": {
+          "primary": "Fabric032.png",
           "albedo": "Fabric032_2K-JPG_Color.jpg",
           "height": "Fabric032_2K-JPG_Displacement.jpg",
           "normal": "Fabric032_2K-JPG_NormalDX.jpg",
@@ -2159,6 +2254,7 @@
         "name": "Dirt Gravel Ground Pebbles Soil",
         "relativePath": "material-ingredients/organics/Dirt Gravel Ground Pebbles Soil",
         "maps": {
+          "primary": "Ground039.png",
           "ao": "Ground039_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Ground039_2K-JPG_Color.jpg",
           "height": "Ground039_2K-JPG_Displacement.jpg",
@@ -2182,6 +2278,7 @@
         "name": "Dirt Ground Mud",
         "relativePath": "material-ingredients/organics/Dirt Ground Mud",
         "maps": {
+          "primary": "Ground049A.png",
           "ao": "Ground049A_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Ground049A_2K-JPG_Color.jpg",
           "height": "Ground049A_2K-JPG_Displacement.jpg",
@@ -2203,6 +2300,7 @@
         "name": "Dirt Ground Sand",
         "relativePath": "material-ingredients/organics/Dirt Ground Sand",
         "maps": {
+          "primary": "Ground045.png",
           "ao": "Ground045_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Ground045_2K-JPG_Color.jpg",
           "height": "Ground045_2K-JPG_Displacement.jpg",
@@ -2224,6 +2322,7 @@
         "name": "Grass Green Ground",
         "relativePath": "material-ingredients/organics/Grass Green Ground",
         "maps": {
+          "primary": "Grass003.png",
           "ao": "Grass003_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Grass003_2K-JPG_Color.jpg",
           "height": "Grass003_2K-JPG_Displacement.jpg",
@@ -2245,6 +2344,7 @@
         "name": "Grass Lawn",
         "relativePath": "material-ingredients/organics/Grass Lawn",
         "maps": {
+          "primary": "Grass006.png",
           "ao": "Grass006_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Grass006_2K-JPG_Color.jpg",
           "height": "Grass006_2K-JPG_Displacement.jpg",
@@ -2265,6 +2365,7 @@
         "name": "Green Moss Mossy",
         "relativePath": "material-ingredients/organics/Green Moss Mossy",
         "maps": {
+          "primary": "Moss004.png",
           "ao": "Moss004_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Moss004_2K-JPG_Color.jpg",
           "height": "Moss004_2K-JPG_Displacement.jpg",
@@ -2286,6 +2387,7 @@
         "name": "Matte Polished Smooth Wood Wooden",
         "relativePath": "material-ingredients/organics/Matte Polished Smooth Wood Wooden",
         "maps": {
+          "primary": "Wood093.png",
           "albedo": "Wood093_4K-JPG_Color.jpg",
           "height": "Wood093_4K-JPG_Displacement.jpg",
           "normal": "Wood093_4K-JPG_NormalDX.jpg",
@@ -2308,6 +2410,7 @@
         "name": "Old Planks Wood",
         "relativePath": "material-ingredients/organics/Old Planks Wood",
         "maps": {
+          "primary": "Wood080.png",
           "ao": "Wood080_2K-JPG_AmbientOcclusion.jpg",
           "albedo": "Wood080_2K-JPG_Color.jpg",
           "height": "Wood080_2K-JPG_Displacement.jpg",
@@ -2330,6 +2433,7 @@
         "name": "Plywood Side Wood",
         "relativePath": "material-ingredients/organics/Plywood Side Wood",
         "maps": {
+          "primary": "Wood088.png",
           "albedo": "Wood088_4K-JPG_Color.jpg",
           "height": "Wood088_4K-JPG_Displacement.jpg",
           "normal": "Wood088_4K-JPG_NormalDX.jpg",
@@ -2346,7 +2450,695 @@
         ]
       }
     ],
-    "gases": [],
+    "gases": [
+      {
+        "id": "cosmic-cliffs-carina-nebula",
+        "name": "Cosmic Cliffs – Carina Nebula",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "Cosmic Cliffs – Carina Nebula.tif"
+        },
+        "color": "#4a6bff",
+        "emissive": "#b6c9ff",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "Cosmic",
+          "Cliffs",
+          "Carina",
+          "Nebula"
+        ]
+      },
+      {
+        "id": "hdr-blue-local-star",
+        "name": "HDR_blue_local_star",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "environment": "HDR_blue_local_star.hdr"
+        },
+        "color": "#2950d5",
+        "emissive": "#7a84f5",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "HDR",
+          "blue",
+          "local",
+          "star"
+        ]
+      },
+      {
+        "id": "hdr-blue-nebulae-1",
+        "name": "HDR_blue_nebulae-1",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "environment": "HDR_blue_nebulae-1.hdr"
+        },
+        "color": "#4a6bff",
+        "emissive": "#b6c9ff",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "HDR",
+          "blue",
+          "nebulae",
+          "1"
+        ]
+      },
+      {
+        "id": "hdr-galactic-plane-hazy-nebulae",
+        "name": "HDR_galactic_plane_hazy_nebulae",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "environment": "HDR_galactic_plane_hazy_nebulae.hdr"
+        },
+        "color": "#4a6bff",
+        "emissive": "#b6c9ff",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "HDR",
+          "galactic",
+          "plane",
+          "hazy",
+          "nebulae"
+        ]
+      },
+      {
+        "id": "hdr-hazy-nebulae",
+        "name": "HDR_hazy_nebulae",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "environment": "HDR_hazy_nebulae.hdr"
+        },
+        "color": "#4a6bff",
+        "emissive": "#b6c9ff",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "HDR",
+          "hazy",
+          "nebulae"
+        ]
+      },
+      {
+        "id": "hdr-multi-nebulae",
+        "name": "HDR_multi_nebulae",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "environment": "HDR_multi_nebulae.hdr"
+        },
+        "color": "#4a6bff",
+        "emissive": "#b6c9ff",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "HDR",
+          "multi",
+          "nebulae"
+        ]
+      },
+      {
+        "id": "hdr-red-local-star",
+        "name": "HDR_red_local_star",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "environment": "HDR_red_local_star.hdr"
+        },
+        "color": "#2f72b7",
+        "emissive": "#6a9cec",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "HDR",
+          "red",
+          "local",
+          "star"
+        ]
+      },
+      {
+        "id": "hdr-rich-blue-nebulae-1",
+        "name": "HDR_rich_blue_nebulae_1",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "environment": "HDR_rich_blue_nebulae_1.hdr"
+        },
+        "color": "#4a6bff",
+        "emissive": "#b6c9ff",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "HDR",
+          "rich",
+          "blue",
+          "nebulae",
+          "1"
+        ]
+      },
+      {
+        "id": "hdr-rich-blue-nebulae-2",
+        "name": "HDR_rich_blue_nebulae_2",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "environment": "HDR_rich_blue_nebulae_2.hdr"
+        },
+        "color": "#4a6bff",
+        "emissive": "#b6c9ff",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "HDR",
+          "rich",
+          "blue",
+          "nebulae",
+          "2"
+        ]
+      },
+      {
+        "id": "hdr-rich-multi-nebulae-1",
+        "name": "HDR_rich_multi_nebulae_1",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "environment": "HDR_rich_multi_nebulae_1.hdr"
+        },
+        "color": "#4a6bff",
+        "emissive": "#b6c9ff",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "HDR",
+          "rich",
+          "multi",
+          "nebulae",
+          "1"
+        ]
+      },
+      {
+        "id": "hdr-rich-multi-nebulae-2",
+        "name": "HDR_rich_multi_nebulae_2",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "environment": "HDR_rich_multi_nebulae_2.hdr"
+        },
+        "color": "#4a6bff",
+        "emissive": "#b6c9ff",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "HDR",
+          "rich",
+          "multi",
+          "nebulae",
+          "2"
+        ]
+      },
+      {
+        "id": "hdr-silver-and-gold-nebulae",
+        "name": "HDR_silver_and_gold_nebulae",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "environment": "HDR_silver_and_gold_nebulae.hdr"
+        },
+        "color": "#f5c86c",
+        "emissive": "#ffeab3",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "HDR",
+          "silver",
+          "and",
+          "gold",
+          "nebulae"
+        ]
+      },
+      {
+        "id": "hdr-subdued-blue-nebulae",
+        "name": "HDR_subdued_blue_nebulae",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "environment": "HDR_subdued_blue_nebulae.hdr"
+        },
+        "color": "#4a6bff",
+        "emissive": "#b6c9ff",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "HDR",
+          "subdued",
+          "blue",
+          "nebulae"
+        ]
+      },
+      {
+        "id": "hdr-subdued-multi-nebulae",
+        "name": "HDR_subdued_multi_nebulae",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "environment": "HDR_subdued_multi_nebulae.hdr"
+        },
+        "color": "#4a6bff",
+        "emissive": "#b6c9ff",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "HDR",
+          "subdued",
+          "multi",
+          "nebulae"
+        ]
+      },
+      {
+        "id": "hdr-white-dwarf-star",
+        "name": "HDR_white_dwarf_star",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "environment": "HDR_white_dwarf_star.hdr"
+        },
+        "color": "#3d84cb",
+        "emissive": "#89b7ef",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "HDR",
+          "white",
+          "dwarf",
+          "star"
+        ]
+      },
+      {
+        "id": "hdr-white-dwarf-star-no-nebulae",
+        "name": "HDR_white_dwarf_star_no_nebulae",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "environment": "HDR_white_dwarf_star_no_nebulae.hdr"
+        },
+        "color": "#4a6bff",
+        "emissive": "#b6c9ff",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "HDR",
+          "white",
+          "dwarf",
+          "star",
+          "no",
+          "nebulae"
+        ]
+      },
+      {
+        "id": "hdr-white-local-star",
+        "name": "HDR_white_local_star",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "environment": "HDR_white_local_star.hdr"
+        },
+        "color": "#5cd3d4",
+        "emissive": "#acf4ef",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "HDR",
+          "white",
+          "local",
+          "star"
+        ]
+      },
+      {
+        "id": "heic0109a",
+        "name": "heic0109a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic0109a.tif"
+        },
+        "color": "#5d7ce2",
+        "emissive": "#b5bdfa",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic0109a"
+        ]
+      },
+      {
+        "id": "heic0503a",
+        "name": "heic0503a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic0503a.tif"
+        },
+        "color": "#42d2b5",
+        "emissive": "#92f2e6",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic0503a"
+        ]
+      },
+      {
+        "id": "heic0515a",
+        "name": "heic0515a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic0515a.tif"
+        },
+        "color": "#3965d5",
+        "emissive": "#8aacf4",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic0515a"
+        ]
+      },
+      {
+        "id": "heic0609a",
+        "name": "heic0609a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic0609a.tif"
+        },
+        "color": "#3264cc",
+        "emissive": "#7eacf0",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic0609a"
+        ]
+      },
+      {
+        "id": "heic0707a",
+        "name": "heic0707a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic0707a.tif"
+        },
+        "color": "#4f8ed6",
+        "emissive": "#a0c5f5",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic0707a"
+        ]
+      },
+      {
+        "id": "heic0715a",
+        "name": "heic0715a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic0715a.tif"
+        },
+        "color": "#419cc6",
+        "emissive": "#8bddec",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic0715a"
+        ]
+      },
+      {
+        "id": "heic1011a",
+        "name": "heic1011a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic1011a.tif"
+        },
+        "color": "#5f81d4",
+        "emissive": "#afbcf4",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic1011a"
+        ]
+      },
+      {
+        "id": "heic1118a",
+        "name": "heic1118a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic1118a.tif"
+        },
+        "color": "#4fceb6",
+        "emissive": "#9df1e8",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic1118a"
+        ]
+      },
+      {
+        "id": "heic1206a",
+        "name": "heic1206a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic1206a.tif"
+        },
+        "color": "#65b6cb",
+        "emissive": "#b0daf0",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic1206a"
+        ]
+      },
+      {
+        "id": "heic1307a",
+        "name": "heic1307a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic1307a.tif"
+        },
+        "color": "#5d80cc",
+        "emissive": "#a9c8f0",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic1307a"
+        ]
+      },
+      {
+        "id": "heic1310a",
+        "name": "heic1310a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic1310a.tif"
+        },
+        "color": "#51c7b8",
+        "emissive": "#9bebed",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic1310a"
+        ]
+      },
+      {
+        "id": "heic1518a",
+        "name": "heic1518a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic1518a.tif"
+        },
+        "color": "#5361cb",
+        "emissive": "#9fa7ef",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic1518a"
+        ]
+      },
+      {
+        "id": "heic1520a",
+        "name": "heic1520a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic1520a.tif"
+        },
+        "color": "#277cd2",
+        "emissive": "#74bdf5",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic1520a"
+        ]
+      },
+      {
+        "id": "heic1608a",
+        "name": "heic1608a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic1608a.tif"
+        },
+        "color": "#5eaac5",
+        "emissive": "#a7e0ec",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic1608a"
+        ]
+      },
+      {
+        "id": "heic1819a",
+        "name": "heic1819a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic1819a.tif"
+        },
+        "color": "#59dfcb",
+        "emissive": "#aff9e9",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic1819a"
+        ]
+      },
+      {
+        "id": "heic1907a",
+        "name": "heic1907a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic1907a.tif"
+        },
+        "color": "#2a6abb",
+        "emissive": "#67a3ef",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic1907a"
+        ]
+      },
+      {
+        "id": "heic2007a",
+        "name": "heic2007a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic2007a.tif"
+        },
+        "color": "#65a7d9",
+        "emissive": "#b8daf6",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic2007a"
+        ]
+      },
+      {
+        "id": "heic2011a",
+        "name": "heic2011a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic2011a.tif"
+        },
+        "color": "#3eae97",
+        "emissive": "#79e3d9",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic2011a"
+        ]
+      },
+      {
+        "id": "heic2020a",
+        "name": "heic2020a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "heic2020a.tif"
+        },
+        "color": "#6486d2",
+        "emissive": "#b3c3f3",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "heic2020a"
+        ]
+      },
+      {
+        "id": "opo0006a",
+        "name": "opo0006a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "opo0006a.tif"
+        },
+        "color": "#3f69c1",
+        "emissive": "#879fe9",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "opo0006a"
+        ]
+      },
+      {
+        "id": "opo0028a",
+        "name": "opo0028a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "opo0028a.tif"
+        },
+        "color": "#59bdc5",
+        "emissive": "#a2e4ec",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "opo0028a"
+        ]
+      },
+      {
+        "id": "opo9607a",
+        "name": "opo9607a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "opo9607a.tif"
+        },
+        "color": "#27c4a7",
+        "emissive": "#69f2f0",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "opo9607a"
+        ]
+      },
+      {
+        "id": "potw1720a",
+        "name": "potw1720a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "potw1720a.tif"
+        },
+        "color": "#505dc7",
+        "emissive": "#9bb0ed",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "potw1720a"
+        ]
+      },
+      {
+        "id": "potw1932a",
+        "name": "potw1932a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "potw1932a.tif"
+        },
+        "color": "#56c9c0",
+        "emissive": "#a1eee1",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "potw1932a"
+        ]
+      },
+      {
+        "id": "potw1933a",
+        "name": "potw1933a",
+        "relativePath": "material-ingredients/gases",
+        "maps": {
+          "albedo": "potw1933a.tif"
+        },
+        "color": "#3e50b3",
+        "emissive": "#7c84e5",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "potw1933a"
+        ]
+      }
+    ],
     "other": [
       {
         "id": "abstractwall-5-1k",
@@ -2366,7 +3158,9 @@
         "provider": "CC0 texture pack",
         "license": "Verify before sharing",
         "tags": [
-          "abstractwall5-1K"
+          "abstractwall",
+          "5",
+          "1K"
         ]
       },
       {
@@ -2376,6 +3170,7 @@
         "maps": {
           "albedo": "1K-abstract_colorglass-ao.jpg",
           "ao": "1K-abstract_colorglass-ao.jpg",
+          "primary": "1K-abstract_colorglass-diffuse.jpg",
           "height": "1K-abstract_colorglass-displacement.jpg",
           "normal": "1K-abstract_colorglass-normal.jpg",
           "specular": "1K-abstract_colorglass-specular.jpg"
@@ -2385,7 +3180,9 @@
         "provider": "Local import",
         "license": "Verify before sharing",
         "tags": [
-          "colorglass-1K"
+          "color",
+          "glass",
+          "1K"
         ]
       },
       {
@@ -2393,6 +3190,7 @@
         "name": "Fire Lava Magma Vulcan",
         "relativePath": "material-ingredients/other/Fire Lava Magma Vulcan",
         "maps": {
+          "primary": "Lava004.png",
           "albedo": "Lava004_4K-JPG_Color.jpg",
           "height": "Lava004_4K-JPG_Displacement.jpg",
           "emissive": "Lava004_4K-JPG_Emission.jpg",
@@ -2428,7 +3226,9 @@
         "provider": "CC0 texture pack",
         "license": "Verify before sharing",
         "tags": [
-          "Lava02-1K"
+          "Lava",
+          "02",
+          "1K"
         ]
       },
       {
@@ -2449,7 +3249,9 @@
         "provider": "CC0 texture pack",
         "license": "Verify before sharing",
         "tags": [
-          "Lava04-1K"
+          "Lava",
+          "04",
+          "1K"
         ]
       },
       {
@@ -2470,7 +3272,39 @@
         "provider": "CC0 texture pack",
         "license": "Verify before sharing",
         "tags": [
-          "lava9-1K"
+          "lava",
+          "9",
+          "1K"
+        ]
+      },
+      {
+        "id": "particles",
+        "name": "Particles",
+        "relativePath": "material-ingredients/other/Particles",
+        "maps": {
+          "primary": "Preview.png"
+        },
+        "color": "#8f52d4",
+        "emissive": "#c4a3f4",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "Particles"
+        ]
+      },
+      {
+        "id": "smokes",
+        "name": "Smokes",
+        "relativePath": "material-ingredients/other/Smokes",
+        "maps": {
+          "primary": "preview.png"
+        },
+        "color": "#d225d0",
+        "emissive": "#f671e1",
+        "provider": "Local import",
+        "license": "Verify before sharing",
+        "tags": [
+          "Smokes"
         ]
       }
     ]
