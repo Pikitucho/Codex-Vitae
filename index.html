@@ -317,12 +317,19 @@
 
     <script src="js/skill-tree-data.js?v=20240610"></script>
     <script src="js/skill-universe-star-mixer.js?v=20240610"></script>
+    <script src="vendor/three-r160.min.js"></script>
     <script src="js/skill-universe-renderer.js?v=20240610"></script>
     <!-- Configuration values (firebase config, backend URL) -->
     <script src="config.js?v=20240610"></script>
     <script src="js/main.js?v=20240610"></script>
-    <script src="vendor/three-r160.min.js"></script>
     <script src="js/pipeline/passes/grade-pass.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160/build/three.module.js"
+            }
+        }
+    </script>
     <script type="module" src="js/pipeline/webgl-pipeline.js"></script>
     <script src="js/pipeline/texture-store.js"></script>
     <script>
