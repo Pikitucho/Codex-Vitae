@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Codex Vitae web app",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "generate:skill-library": "node tools/build-skill-universe-library.js"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
