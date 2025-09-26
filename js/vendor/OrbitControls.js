@@ -12,7 +12,20 @@
         ROTATE: 0,
         PAN: 1,
         TOUCH_ROTATE: 2,
-        TOUCH_DOLLY_PAN: 3
+        TOUCH_DOLLY_PAN: 3,
+        DOLLY: 4
+    };
+
+    const MOUSE_ACTION = {
+        ROTATE: 'ROTATE',
+        PAN: 'PAN',
+        DOLLY: 'DOLLY'
+    };
+
+    const TOUCH_ACTION = {
+        ROTATE: 'ROTATE',
+        DOLLY_PAN: 'DOLLY_PAN',
+        PAN: 'PAN'
     };
 
     class OrbitControls extends THREE.EventDispatcher {
@@ -57,6 +70,38 @@
             this._startPointer = new THREE.Vector2();
             this._touchCenter = new THREE.Vector2();
             this._touchDistance = 0;
+            this._allowTouchZoom = true;
+
+            const mouseConfig = (THREE && THREE.MOUSE) || null;
+            const touchConfig = (THREE && THREE.TOUCH) || null;
+            this.mouseButtons = {
+                LEFT: mouseConfig && typeof mouseConfig.ROTATE !== 'undefined'
+                    ? mouseConfig.ROTATE
+                    : MOUSE_ACTION.ROTATE,
+                MIDDLE: mouseConfig && typeof mouseConfig.DOLLY !== 'undefined'
+                    ? mouseConfig.DOLLY
+                    : (mouseConfig && typeof mouseConfig.MIDDLE !== 'undefined'
+                        ? mouseConfig.MIDDLE
+                        : MOUSE_ACTION.DOLLY),
+                RIGHT: mouseConfig && typeof mouseConfig.PAN !== 'undefined'
+                    ? mouseConfig.PAN
+                    : (mouseConfig && typeof mouseConfig.RIGHT !== 'undefined'
+                        ? mouseConfig.RIGHT
+                        : MOUSE_ACTION.PAN)
+            };
+            this.touches = {
+                ONE: touchConfig && typeof touchConfig.ROTATE !== 'undefined'
+                    ? touchConfig.ROTATE
+                    : TOUCH_ACTION.ROTATE,
+                TWO: touchConfig && typeof touchConfig.DOLLY_PAN !== 'undefined'
+                    ? touchConfig.DOLLY_PAN
+                    : (touchConfig && typeof touchConfig.DOLLY_ROTATE !== 'undefined'
+                        ? touchConfig.DOLLY_ROTATE
+                        : TOUCH_ACTION.DOLLY_PAN),
+                THREE: touchConfig && typeof touchConfig.PAN !== 'undefined'
+                    ? touchConfig.PAN
+                    : TOUCH_ACTION.PAN
+            };
 
             this._onContextMenu = this._onContextMenu.bind(this);
             this._onMouseDown = this._onMouseDown.bind(this);
@@ -103,12 +148,21 @@
             if (!this.enabled) {
                 return;
             }
+            const action = this._mapMouseButton(event.button);
+            if (!action) {
+                return;
+            }
             event.preventDefault();
-            if (event.button === 0) {
-                this._state = event.shiftKey ? STATE.PAN : STATE.ROTATE;
-            } else if (event.button === 2) {
-                this._state = STATE.PAN;
+            if (action === MOUSE_ACTION.ROTATE) {
+                this._state = (event.shiftKey && this.enablePan) ? STATE.PAN : STATE.ROTATE;
+            } else if (action === MOUSE_ACTION.PAN) {
+                this._state = (event.shiftKey && this.enableRotate) ? STATE.ROTATE : STATE.PAN;
+            } else if (action === MOUSE_ACTION.DOLLY) {
+                this._state = STATE.DOLLY;
             } else {
+                this._state = STATE.NONE;
+            }
+            if (this._state === STATE.NONE) {
                 return;
             }
             this._startPointer.set(event.clientX, event.clientY);
@@ -132,6 +186,8 @@
                 this._handleRotate(deltaX, deltaY);
             } else if (this._state === STATE.PAN && this.enablePan) {
                 this._handlePan(deltaX, deltaY);
+            } else if (this._state === STATE.DOLLY && this.enableZoom) {
+                this._handleMouseDolly(deltaY);
             }
             this._startPointer.copy(this._pointer);
             this.dispatchEvent({ type: 'change' });
@@ -189,17 +245,21 @@
                 return;
             }
             event.preventDefault();
-            if (event.touches.length === 1 && this.enableRotate) {
+            const action = this._mapTouchAction(event.touches.length);
+            this._allowTouchZoom = action !== TOUCH_ACTION.PAN;
+            if (action === TOUCH_ACTION.ROTATE && this.enableRotate && event.touches.length === 1) {
                 this._state = STATE.TOUCH_ROTATE;
                 this._startPointer.set(event.touches[0].pageX, event.touches[0].pageY);
-            } else if (event.touches.length >= 2) {
+            } else if (action && action !== TOUCH_ACTION.ROTATE && this.enablePan) {
                 this._state = STATE.TOUCH_DOLLY_PAN;
-                this._touchDistance = this._getTouchDistance(event.touches);
+                this._touchDistance = event.touches.length >= 2 ? this._getTouchDistance(event.touches) : 0;
                 this._startPointer.copy(this._getTouchCenter(event.touches));
             } else {
                 this._state = STATE.NONE;
             }
-            this.dispatchEvent({ type: 'start' });
+            if (this._state !== STATE.NONE) {
+                this.dispatchEvent({ type: 'start' });
+            }
         }
 
         _onTouchMove(event) {
@@ -217,9 +277,9 @@
                 this._handleRotate(deltaX, deltaY);
                 this._startPointer.copy(this._pointer);
                 this.dispatchEvent({ type: 'change' });
-            } else if (this._state === STATE.TOUCH_DOLLY_PAN && event.touches.length >= 2) {
-                const distance = this._getTouchDistance(event.touches);
-                if (this.enableZoom && this._touchDistance > 0 && distance > 0) {
+            } else if (this._state === STATE.TOUCH_DOLLY_PAN) {
+                const distance = event.touches.length >= 2 ? this._getTouchDistance(event.touches) : 0;
+                if (this.enableZoom && this._allowTouchZoom && this._touchDistance > 0 && distance > 0) {
                     const ratio = distance / this._touchDistance;
                     if (Number.isFinite(ratio) && ratio !== 1) {
                         if (ratio > 1) {
@@ -238,7 +298,7 @@
                 } else {
                     this._startPointer.copy(this._getTouchCenter(event.touches));
                 }
-                this._touchDistance = distance;
+                this._touchDistance = distance || 0;
                 this.dispatchEvent({ type: 'change' });
             }
         }
@@ -248,13 +308,15 @@
                 return;
             }
             if (event.touches && event.touches.length > 0) {
-                if (event.touches.length === 1 && this.enableRotate) {
+                const action = this._mapTouchAction(event.touches.length);
+                this._allowTouchZoom = action !== TOUCH_ACTION.PAN;
+                if (action === TOUCH_ACTION.ROTATE && this.enableRotate && event.touches.length === 1) {
                     this._state = STATE.TOUCH_ROTATE;
                     this._startPointer.set(event.touches[0].pageX, event.touches[0].pageY);
                     this._touchDistance = 0;
-                } else if (event.touches.length >= 2) {
+                } else if (action && action !== TOUCH_ACTION.ROTATE && this.enablePan) {
                     this._state = STATE.TOUCH_DOLLY_PAN;
-                    this._touchDistance = this._getTouchDistance(event.touches);
+                    this._touchDistance = event.touches.length >= 2 ? this._getTouchDistance(event.touches) : 0;
                     this._startPointer.copy(this._getTouchCenter(event.touches));
                 } else {
                     this._state = STATE.NONE;
@@ -272,6 +334,137 @@
             const rotateDeltaPhi = (2 * Math.PI * deltaY / element.clientHeight) * this.rotateSpeed;
             this._sphericalDelta.theta -= rotateDeltaTheta;
             this._sphericalDelta.phi -= rotateDeltaPhi;
+        }
+
+        _handleMouseDolly(deltaY) {
+            const normalized = Math.abs(deltaY);
+            if (!Number.isFinite(normalized) || normalized === 0) {
+                return;
+            }
+            const scaled = Math.pow(0.95, (normalized * this.zoomSpeed) / 40);
+            if (deltaY > 0) {
+                this._dollyIn(scaled);
+            } else if (deltaY < 0) {
+                this._dollyOut(1 / scaled);
+            }
+        }
+
+        _mapMouseButton(button) {
+            const mapping = this.mouseButtons || {};
+            let action = null;
+            if (button === 0) {
+                action = mapping.LEFT;
+            } else if (button === 1) {
+                action = mapping.MIDDLE;
+            } else if (button === 2) {
+                action = mapping.RIGHT;
+            }
+            return this._resolveMouseAction(action);
+        }
+
+        _resolveMouseAction(action) {
+            if (action === undefined || action === null) {
+                return null;
+            }
+            if (typeof action === 'string') {
+                const normalized = action.toUpperCase();
+                if (normalized === MOUSE_ACTION.ROTATE) {
+                    return MOUSE_ACTION.ROTATE;
+                }
+                if (normalized === MOUSE_ACTION.PAN) {
+                    return MOUSE_ACTION.PAN;
+                }
+                if (normalized === MOUSE_ACTION.DOLLY) {
+                    return MOUSE_ACTION.DOLLY;
+                }
+            }
+            if (action === STATE.ROTATE) {
+                return MOUSE_ACTION.ROTATE;
+            }
+            if (action === STATE.PAN) {
+                return MOUSE_ACTION.PAN;
+            }
+            if (action === STATE.DOLLY) {
+                return MOUSE_ACTION.DOLLY;
+            }
+            const mouseConfig = (THREE && THREE.MOUSE) || null;
+            if (mouseConfig) {
+                switch (action) {
+                    case mouseConfig.ROTATE:
+                        return MOUSE_ACTION.ROTATE;
+                    case mouseConfig.DOLLY:
+                        return MOUSE_ACTION.DOLLY;
+                    case mouseConfig.PAN:
+                        return MOUSE_ACTION.PAN;
+                    default:
+                        break;
+                }
+            }
+            if (typeof action === 'number') {
+                switch (action) {
+                    case 0:
+                        return MOUSE_ACTION.ROTATE;
+                    case 1:
+                        return MOUSE_ACTION.DOLLY;
+                    case 2:
+                        return MOUSE_ACTION.PAN;
+                    default:
+                        break;
+                }
+            }
+            return null;
+        }
+
+        _mapTouchAction(touchCount) {
+            const mapping = this.touches || {};
+            let action = null;
+            if (touchCount === 1) {
+                action = mapping.ONE;
+            } else if (touchCount === 2) {
+                action = mapping.TWO;
+            } else if (touchCount === 3) {
+                action = mapping.THREE;
+            }
+            return this._resolveTouchAction(action);
+        }
+
+        _resolveTouchAction(action) {
+            if (action === undefined || action === null) {
+                return null;
+            }
+            if (typeof action === 'string') {
+                const normalized = action.toUpperCase();
+                if (normalized === TOUCH_ACTION.ROTATE) {
+                    return TOUCH_ACTION.ROTATE;
+                }
+                if (normalized === TOUCH_ACTION.PAN) {
+                    return TOUCH_ACTION.PAN;
+                }
+                if (normalized === TOUCH_ACTION.DOLLY_PAN || normalized === 'DOLLY' || normalized === 'DOLLYPAN') {
+                    return TOUCH_ACTION.DOLLY_PAN;
+                }
+            }
+            if (action === STATE.TOUCH_ROTATE) {
+                return TOUCH_ACTION.ROTATE;
+            }
+            if (action === STATE.TOUCH_DOLLY_PAN) {
+                return TOUCH_ACTION.DOLLY_PAN;
+            }
+            const touchConfig = (THREE && THREE.TOUCH) || null;
+            if (touchConfig) {
+                switch (action) {
+                    case touchConfig.ROTATE:
+                        return TOUCH_ACTION.ROTATE;
+                    case touchConfig.PAN:
+                        return TOUCH_ACTION.PAN;
+                    case touchConfig.DOLLY_PAN:
+                    case touchConfig.DOLLY_ROTATE:
+                        return TOUCH_ACTION.DOLLY_PAN;
+                    default:
+                        break;
+                }
+            }
+            return null;
         }
 
         _handlePan(deltaX, deltaY) {
