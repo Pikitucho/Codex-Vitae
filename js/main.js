@@ -1331,7 +1331,6 @@ function createStarDetailController() {
     };
 }
 
-const CONSTELLATION_PAN_NUDGE = 80;
 
 const starDetailController = createStarDetailController();
 
@@ -2642,17 +2641,8 @@ function updateSkillTreeUI(title, breadcrumbs, showBack) {
     renderSkillTreeBreadcrumbs(breadcrumbs);
     skillBackBtn.classList.toggle('hidden', !showBack);
 
-    if (skillTreePanControls) {
-        const breadcrumbCount = Array.isArray(breadcrumbs) ? breadcrumbs.length : 0;
-        const showPanControls = breadcrumbCount === 2;
-        skillTreePanControls.classList.toggle('hidden', !showPanControls);
-        skillTreePanControls.setAttribute('aria-hidden', showPanControls ? 'false' : 'true');
-        if (skillPanLeftBtn) {
-            skillPanLeftBtn.disabled = !showPanControls;
-        }
-        if (skillPanRightBtn) {
-            skillPanRightBtn.disabled = !showPanControls;
-        }
+    if (typeof updateOrbitControlsState === 'function') {
+        updateOrbitControlsState();
     }
 
     updateOrbitControlsState();

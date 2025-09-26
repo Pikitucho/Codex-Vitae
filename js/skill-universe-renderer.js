@@ -2702,7 +2702,7 @@
             }
         }
 
-        _configureTextureForSlot(texture, slot) {
+        _configureTextureForSlot(texture, slot, { forceUpdate = true } = {}) {
             if (!texture) {
                 return;
             }
@@ -2728,7 +2728,17 @@
             if (Number.isFinite(this._maxAnisotropy) && this._maxAnisotropy > 1 && typeof texture.anisotropy === 'number') {
                 texture.anisotropy = this._maxAnisotropy;
             }
-            texture.needsUpdate = true;
+            if (forceUpdate) {
+                const image = texture.image || texture.source?.data || null;
+                const hasDimensions = image && typeof image === 'object'
+                    && (typeof image.width === 'number' || typeof image.height === 'number')
+                    && (image.width > 0 || image.height > 0);
+                const hasArrayData = (image && typeof image === 'object' && 'data' in image && image.data)
+                    || (typeof ArrayBuffer !== 'undefined' && image && ArrayBuffer.isView && ArrayBuffer.isView(image));
+                if (hasDimensions || hasArrayData) {
+                    texture.needsUpdate = true;
+                }
+            }
         }
 
         _acquireTexture(url, slot) {
@@ -2759,8 +2769,10 @@
             try {
                 const texture = this._textureLoader.load(
                     url,
-                    () => {
+                    (loadedTexture) => {
                         try {
+                            const resolvedTexture = loadedTexture || texture;
+                            this._configureTextureForSlot(resolvedTexture, slot);
                             this.render();
                         } catch (renderError) {
                             console.warn('Texture load render update failed:', renderError);
@@ -2778,7 +2790,7 @@
                         }
                     }
                 );
-                this._configureTextureForSlot(texture, slot);
+                this._configureTextureForSlot(texture, slot, { forceUpdate: false });
                 this._textureCache.set(url, { texture, refCount: 1 });
                 return texture;
             } catch (loadError) {
