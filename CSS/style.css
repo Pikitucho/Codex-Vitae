@@ -597,8 +597,6 @@ model-viewer.avatar-viewer {
 
 #skill-search-form button:hover {
     box-shadow: 0 12px 24px rgba(245, 178, 103, 0.34);
-
-    gap: 12px;
 }
 
 #skill-tree-controls {
@@ -607,30 +605,6 @@ model-viewer.avatar-viewer {
     gap: 12px;
 }
 
-#skill-tree-pan-controls {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.skill-tree-pan-button {
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1em;
-    line-height: 1;
-    box-shadow: 0 8px 14px rgba(63, 111, 118, 0.28);
-}
-
-.skill-tree-pan-button:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-    box-shadow: none;
-}
 
 #skill-tree-canvas-container {
     position: relative;

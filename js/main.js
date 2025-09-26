@@ -92,9 +92,6 @@ const skillTreeTitle = document.getElementById('skill-tree-title');
 const skillBackBtn = document.getElementById('skill-back-btn');
 const skillSearchForm = document.getElementById('skill-search-form');
 const skillSearchInput = document.getElementById('skill-search-input');
-const skillTreePanControls = document.getElementById('skill-tree-pan-controls');
-const skillPanLeftBtn = document.getElementById('skill-pan-left');
-const skillPanRightBtn = document.getElementById('skill-pan-right');
 const authEmailInput = document.getElementById('email-input');
 const authPasswordInput = document.getElementById('password-input');
 const loginButton = document.getElementById('login-btn');
@@ -1323,7 +1320,6 @@ function createStarDetailController() {
     };
 }
 
-const CONSTELLATION_PAN_NUDGE = 80;
 
 const starDetailController = createStarDetailController();
 
@@ -2609,17 +2605,8 @@ function updateSkillTreeUI(title, breadcrumbs, showBack) {
     renderSkillTreeBreadcrumbs(breadcrumbs);
     skillBackBtn.classList.toggle('hidden', !showBack);
 
-    if (skillTreePanControls) {
-        const breadcrumbCount = Array.isArray(breadcrumbs) ? breadcrumbs.length : 0;
-        const showPanControls = breadcrumbCount === 2;
-        skillTreePanControls.classList.toggle('hidden', !showPanControls);
-        skillTreePanControls.setAttribute('aria-hidden', showPanControls ? 'false' : 'true');
-        if (skillPanLeftBtn) {
-            skillPanLeftBtn.disabled = !showPanControls;
-        }
-        if (skillPanRightBtn) {
-            skillPanRightBtn.disabled = !showPanControls;
-        }
+    if (typeof updateOrbitControlsState === 'function') {
+        updateOrbitControlsState();
     }
 }
 
@@ -3133,20 +3120,6 @@ function setupEventListeners() {
             starDetailController.hide();
             skillsModal.classList.add('hidden');
         });
-    }
-
-    const nudgeConstellations = (delta) => {
-        if (skillRenderer && typeof skillRenderer.adjustConstellationOffset === 'function') {
-            skillRenderer.adjustConstellationOffset(delta);
-        }
-    };
-
-    if (skillPanLeftBtn) {
-        skillPanLeftBtn.addEventListener('click', () => nudgeConstellations(-CONSTELLATION_PAN_NUDGE));
-    }
-
-    if (skillPanRightBtn) {
-        skillPanRightBtn.addEventListener('click', () => nudgeConstellations(CONSTELLATION_PAN_NUDGE));
     }
 
     if (skillBackBtn) {
