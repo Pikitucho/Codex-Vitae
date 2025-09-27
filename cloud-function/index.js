@@ -1,3 +1,4 @@
+const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -26,9 +27,57 @@ if (!PROJECT_ID) {
   );
 }
 
+const CREDENTIALS_PATH = (process.env.GOOGLE_APPLICATION_CREDENTIALS || '').trim();
+const MISSING_CREDENTIALS_MESSAGE = (() => {
+  if (!CREDENTIALS_PATH) {
+    return '';
+  }
+  try {
+    const stats = fs.statSync(CREDENTIALS_PATH);
+    if (!stats.isFile()) {
+      return `Credential file not found at ${CREDENTIALS_PATH}.`;
+    }
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return `Credential file not found at ${CREDENTIALS_PATH}.`;
+    }
+    return `Unable to access credential file at ${CREDENTIALS_PATH}: ${error.message}`;
+  }
+  return '';
+})();
+if (MISSING_CREDENTIALS_MESSAGE) {
+  console.error(MISSING_CREDENTIALS_MESSAGE);
+}
+
 const LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
 const TEXT_MODEL = process.env.VERTEX_TEXT_MODEL || 'gemini-1.5-pro';
 const IMAGE_MODEL = process.env.VERTEX_IMAGE_MODEL || 'imagegeneration@002';
+
+const ERROR_CODES = {
+  vertexAuthTimeout: 'VERTEX_AUTH_TIMEOUT',
+  vertexRequestTimeout: 'VERTEX_REQUEST_TIMEOUT'
+};
+
+const VERTEX_AUTH_TIMEOUT_MS = 20000;
+const VERTEX_REQUEST_TIMEOUT_MS = 45000;
+
+function createTimeoutError(message, code) {
+  const error = new Error(message);
+  if (code) {
+    error.code = code;
+  }
+  return error;
+}
+
+function withTimeout(promise, ms, onTimeout) {
+  let timer;
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      reject(typeof onTimeout === 'function' ? onTimeout() : createTimeoutError(onTimeout));
+    }, ms);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+}
 
 const googleAuth = new GoogleAuth({
   scopes: ['https://www.googleapis.com/auth/cloud-platform']
@@ -37,14 +86,35 @@ let authClientPromise;
 
 async function getAuthClient() {
   if (!authClientPromise) {
-    authClientPromise = googleAuth.getClient();
+    authClientPromise = (async () => {
+      try {
+        return await withTimeout(
+          googleAuth.getClient(),
+          VERTEX_AUTH_TIMEOUT_MS,
+          () => createTimeoutError(
+            'Timed out while acquiring Google auth client for Vertex AI.',
+            ERROR_CODES.vertexAuthTimeout
+          )
+        );
+      } catch (error) {
+        authClientPromise = null;
+        throw error;
+      }
+    })();
   }
   return authClientPromise;
 }
 
 async function getAccessToken() {
   const client = await getAuthClient();
-  const accessToken = await client.getAccessToken();
+  const accessToken = await withTimeout(
+    client.getAccessToken(),
+    VERTEX_AUTH_TIMEOUT_MS,
+    () => createTimeoutError(
+      'Timed out while acquiring access token for Vertex AI.',
+      ERROR_CODES.vertexAuthTimeout
+    )
+  );
   const token = typeof accessToken === 'string' ? accessToken : accessToken?.token;
   if (!token) {
     throw new Error('Unable to acquire access token for Vertex AI.');
@@ -53,6 +123,9 @@ async function getAccessToken() {
 }
 
 async function callVertex(model, body) {
+  if (MISSING_CREDENTIALS_MESSAGE) {
+    throw new Error(MISSING_CREDENTIALS_MESSAGE);
+  }
   if (!PROJECT_ID) {
     throw new Error(MISSING_PROJECT_MESSAGE);
   }
@@ -83,13 +156,50 @@ async function callVertex(model, body) {
     timeout: 60000
   });
   return data;
+  try {
+    const { data } = await axios.post(url, body, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: VERTEX_REQUEST_TIMEOUT_MS
+    });
+    return data;
+  } catch (error) {
+    const timeoutTriggered =
+      error?.code === 'ECONNABORTED' ||
+      error?.code === 'ERR_CANCELED' ||
+      error?.name === 'AbortError' ||
+      typeof error?.message === 'string' && error.message.toLowerCase().includes('timeout');
+    if (timeoutTriggered) {
+      throw createTimeoutError('Vertex AI request timed out.', ERROR_CODES.vertexRequestTimeout);
+    }
+    throw error;
+  }
 }
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '15mb' }));
 
+function isConfigurationError(error) {
+  const message = error?.message;
+  return Boolean(
+    message === MISSING_PROJECT_MESSAGE ||
+    (MISSING_CREDENTIALS_MESSAGE && message === MISSING_CREDENTIALS_MESSAGE)
+  );
+}
+
+function isVertexTimeoutError(error) {
+  const code = error?.code;
+  return code === ERROR_CODES.vertexAuthTimeout || code === ERROR_CODES.vertexRequestTimeout;
+}
+
 function ensureProjectConfigured(res) {
+  if (MISSING_CREDENTIALS_MESSAGE) {
+    res.status(500).json({ error: MISSING_CREDENTIALS_MESSAGE });
+    return false;
+  }
   if (PROJECT_ID) {
     return true;
   }
@@ -98,12 +208,28 @@ function ensureProjectConfigured(res) {
 }
 
 app.get('/healthz', (req, res) => {
-  const configured = Boolean(PROJECT_ID);
-  res.json({
-    ok: true,
-    vertexProjectConfigured: configured,
-    ...(configured ? {} : { message: MISSING_PROJECT_MESSAGE })
-  });
+  const projectConfigured = Boolean(PROJECT_ID);
+  const credentialsValid = !MISSING_CREDENTIALS_MESSAGE;
+  const ok = projectConfigured && credentialsValid;
+  const status = ok ? 200 : 500;
+  const messages = [];
+  if (!projectConfigured) {
+    messages.push(MISSING_PROJECT_MESSAGE);
+  }
+  if (!credentialsValid) {
+    messages.push(MISSING_CREDENTIALS_MESSAGE);
+  }
+  const response = {
+    ok,
+    vertexProjectConfigured: projectConfigured,
+    credentialFileValid: credentialsValid
+  };
+  if (messages.length === 1) {
+    response.message = messages[0];
+  } else if (messages.length > 1) {
+    response.messages = messages;
+  }
+  res.status(status).json(response);
 });
 
 app.post('/classify-chore', async (req, res) => {
@@ -176,8 +302,11 @@ app.post('/classify-chore', async (req, res) => {
 
     res.json({ stat, effort });
   } catch (error) {
-    if (error?.message === MISSING_PROJECT_MESSAGE) {
-      res.status(500).json({ error: MISSING_PROJECT_MESSAGE });
+    if (isConfigurationError(error)) {
+      res.status(500).json({ error: error.message });
+    } else if (isVertexTimeoutError(error)) {
+      console.warn('classify-chore timeout', error.message);
+      res.status(504).json({ error: error.message });
     } else {
       console.error('classify-chore error', error);
       res.status(502).json({ error: 'Classification failed.' });
@@ -233,8 +362,11 @@ app.post('/generate-avatar', async (req, res) => {
 
     res.json({ imageUrl: `data:${generatedMime};base64,${generatedImage}` });
   } catch (error) {
-    if (error?.message === MISSING_PROJECT_MESSAGE) {
-      res.status(500).json({ error: MISSING_PROJECT_MESSAGE });
+    if (isConfigurationError(error)) {
+      res.status(500).json({ error: error.message });
+    } else if (isVertexTimeoutError(error)) {
+      console.warn('generate-avatar timeout', error.message);
+      res.status(504).json({ error: error.message });
     } else {
       console.error('generate-avatar error', error);
       res.status(502).json({ error: 'Avatar generation failed.' });

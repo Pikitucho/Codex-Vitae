@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Codex Vitae</title>
     <link rel="stylesheet" href="CSS/style.css">
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160/build/three.module.js"
+            }
+        }
+    </script>
 </head>
 <body>
 
@@ -12,169 +20,215 @@
         <h1>Codex Vitae</h1>
         <input type="email" id="email-input" placeholder="Email">
         <input type="password" id="password-input" placeholder="Password">
-        <button id="login-btn">Login</button>
-        <button id="signup-btn">Sign Up</button>
+        <button id="login-btn" type="button">Login</button>
+        <button id="signup-btn" type="button">Sign Up</button>
     </div>
 
     <div id="app-screen" class="hidden">
         <h2>Welcome to Your Codex</h2>
 
-        <div id="level-xp-display" class="widget">
-            <div class="flex-between">
-                <p>Level <span id="level-value">1</span></p>
-                <p id="xp-text">0 / 10 Stats</p>
+        <div id="legacy-level-section" class="widget level-card" role="region" aria-label="Legacy Level">
+            <div class="level-card-header">
+                <h3>Legacy Level</h3>
+                <div class="legacy-level-display">
+                    <span class="legacy-level-label">Lvl</span>
+                    <span id="legacy-level">0</span>
+                    <span class="legacy-level-infinity">∞</span>
+                </div>
             </div>
-            <div class="progress-bar-container">
-                <div id="xp-bar" class="progress-bar"></div>
+            <div class="legacy-progress-track" aria-hidden="true">
+                <div class="legacy-progress-fill" id="legacy-progress-fill"></div>
+            </div>
+            <p id="legacy-progress-text" class="legacy-progress-text">Begin your Legacy journey.</p>
+            <div class="legacy-score-meta">
+                <div class="legacy-score-block">
+                    <span class="meta-label">Legacy Score</span>
+                    <strong id="legacy-score">0</strong>
+                </div>
             </div>
         </div>
-        
-        <div id="perk-point-display" class="widget">
-            <div class="flex-between">
-                <h3>Perk Points: <span id="pp-total">0</span></h3>
-            </div>
-            
-            <div class="milestone-progress">
-                <div class="flex-between">
-                    <p class="milestone-label">Level Milestone</p>
-                    <p id="level-milestone-text">0 / 10</p>
-                </div>
-                <div class="progress-bar-container">
-                    <div id="level-milestone-bar" class="progress-bar"></div>
-                </div>
-            </div>
 
-            <div class="milestone-progress">
-                <div class="flex-between">
-                    <p class="milestone-label">Monthly Milestone</p>
-                    <p id="monthly-milestone-text">0 / 25 Days</p>
-                </div>
-                <div class="progress-bar-container">
-                    <div id="monthly-milestone-bar" class="progress-bar"></div>
-                </div>
+        <div class="avatar-hero">
+            <div class="avatar-stage is-placeholder">
+                <img
+                    id="captured-photo"
+                    class="avatar-placeholder"
+                    src="assets/avatars/avatar-placeholder-casual-park.jpg"
+                    alt="Avatar placeholder"
+                    decoding="async"
+                />
+                <video id="webcam-feed" class="avatar-camera hidden" autoplay playsinline></video>
             </div>
+            <canvas id="photo-canvas" class="hidden"></canvas>
         </div>
 
         <div id="face-scan-section" class="widget">
-            <div class="avatar-display">
-                <video id="webcam-feed" class="avatar-circle hidden" autoplay playsinline></video>
-                <img id="captured-photo" class="avatar-circle" alt="Your Avatar">
-            </div>
-            <canvas id="photo-canvas" class="hidden"></canvas>
-            <button id="scan-face-btn">Create Avatar</button>
+            <button id="scan-face-btn">Scan Your Face &amp; Body</button>
         </div>
 
-        <div id="dashboard" class="widget">
-            <h3>Core Stats</h3>
-            <div class="dashboard-grid">
-                <div class="stat-card">
-                    <p class="stat-label">Strength</p>
-                    <p id="str-value" class="stat-value">--</p>
+        <div id="stat-panel" class="widget" role="region" aria-label="Ability stats">
+            <h3>Ability Stats</h3>
+            <div id="stat-rows" class="stat-rows" aria-live="polite">
+                <div class="stat-row" data-stat="pwr">
+                    <div class="stat-row-header">
+                        <span class="stat-row-label">PWR • Force</span>
+                        <span class="stat-row-value" id="pwr-value">--</span>
+                    </div>
+                    <div class="stat-bar major" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div class="stat-bar-fill" id="pwr-major-bar"></div>
+                        <span class="stat-bar-text" id="pwr-major-text">--</span>
+                        <span class="stat-confidence" id="pwr-confidence">Q 0.00</span>
+                    </div>
+                    <div class="stat-legacy-row">
+                        <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0">
+                            <div class="stat-bar-fill" id="pwr-legacy-bar"></div>
+                            <span class="stat-bar-text" id="pwr-legacy-text">Lvl 0</span>
+                        </div>
+                        <span class="legacy-counter" id="pwr-legacy-counter">0 / 1000</span>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <p class="stat-label">Dexterity</p>
-                    <p id="dex-value" class="stat-value">--</p>
+                <div class="stat-row" data-stat="acc">
+                    <div class="stat-row-header">
+                        <span class="stat-row-label">ACC • Precision</span>
+                        <span class="stat-row-value" id="acc-value">--</span>
+                    </div>
+                    <div class="stat-bar major" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div class="stat-bar-fill" id="acc-major-bar"></div>
+                        <span class="stat-bar-text" id="acc-major-text">--</span>
+                        <span class="stat-confidence" id="acc-confidence">Q 0.00</span>
+                    </div>
+                    <div class="stat-legacy-row">
+                        <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0">
+                            <div class="stat-bar-fill" id="acc-legacy-bar"></div>
+                            <span class="stat-bar-text" id="acc-legacy-text">Lvl 0</span>
+                        </div>
+                        <span class="legacy-counter" id="acc-legacy-counter">0 / 1000</span>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <p class="stat-label">Constitution</p>
-                    <p id="con-value" class="stat-value">--</p>
+                <div class="stat-row" data-stat="grt">
+                    <div class="stat-row-header">
+                        <span class="stat-row-label">GRT • Resilience</span>
+                        <span class="stat-row-value" id="grt-value">--</span>
+                    </div>
+                    <div class="stat-bar major" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div class="stat-bar-fill" id="grt-major-bar"></div>
+                        <span class="stat-bar-text" id="grt-major-text">--</span>
+                        <span class="stat-confidence" id="grt-confidence">Q 0.00</span>
+                    </div>
+                    <div class="stat-legacy-row">
+                        <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0">
+                            <div class="stat-bar-fill" id="grt-legacy-bar"></div>
+                            <span class="stat-bar-text" id="grt-legacy-text">Lvl 0</span>
+                        </div>
+                        <span class="legacy-counter" id="grt-legacy-counter">0 / 1000</span>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <p class="stat-label">Intelligence</p>
-                    <p id="int-value" class="stat-value">--</p>
+                <div class="stat-row" data-stat="cog">
+                    <div class="stat-row-header">
+                        <span class="stat-row-label">COG • Intellect</span>
+                        <span class="stat-row-value" id="cog-value">--</span>
+                    </div>
+                    <div class="stat-bar major" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div class="stat-bar-fill" id="cog-major-bar"></div>
+                        <span class="stat-bar-text" id="cog-major-text">--</span>
+                        <span class="stat-confidence" id="cog-confidence">Q 0.00</span>
+                    </div>
+                    <div class="stat-legacy-row">
+                        <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0">
+                            <div class="stat-bar-fill" id="cog-legacy-bar"></div>
+                            <span class="stat-bar-text" id="cog-legacy-text">Lvl 0</span>
+                        </div>
+                        <span class="legacy-counter" id="cog-legacy-counter">0 / 1000</span>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <p class="stat-label">Wisdom</p>
-                    <p id="wis-value" class="stat-value">--</p>
+                <div class="stat-row" data-stat="pln">
+                    <div class="stat-row-header">
+                        <span class="stat-row-label">PLN • Foresight</span>
+                        <span class="stat-row-value" id="pln-value">--</span>
+                    </div>
+                    <div class="stat-bar major" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div class="stat-bar-fill" id="pln-major-bar"></div>
+                        <span class="stat-bar-text" id="pln-major-text">--</span>
+                        <span class="stat-confidence" id="pln-confidence">Q 0.00</span>
+                    </div>
+                    <div class="stat-legacy-row">
+                        <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0">
+                            <div class="stat-bar-fill" id="pln-legacy-bar"></div>
+                            <span class="stat-bar-text" id="pln-legacy-text">Lvl 0</span>
+                        </div>
+                        <span class="legacy-counter" id="pln-legacy-counter">0 / 1000</span>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <p class="stat-label">Charisma</p>
-                    <p id="cha-value" class="stat-value">--</p>
+                <div class="stat-row" data-stat="soc">
+                    <div class="stat-row-header">
+                        <span class="stat-row-label">SOC • Influence</span>
+                        <span class="stat-row-value" id="soc-value">--</span>
+                    </div>
+                    <div class="stat-bar major" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div class="stat-bar-fill" id="soc-major-bar"></div>
+                        <span class="stat-bar-text" id="soc-major-text">--</span>
+                        <span class="stat-confidence" id="soc-confidence">Q 0.00</span>
+                    </div>
+                    <div class="stat-legacy-row">
+                        <div class="stat-bar legacy" role="progressbar" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0">
+                            <div class="stat-bar-fill" id="soc-legacy-bar"></div>
+                            <span class="stat-bar-text" id="soc-legacy-text">Lvl 0</span>
+                        </div>
+                        <span class="legacy-counter" id="soc-legacy-counter">0 / 1000</span>
+                    </div>
                 </div>
+            </div>
+        </div>
+
+        <div id="maintenance-card" class="widget maintenance-card" role="region" aria-live="polite">
+            <h3>Atrophy &amp; Maintenance</h3>
+            <p id="maintenance-message">Loading personalized guidance…</p>
+        </div>
+
+        <div id="perk-panel" class="widget" role="region" aria-label="Perk Progression">
+            <h3>Perk Progression</h3>
+            <div class="perk-progress-summary">
+                <div class="perk-points-available">
+                    <span class="meta-label">Perk Points Available</span>
+                    <strong id="perk-points-available">0</strong>
+                </div>
+                <div class="perk-progress-overview" role="group" aria-label="Perk progression indicators">
+                    <div class="perk-overview-card">
+                        <span class="meta-label">Stats Toward Next Point</span>
+                        <span id="perk-stats-to-next" class="perk-overview-value">0 / 10</span>
+                    </div>
+                </div>
+                <div class="perk-progress-grid">
+                    <div class="perk-progress-card">
+                        <h4>Quarterly Progression</h4>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="perk-progress-quarterly-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+                        </div>
+                        <p id="perk-progress-quarterly-text" class="perk-progress-text">0 / 60 days logged this quarter.</p>
+                    </div>
+                    <div class="perk-progress-card">
+                        <h4>Annual Progression</h4>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="perk-progress-yearly-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+                        </div>
+                        <p id="perk-progress-yearly-text" class="perk-progress-text">Year-long legacy goals are just beginning.</p>
+                    </div>
+                </div>
+            </div>
+            <div id="perk-chips" class="perk-chip-row" aria-live="polite">
+                <p class="empty-state">No perks yet. Earn Legacy points to unlock them.</p>
             </div>
         </div>
 
         <div id="chore-section" class="widget">
-            <h4>Chore Effort</h4>
-            <p class="widget-subtitle">Complete chores to gain Stat Fragments. 1,000 Fragments = +1 Stat Point.</p>
-            
-            <div id="chore-progress-grid">
-                <div class="chore-stat-tracker">
-                    <div class="flex-between">
-                        <p class="chore-stat-label">Strength</p>
-                        <p class="chore-fragment-text" id="strength-chore-text">0 / 1000</p>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div id="strength-chore-bar" class="progress-bar"></div>
-                    </div>
-                </div>
-                <div class="chore-stat-tracker">
-                    <div class="flex-between">
-                        <p class="chore-stat-label">Dexterity</p>
-                        <p class="chore-fragment-text" id="dexterity-chore-text">0 / 1000</p>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div id="dexterity-chore-bar" class="progress-bar"></div>
-                    </div>
-                </div>
-                <div class="chore-stat-tracker">
-                    <div class="flex-between">
-                        <p class="chore-stat-label">Constitution</p>
-                        <p class="chore-fragment-text" id="constitution-chore-text">0 / 1000</p>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div id="constitution-chore-bar" class="progress-bar"></div>
-                    </div>
-                </div>
-                <div class="chore-stat-tracker">
-                    <div class="flex-between">
-                        <p class="chore-stat-label">Intelligence</p>
-                        <p class="chore-fragment-text" id="intelligence-chore-text">0 / 1000</p>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div id="intelligence-chore-bar" class="progress-bar"></div>
-                    </div>
-                </div>
-                <div class="chore-stat-tracker">
-                    <div class="flex-between">
-                        <p class="chore-stat-label">Wisdom</p>
-                        <p class="chore-fragment-text" id="wisdom-chore-text">0 / 1000</p>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div id="wisdom-chore-bar" class="progress-bar"></div>
-                    </div>
-                </div>
-                <div class="chore-stat-tracker">
-                    <div class="flex-between">
-                        <p class="chore-stat-label">Charisma</p>
-                        <p class="chore-fragment-text" id="charisma-chore-text">0 / 1000</p>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div id="charisma-chore-bar" class="progress-bar"></div>
-                    </div>
-                </div>
-            </div>
+            <h4>Log Your Chores</h4>
+            <p class="widget-subtitle">Record the actions that build your Legacy Level.</p>
 
             <div id="add-chore-input-group" class="input-group">
                 <input type="text" id="chore-input" placeholder="Log a completed chore and press Enter...">
             </div>
-            
-            <ul id="chore-list"></ul>
-        </div>
-        
-        <div id="activity-log-section" class="widget">
-            <h4>Log a Quick Stat Gain</h4>
-            <div class="input-group">
-                <select id="activity-select">
-                    <option value="strength">+1 Strength</option>
-                    <option value="dexterity">+1 Dexterity</option>
-                    <option value="constitution">+1 Constitution</option>
-                    <option value="intelligence">+1 Intelligence</option>
-                    <option value="wisdom">+1 Wisdom</option>
-                    <option value="charisma">+1 Charisma</option>
-                </select>
-                <button id="log-activity-btn">Log</button>
-            </div>
+
+            <ul id="chore-list" class="chore-list"></ul>
         </div>
 
         <button id="open-codex-btn">Open Codex</button>
@@ -205,12 +259,46 @@
     <div id="skills-modal" class="modal hidden">
         <div class="modal-content">
             <div id="skill-tree-header">
-                <button id="skill-back-btn" class="hidden">&larr; Back</button>
-                <h2 id="skill-tree-title">Skill Galaxy</h2>
-                <button id="close-skills-btn">Close</button>
+                <button id="skill-back-btn" class="hidden" type="button">&larr; Back</button>
+                <h2 id="skill-tree-title">Skill Universe</h2>
+                <div class="skill-tree-controls">
+                    <form id="skill-search-form" class="skill-tree-search" role="search">
+                        <input
+                            type="search"
+                            id="skill-search-input"
+                            placeholder="Search galaxy, constellation, or star..."
+                            aria-label="Search skills"
+                            autocomplete="off"
+                        >
+                        <button type="submit" id="skill-search-button">Search</button>
+                    </form>
+                    <div id="skill-tree-pan-controls" class="hidden" role="group" aria-label="Constellation pan controls">
+                        <button id="skill-pan-left" class="skill-tree-pan-button" type="button" aria-label="Nudge constellations left">&#8592;</button>
+                        <button id="skill-pan-right" class="skill-tree-pan-button" type="button" aria-label="Nudge constellations right">&#8594;</button>
+                    </div>
+                    <button id="close-skills-btn" type="button">Close</button>
+                </div>
             </div>
             <div id="skill-tree-breadcrumbs"></div>
             <div id="skill-tree-canvas-container"></div>
+            <div id="star-detail-panel" class="hidden">
+                <div class="star-detail-header">
+                    <div class="star-detail-title-group">
+                        <div id="star-detail-art" class="star-detail-art" aria-hidden="true"></div>
+                        <div class="star-detail-text">
+                            <h3 id="star-detail-title"></h3>
+                            <p id="star-detail-location" class="star-detail-location"></p>
+                        </div>
+                    </div>
+                    <button id="star-detail-close" type="button" aria-label="Close star details">&times;</button>
+                </div>
+                <p id="star-detail-description" class="star-detail-description"></p>
+                <div id="star-detail-requirements" class="star-detail-requirements"></div>
+                <div id="star-detail-actions" class="star-detail-actions">
+                    <button id="star-unlock-btn" type="button">Unlock</button>
+                    <button id="star-proof-btn" type="button">Provide Proof</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -229,13 +317,26 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
 
-    <script src="js/skill-tree-data.js"></script>
-    <script src="js/skill-tree-sketch.js"></script>
+    <!-- Cache-bust core app scripts so browsers pull the latest Skill Universe fixes. -->
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js" crossorigin="anonymous"></script>
+    <script src="js/vendor/three.min.js?v=20240621"></script>
+    <script src="js/vendor/OrbitControls.js?v=20240621"></script>
+    <script src="vendor/three-r160.min.js"></script>
+
+    <script src="js/skill-tree-data.js?v=20240621"></script>
+    <script src="js/skill-universe-star-mixer.js?v=20240621"></script>
+    <script src="js/skill-universe-renderer.js?v=20240621"></script>
     <!-- Configuration values (firebase config, backend URL) -->
-    <script src="config.js"></script>
-    <script src="js/main.js"></script>
+    <script src="config.js?v=20240621"></script>
+    <script src="js/main.js?v=20240621"></script>
+
+    <script src="js/pipeline/passes/grade-pass.js"></script>
+    <script src="js/pipeline/texture-store.js"></script>
+    <script>
+      window.CVPipeline = window.CVPipeline || {};
+      if (location.search.includes('fx=on')) window.CVPipeline.enabled = true;
+    </script>
+    <script type="module" src="js/pipeline/webgl-pipeline.js"></script>
 </body>
 </html>
