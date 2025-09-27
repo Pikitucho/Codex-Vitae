@@ -50,7 +50,7 @@ if (MISSING_CREDENTIALS_MESSAGE) {
 }
 
 const LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
-const TEXT_MODEL = process.env.VERTEX_TEXT_MODEL || 'gemini-1.0-pro';
+const TEXT_MODEL = process.env.VERTEX_TEXT_MODEL || 'gemini-1.5-pro';
 const IMAGE_MODEL = process.env.VERTEX_IMAGE_MODEL || 'imagegeneration@002';
 
 const ERROR_CODES = {
@@ -129,8 +129,33 @@ async function callVertex(model, body) {
   if (!PROJECT_ID) {
     throw new Error(MISSING_PROJECT_MESSAGE);
   }
-  const url = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${model}:generateContent`;
+  // --- BEGIN: canonical Vertex config ---
+  const project =
+    process.env.VERTEX_PROJECT_ID ||
+    process.env.GOOGLE_CLOUD_PROJECT ||
+    process.env.GCLOUD_PROJECT ||
+    PROJECT_ID;
+
+  const location = process.env.VERTEX_LOCATION || LOCATION || 'us-central1';
+  const chosenModel = process.env.VERTEX_MODEL || model || 'gemini-1.5-pro-002';
+
+  // host: us-central1 -> us-central1-aiplatform.googleapis.com
+  //       us          -> us-aiplatform.googleapis.com
+  const host = `${location}-aiplatform.googleapis.com`;
+
+  const vertexUrl = `https://${host}/v1/projects/${project}/locations/${location}/publishers/google/models/${chosenModel}:generateContent`;
+  console.log('[VertexURL]', vertexUrl, { project, location, chosenModel });
+  // --- END: canonical Vertex config ---
+
   const token = await getAccessToken();
+  const { data } = await axios.post(vertexUrl, body, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    timeout: 60000
+  });
+  return data;
   try {
     const { data } = await axios.post(url, body, {
       headers: {

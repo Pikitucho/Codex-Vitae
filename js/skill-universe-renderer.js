@@ -907,6 +907,10 @@
             this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
             this.controls.enableDamping = true;
             this.controls.dampingFactor = 0.16;
+            this.controls.dampingFactor = 0.14;
+            this.controls.dampingFactor = 0.12;
+            this.controls.screenSpacePanning = false;
+            this.controls.dampingFactor = 0.1;
             this.controls.screenSpacePanning = true;
             this.controls.minDistance = 120;
             this.controls.maxDistance = 5600;
@@ -930,6 +934,41 @@
             this.controls.touches = {
                 ONE: TOUCH && typeof TOUCH.ROTATE !== 'undefined' ? TOUCH.ROTATE : 'ROTATE',
                 TWO: TOUCH && typeof TOUCH.DOLLY_PAN !== 'undefined' ? TOUCH.DOLLY_PAN : 'DOLLY_PAN'
+            this.controls.rotateSpeed = 0.32;
+            this.controls.zoomSpeed = 0.6;
+            this.controls.panSpeed = 0.8;
+            if (typeof this.controls.zoomToCursor === 'boolean') {
+                this.controls.zoomToCursor = true;
+            this.controls.rotateSpeed = 0.35;
+            this.controls.zoomSpeed = 0.45;
+            this.controls.panSpeed = 0.55;
+            if (typeof this.controls.zoomToCursor === 'boolean') {
+                this.controls.zoomToCursor = true;
+            }
+            this.controls.rotateSpeed = 0.42;
+            this.controls.zoomSpeed = 0.5;
+            this.controls.panSpeed = 0.6;
+            if (THREE?.MOUSE) {
+                this.controls.mouseButtons = {
+                    LEFT: THREE.MOUSE.ROTATE,
+                    MIDDLE: THREE.MOUSE.DOLLY,
+                    RIGHT: THREE.MOUSE.PAN
+                };
+            }
+            if (THREE?.TOUCH) {
+                this.controls.touches = {
+                    ONE: THREE.TOUCH.ROTATE,
+                    TWO: THREE.TOUCH.DOLLY_PAN
+                };
+            }
+            this.controls.mouseButtons = {
+                LEFT: 'ROTATE',
+                MIDDLE: 'DOLLY',
+                RIGHT: 'PAN'
+            };
+            this.controls.touches = {
+                ONE: 'ROTATE',
+                TWO: 'DOLLY_PAN'
             };
             this.controls.target.copy(this.cameraTarget);
             this.controls.addEventListener('start', () => {
