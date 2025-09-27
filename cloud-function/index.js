@@ -13,13 +13,21 @@ const VALID_STATS = new Set([
   'charisma'
 ]);
 
-const PROJECT_ID = process.env.VERTEX_PROJECT_ID;
+const PROJECT_ID =
+  process.env.VERTEX_PROJECT_ID ||
+  process.env.GOOGLE_CLOUD_PROJECT ||
+  process.env.GCLOUD_PROJECT ||
+  '';
+const MISSING_PROJECT_MESSAGE =
+  'Vertex project ID is not configured. Set VERTEX_PROJECT_ID or ensure GOOGLE_CLOUD_PROJECT/GCLOUD_PROJECT is available.';
 if (!PROJECT_ID) {
-  throw new Error('VERTEX_PROJECT_ID must be set before starting the Codex Vitae backend.');
+  console.warn(
+    'Codex Vitae backend started without a Vertex AI project ID. Set the VERTEX_PROJECT_ID environment variable or rely on GOOGLE_CLOUD_PROJECT/GCLOUD_PROJECT when running on Google Cloud.'
+  );
 }
 
 const LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
-const TEXT_MODEL = process.env.VERTEX_TEXT_MODEL || 'gemini-1.0-pro';
+const TEXT_MODEL = process.env.VERTEX_TEXT_MODEL || 'gemini-1.5-pro';
 const IMAGE_MODEL = process.env.VERTEX_IMAGE_MODEL || 'imagegeneration@002';
 
 const googleAuth = new GoogleAuth({
@@ -45,9 +53,29 @@ async function getAccessToken() {
 }
 
 async function callVertex(model, body) {
-  const url = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${model}:generateContent`;
+  if (!PROJECT_ID) {
+    throw new Error(MISSING_PROJECT_MESSAGE);
+  }
+  // --- BEGIN: canonical Vertex config ---
+  const project =
+    process.env.VERTEX_PROJECT_ID ||
+    process.env.GOOGLE_CLOUD_PROJECT ||
+    process.env.GCLOUD_PROJECT ||
+    PROJECT_ID;
+
+  const location = process.env.VERTEX_LOCATION || LOCATION || 'us-central1';
+  const chosenModel = process.env.VERTEX_MODEL || model || 'gemini-1.5-pro-002';
+
+  // host: us-central1 -> us-central1-aiplatform.googleapis.com
+  //       us          -> us-aiplatform.googleapis.com
+  const host = `${location}-aiplatform.googleapis.com`;
+
+  const vertexUrl = `https://${host}/v1/projects/${project}/locations/${location}/publishers/google/models/${chosenModel}:generateContent`;
+  console.log('[VertexURL]', vertexUrl, { project, location, chosenModel });
+  // --- END: canonical Vertex config ---
+
   const token = await getAccessToken();
-  const { data } = await axios.post(url, body, {
+  const { data } = await axios.post(vertexUrl, body, {
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -61,11 +89,27 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '15mb' }));
 
+function ensureProjectConfigured(res) {
+  if (PROJECT_ID) {
+    return true;
+  }
+  res.status(500).json({ error: MISSING_PROJECT_MESSAGE });
+  return false;
+}
+
 app.get('/healthz', (req, res) => {
-  res.json({ ok: true });
+  const configured = Boolean(PROJECT_ID);
+  res.json({
+    ok: true,
+    vertexProjectConfigured: configured,
+    ...(configured ? {} : { message: MISSING_PROJECT_MESSAGE })
+  });
 });
 
 app.post('/classify-chore', async (req, res) => {
+  if (!ensureProjectConfigured(res)) {
+    return;
+  }
   try {
     const text = (req.body?.text || '').trim();
     if (!text) {
@@ -132,12 +176,19 @@ app.post('/classify-chore', async (req, res) => {
 
     res.json({ stat, effort });
   } catch (error) {
-    console.error('classify-chore error', error);
-    res.status(502).json({ error: 'Classification failed.' });
+    if (error?.message === MISSING_PROJECT_MESSAGE) {
+      res.status(500).json({ error: MISSING_PROJECT_MESSAGE });
+    } else {
+      console.error('classify-chore error', error);
+      res.status(502).json({ error: 'Classification failed.' });
+    }
   }
 });
 
 app.post('/generate-avatar', async (req, res) => {
+  if (!ensureProjectConfigured(res)) {
+    return;
+  }
   try {
     const imageBase64 = req.body?.imageBase64;
     const prompt =
@@ -182,8 +233,12 @@ app.post('/generate-avatar', async (req, res) => {
 
     res.json({ imageUrl: `data:${generatedMime};base64,${generatedImage}` });
   } catch (error) {
-    console.error('generate-avatar error', error);
-    res.status(502).json({ error: 'Avatar generation failed.' });
+    if (error?.message === MISSING_PROJECT_MESSAGE) {
+      res.status(500).json({ error: MISSING_PROJECT_MESSAGE });
+    } else {
+      console.error('generate-avatar error', error);
+      res.status(502).json({ error: 'Avatar generation failed.' });
+    }
   }
 });
 
