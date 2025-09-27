@@ -50,7 +50,7 @@ if (MISSING_CREDENTIALS_MESSAGE) {
 }
 
 const LOCATION = process.env.VERTEX_LOCATION || 'us-central1';
-const TEXT_MODEL = process.env.VERTEX_TEXT_MODEL || 'gemini-1.0-pro';
+const TEXT_MODEL = process.env.VERTEX_TEXT_MODEL || 'gemini-1.5-pro';
 const IMAGE_MODEL = process.env.VERTEX_IMAGE_MODEL || 'imagegeneration@002';
 
 const ERROR_CODES = {
