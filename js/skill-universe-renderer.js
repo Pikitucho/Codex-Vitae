@@ -906,6 +906,7 @@
 
             this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
             this.controls.enableDamping = true;
+            this.controls.dampingFactor = 0.14;
             this.controls.dampingFactor = 0.12;
             this.controls.screenSpacePanning = false;
             this.controls.dampingFactor = 0.1;
@@ -915,6 +916,11 @@
             this.controls.enablePan = true;
             this.controls.enableZoom = true;
             this.controls.enableRotate = true;
+            this.controls.rotateSpeed = 0.32;
+            this.controls.zoomSpeed = 0.6;
+            this.controls.panSpeed = 0.8;
+            if (typeof this.controls.zoomToCursor === 'boolean') {
+                this.controls.zoomToCursor = true;
             this.controls.rotateSpeed = 0.35;
             this.controls.zoomSpeed = 0.45;
             this.controls.panSpeed = 0.55;
@@ -937,6 +943,15 @@
                     TWO: THREE.TOUCH.DOLLY_PAN
                 };
             }
+            this.controls.mouseButtons = {
+                LEFT: 'ROTATE',
+                MIDDLE: 'DOLLY',
+                RIGHT: 'PAN'
+            };
+            this.controls.touches = {
+                ONE: 'ROTATE',
+                TWO: 'DOLLY_PAN'
+            };
             this.controls.target.copy(this.cameraTarget);
             this.controls.addEventListener('start', () => {
                 this._cancelTween();
