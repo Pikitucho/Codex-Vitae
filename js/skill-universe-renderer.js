@@ -906,6 +906,7 @@
 
             this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
             this.controls.enableDamping = true;
+            this.controls.dampingFactor = 0.16;
             this.controls.dampingFactor = 0.14;
             this.controls.dampingFactor = 0.12;
             this.controls.screenSpacePanning = false;
@@ -916,6 +917,23 @@
             this.controls.enablePan = true;
             this.controls.enableZoom = true;
             this.controls.enableRotate = true;
+            this.controls.rotateSpeed = 0.34;
+            this.controls.zoomSpeed = 0.6;
+            this.controls.panSpeed = 0.82;
+            if (typeof this.controls.zoomToCursor === 'boolean') {
+                this.controls.zoomToCursor = true;
+            }
+
+            const MOUSE = THREE && THREE.MOUSE ? THREE.MOUSE : null;
+            const TOUCH = THREE && THREE.TOUCH ? THREE.TOUCH : null;
+            this.controls.mouseButtons = {
+                LEFT: MOUSE && typeof MOUSE.ROTATE !== 'undefined' ? MOUSE.ROTATE : 'ROTATE',
+                MIDDLE: MOUSE && typeof MOUSE.DOLLY !== 'undefined' ? MOUSE.DOLLY : 'DOLLY',
+                RIGHT: MOUSE && typeof MOUSE.PAN !== 'undefined' ? MOUSE.PAN : 'PAN'
+            };
+            this.controls.touches = {
+                ONE: TOUCH && typeof TOUCH.ROTATE !== 'undefined' ? TOUCH.ROTATE : 'ROTATE',
+                TWO: TOUCH && typeof TOUCH.DOLLY_PAN !== 'undefined' ? TOUCH.DOLLY_PAN : 'DOLLY_PAN'
             this.controls.rotateSpeed = 0.32;
             this.controls.zoomSpeed = 0.6;
             this.controls.panSpeed = 0.8;
