@@ -906,6 +906,8 @@
 
             this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
             this.controls.enableDamping = true;
+            this.controls.dampingFactor = 0.12;
+            this.controls.screenSpacePanning = false;
             this.controls.dampingFactor = 0.1;
             this.controls.screenSpacePanning = true;
             this.controls.minDistance = 120;
@@ -913,6 +915,12 @@
             this.controls.enablePan = true;
             this.controls.enableZoom = true;
             this.controls.enableRotate = true;
+            this.controls.rotateSpeed = 0.35;
+            this.controls.zoomSpeed = 0.45;
+            this.controls.panSpeed = 0.55;
+            if (typeof this.controls.zoomToCursor === 'boolean') {
+                this.controls.zoomToCursor = true;
+            }
             this.controls.rotateSpeed = 0.42;
             this.controls.zoomSpeed = 0.5;
             this.controls.panSpeed = 0.6;
@@ -926,8 +934,7 @@
             if (THREE?.TOUCH) {
                 this.controls.touches = {
                     ONE: THREE.TOUCH.ROTATE,
-                    TWO: THREE.TOUCH.DOLLY_PAN,
-                    THREE: THREE.TOUCH.PAN
+                    TWO: THREE.TOUCH.DOLLY_PAN
                 };
             }
             this.controls.target.copy(this.cameraTarget);
