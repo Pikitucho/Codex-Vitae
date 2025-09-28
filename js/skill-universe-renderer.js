@@ -1,12 +1,23 @@
 (function(global) {
     'use strict';
 
-    if (!global || typeof global.THREE === 'undefined') {
-        console.error('SkillUniverseRenderer requires Three.js to be loaded before this script.');
+    if (!global) {
+        console.error('SkillUniverseRenderer requires a global scope.');
         return;
     }
 
-    const THREE = global.THREE;
+    let isInitialized = false;
+
+    function initialize() {
+        if (isInitialized) {
+            return true;
+        }
+        if (typeof global.THREE === 'undefined') {
+            console.error('SkillUniverseRenderer initialize called without Three.js.');
+            return false;
+        }
+
+        const THREE = global.THREE;
 
     // Support both legacy Geometry and newer BufferGeometry naming.
     const CircleGeometryClass = typeof THREE.CircleGeometry === 'function'
@@ -906,70 +917,45 @@
 
             this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
             this.controls.enableDamping = true;
-            this.controls.dampingFactor = 0.16;
-            this.controls.dampingFactor = 0.14;
             this.controls.dampingFactor = 0.12;
-            this.controls.screenSpacePanning = false;
-            this.controls.dampingFactor = 0.1;
             this.controls.screenSpacePanning = true;
             this.controls.minDistance = 120;
             this.controls.maxDistance = 5600;
             this.controls.enablePan = true;
             this.controls.enableZoom = true;
             this.controls.enableRotate = true;
-            this.controls.rotateSpeed = 0.34;
-            this.controls.zoomSpeed = 0.6;
-            this.controls.panSpeed = 0.82;
+            this.controls.rotateSpeed = 0.42;
+            this.controls.zoomSpeed = 0.5;
+            this.controls.panSpeed = 0.6;
             if (typeof this.controls.zoomToCursor === 'boolean') {
                 this.controls.zoomToCursor = true;
             }
 
-            const MOUSE = THREE && THREE.MOUSE ? THREE.MOUSE : null;
-            const TOUCH = THREE && THREE.TOUCH ? THREE.TOUCH : null;
-            this.controls.mouseButtons = {
-                LEFT: MOUSE && typeof MOUSE.ROTATE !== 'undefined' ? MOUSE.ROTATE : 'ROTATE',
-                MIDDLE: MOUSE && typeof MOUSE.DOLLY !== 'undefined' ? MOUSE.DOLLY : 'DOLLY',
-                RIGHT: MOUSE && typeof MOUSE.PAN !== 'undefined' ? MOUSE.PAN : 'PAN'
-            };
-            this.controls.touches = {
-                ONE: TOUCH && typeof TOUCH.ROTATE !== 'undefined' ? TOUCH.ROTATE : 'ROTATE',
-                TWO: TOUCH && typeof TOUCH.DOLLY_PAN !== 'undefined' ? TOUCH.DOLLY_PAN : 'DOLLY_PAN'
-            this.controls.rotateSpeed = 0.32;
-            this.controls.zoomSpeed = 0.6;
-            this.controls.panSpeed = 0.8;
-            if (typeof this.controls.zoomToCursor === 'boolean') {
-                this.controls.zoomToCursor = true;
-            this.controls.rotateSpeed = 0.35;
-            this.controls.zoomSpeed = 0.45;
-            this.controls.panSpeed = 0.55;
-            if (typeof this.controls.zoomToCursor === 'boolean') {
-                this.controls.zoomToCursor = true;
+            const mouseMap = {};
+            if (THREE && THREE.MOUSE) {
+                mouseMap.LEFT = THREE.MOUSE.PAN;
+                mouseMap.MIDDLE = THREE.MOUSE.DOLLY;
+                mouseMap.RIGHT = THREE.MOUSE.ROTATE;
+            } else {
+                mouseMap.LEFT = 'PAN';
+                mouseMap.MIDDLE = 'DOLLY';
+                mouseMap.RIGHT = 'ROTATE';
             }
-            this.controls.rotateSpeed = 0.42;
-            this.controls.zoomSpeed = 0.5;
-            this.controls.panSpeed = 0.6;
-            if (THREE?.MOUSE) {
-                this.controls.mouseButtons = {
-                    LEFT: THREE.MOUSE.ROTATE,
-                    MIDDLE: THREE.MOUSE.DOLLY,
-                    RIGHT: THREE.MOUSE.PAN
-                };
+            this.controls.mouseButtons = mouseMap;
+
+            const touchMap = {};
+            if (THREE && THREE.TOUCH) {
+                touchMap.ONE = THREE.TOUCH.ROTATE;
+                touchMap.TWO = THREE.TOUCH.DOLLY_PAN;
+                touchMap.THREE = typeof THREE.TOUCH.PAN !== 'undefined'
+                    ? THREE.TOUCH.PAN
+                    : THREE.TOUCH.DOLLY_PAN;
+            } else {
+                touchMap.ONE = 'ROTATE';
+                touchMap.TWO = 'DOLLY_PAN';
+                touchMap.THREE = 'PAN';
             }
-            if (THREE?.TOUCH) {
-                this.controls.touches = {
-                    ONE: THREE.TOUCH.ROTATE,
-                    TWO: THREE.TOUCH.DOLLY_PAN
-                };
-            }
-            this.controls.mouseButtons = {
-                LEFT: 'ROTATE',
-                MIDDLE: 'DOLLY',
-                RIGHT: 'PAN'
-            };
-            this.controls.touches = {
-                ONE: 'ROTATE',
-                TWO: 'DOLLY_PAN'
-            };
+            this.controls.touches = touchMap;
             this.controls.target.copy(this.cameraTarget);
             this.controls.addEventListener('start', () => {
                 this._cancelTween();
@@ -3553,6 +3539,14 @@
 
         _bindEvents() {
             const domElement = this.renderer.domElement;
+            if (domElement) {
+                if (typeof domElement.setAttribute === 'function') {
+                    domElement.setAttribute('role', 'application');
+                }
+                if (!domElement.hasAttribute('tabindex')) {
+                    domElement.tabIndex = 0;
+                }
+            }
             const passivePointerOptions = { passive: true };
             domElement.addEventListener('pointermove', (event) => this._onPointerMove(event), passivePointerOptions);
             domElement.addEventListener('pointerdown', (event) => this._onPointerDown(event), passivePointerOptions);
@@ -3581,6 +3575,9 @@
                     this.pointerDownInfo = null;
                     return;
                 }
+            }
+            if (this.renderer?.domElement && typeof this.renderer.domElement.focus === 'function') {
+                this.renderer.domElement.focus({ preventScroll: true });
             }
             this.pointerDownInfo = {
                 x: event.clientX,
@@ -4057,4 +4054,49 @@
         console.info('SkillUniverseRenderer', SkillUniverseRenderer.VERSION, 'Color.lerp available:', lerpExists);
     }
     global.SkillUniverseRenderer = SkillUniverseRenderer;
+    isInitialized = true;
+    return true;
+    }
+
+    function waitForThreeAndInitialize() {
+        const maxAttempts = 60;
+        const retryDelay = 150;
+        let attempts = 0;
+
+        const attemptInitialization = () => {
+            if (isInitialized) {
+                return;
+            }
+            if (typeof global.THREE !== 'undefined') {
+                try {
+                    if (initialize()) {
+                        return;
+                    }
+                } catch (error) {
+                    console.error('SkillUniverseRenderer failed to initialize after Three.js became available.', error);
+                    return;
+                }
+            }
+
+            attempts += 1;
+            if (attempts >= maxAttempts) {
+                console.error('SkillUniverseRenderer: Three.js failed to load; the 3D skill tree will remain disabled.');
+                return;
+            }
+
+            if (typeof global.setTimeout === 'function') {
+                global.setTimeout(attemptInitialization, retryDelay);
+            } else {
+                console.error('SkillUniverseRenderer: setTimeout is unavailable; cannot wait for Three.js to load.');
+            }
+        };
+
+        attemptInitialization();
+    }
+
+    if (typeof global.THREE !== 'undefined') {
+        initialize();
+    } else {
+        waitForThreeAndInitialize();
+    }
 })(typeof window !== 'undefined' ? window : this);
