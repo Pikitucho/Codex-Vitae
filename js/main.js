@@ -31,9 +31,8 @@ if (!codexConfig || typeof codexConfig !== 'object') {
         'Codex Vitae configuration is missing.',
         'Define <code>window.__CODEX_CONFIG__</code> in config.js before loading the app.'
     );
-    throw new Error(
-        'Codex Vitae configuration is missing. Define window.__CODEX_CONFIG__ in config.js.'
-    );
+    console.error('Codex Vitae configuration is missing. Define window.__CODEX_CONFIG__ in config.js.');
+    return;
 }
 
 const firebaseConfig = codexConfig.firebaseConfig;
@@ -67,7 +66,10 @@ if (!firebaseConfigIsValid) {
         ? `Missing values for ${missingKeysHtml}. Update <code>config.js</code> with your Firebase project credentials.`
         : 'Update <code>config.js</code> with your Firebase project credentials.';
     displayConfigurationError('Firebase configuration is incomplete.', details);
-    throw new Error('Firebase configuration is incomplete. Update config.js with Firebase project credentials.');
+    console.error('Firebase configuration is incomplete. Update config.js with Firebase project credentials.', {
+        missingKeys: firebaseConfigMissingKeys
+    });
+    return;
 }
 const BACKEND_SERVER_URL =
     typeof codexConfig.backendUrl === 'string' ? codexConfig.backendUrl.trim() : '';
@@ -88,9 +90,8 @@ if (!firebaseConfig || typeof firebaseConfig !== 'object') {
         'Firebase configuration is missing or invalid.',
         'Ensure config.js assigns your Firebase project credentials to <code>firebaseConfig</code>.'
     );
-    throw new Error(
-        'Firebase configuration is missing. Ensure config.js exports firebaseConfig.'
-    );
+    console.error('Firebase configuration is missing. Ensure config.js exports firebaseConfig.');
+    return;
 }
 
 if (!AI_FEATURES_AVAILABLE) {

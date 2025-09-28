@@ -1,8 +1,8 @@
-import { EffectComposer } from 'https://unpkg.com/three@0.160/examples/jsm/postprocessing/EffectComposer.js?module';
-import { RenderPass } from 'https://unpkg.com/three@0.160/examples/jsm/postprocessing/RenderPass.js?module';
-import { UnrealBloomPass } from 'https://unpkg.com/three@0.160/examples/jsm/postprocessing/UnrealBloomPass.js?module';
-import { ShaderPass } from 'https://unpkg.com/three@0.160/examples/jsm/postprocessing/ShaderPass.js?module';
-import { RGBELoader } from 'https://unpkg.com/three@0.160/examples/jsm/loaders/RGBELoader.js?module';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 
 window.CVPipeline = Object.assign(window.CVPipeline || {}, {
   EffectComposer, RenderPass, UnrealBloomPass, ShaderPass, RGBELoader,
