@@ -74,13 +74,9 @@ const BACKEND_SERVER_URL =
 const AI_FEATURES_AVAILABLE = BACKEND_SERVER_URL.length > 0;
 const AVATAR_ASSETS = Object.freeze({
     modelSrc: 'assets/avatars/codex-vitae-avatar.gltf',
-    placeholderSrc: 'assets/avatars/avatar-placeholder-casual-park.jpg',
-    legacyPlaceholderSrc: 'assets/avatars/avatar-placeholder-casual-park.jpg',
     modelExtensions: Object.freeze(['.glb', '.gltf'])
 });
 const DEFAULT_AVATAR_MODEL_SRC = 'assets/avatars/codex-vitae-avatar.gltf';
-const DEFAULT_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/avatar-placeholder-casual-park.jpg';
-const LEGACY_AVATAR_PLACEHOLDER_SRC = 'assets/avatars/avatar-placeholder-casual-park.jpg';
 const AVATAR_MODEL_EXTENSIONS = ['.glb', '.gltf'];
 
 if (!firebaseConfig || typeof firebaseConfig !== 'object') {
@@ -868,9 +864,9 @@ function updateCapturedPhotoElement(element, imageSrc) {
     };
 
     const trimmedSrc = typeof imageSrc === 'string' ? imageSrc.trim() : '';
+    const hasCustomValue = trimmedSrc.length > 0;
     const lowerSrc = trimmedSrc.toLowerCase();
     const srcWithoutParams = lowerSrc.split(/[?#]/)[0];
-    const hasCustomValue = trimmedSrc.length > 0;
     const isModelSrc = hasCustomValue && (
         AVATAR_ASSETS.modelExtensions.some(extension => srcWithoutParams.endsWith(extension))
         || lowerSrc.startsWith('data:model/gltf')
@@ -878,6 +874,20 @@ function updateCapturedPhotoElement(element, imageSrc) {
     const usingCustomImage = hasCustomValue && !isModelSrc;
 
     let activeElement = element;
+
+    if (!hasCustomValue) {
+        activeElement = ensureElementTag(activeElement, 'IMG');
+        if (!activeElement) {
+            return;
+        }
+
+        activeElement.classList.remove('avatar-circle', 'avatar-viewer');
+        activeElement.classList.add('hidden');
+        activeElement.removeAttribute('src');
+        activeElement.setAttribute('alt', '');
+        applyStageState(true);
+        return;
+    }
 
     if (usingCustomImage) {
         activeElement = ensureElementTag(activeElement, 'IMG');
@@ -890,7 +900,7 @@ function updateCapturedPhotoElement(element, imageSrc) {
         }
 
         activeElement.setAttribute('alt', 'Your Avatar');
-        activeElement.classList.remove('avatar-circle', 'avatar-placeholder');
+        activeElement.classList.remove('avatar-circle');
         activeElement.classList.add('avatar-viewer');
         activeElement.classList.remove('hidden');
         applyStageState(false);
@@ -899,44 +909,6 @@ function updateCapturedPhotoElement(element, imageSrc) {
 
     activeElement = ensureElementTag(activeElement, 'MODEL-VIEWER');
     if (!activeElement) {
-        return;
-    }
-
-    if (!isModelSrc && !hasCustomValue) {
-        activeElement = ensureElementTag(activeElement, 'IMG');
-        if (!activeElement) {
-            return;
-        }
-
-        const ensurePlaceholderLoaded = (imgElement) => {
-            if (!imgElement || imgElement.dataset.placeholderPrepared === 'true') {
-                if (imgElement && imgElement.getAttribute('src') !== AVATAR_ASSETS.placeholderSrc) {
-                    imgElement.setAttribute('src', AVATAR_ASSETS.placeholderSrc);
-                }
-                return;
-            }
-
-            const handleError = () => {
-                if (imgElement.getAttribute('src') === AVATAR_ASSETS.placeholderSrc) {
-                    imgElement.setAttribute('src', AVATAR_ASSETS.legacyPlaceholderSrc);
-                }
-            };
-
-            imgElement.addEventListener('error', handleError);
-            imgElement.dataset.placeholderPrepared = 'true';
-            imgElement.setAttribute('src', AVATAR_ASSETS.placeholderSrc);
-        };
-
-        ensurePlaceholderLoaded(activeElement);
-        if (activeElement.getAttribute('src') !== AVATAR_ASSETS.placeholderSrc) {
-            activeElement.setAttribute('src', AVATAR_ASSETS.placeholderSrc);
-        }
-
-        activeElement.setAttribute('alt', 'Avatar placeholder');
-        activeElement.classList.remove('avatar-circle', 'avatar-viewer');
-        activeElement.classList.add('avatar-placeholder');
-        activeElement.classList.remove('hidden');
-        applyStageState(true);
         return;
     }
 
@@ -973,7 +945,7 @@ function updateCapturedPhotoElement(element, imageSrc) {
     activeElement.removeAttribute('poster');
     activeElement.removeAttribute('reveal');
     activeElement.removeAttribute('disable-zoom');
-    activeElement.classList.remove('avatar-circle', 'avatar-placeholder');
+    activeElement.classList.remove('avatar-circle');
     activeElement.classList.add('avatar-viewer');
     activeElement.classList.remove('hidden');
     applyStageState(false);
