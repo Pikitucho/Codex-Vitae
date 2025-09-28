@@ -4,6 +4,9 @@ This directory contains the Express application that fronts calls to Vertex AI f
 
 ## Required configuration
 
+- `GENAI_API_KEY`: Google Generative AI (Gemini) API key used for text classification requests. The backend rejects requests
+  with a 500 error when this value is missing.
+
 The Vertex AI project ID is discovered from the following environment variables in order:
 
 1. `VERTEX_PROJECT_ID`
