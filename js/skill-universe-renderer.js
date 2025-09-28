@@ -931,6 +931,33 @@
                 this.controls.zoomToCursor = true;
             }
 
+            const mouseMap = {};
+            if (THREE && THREE.MOUSE) {
+                mouseMap.LEFT = THREE.MOUSE.PAN;
+                mouseMap.MIDDLE = THREE.MOUSE.DOLLY;
+                mouseMap.RIGHT = THREE.MOUSE.ROTATE;
+            } else {
+                mouseMap.LEFT = 'PAN';
+                mouseMap.MIDDLE = 'DOLLY';
+                mouseMap.RIGHT = 'ROTATE';
+            }
+            this.controls.mouseButtons = mouseMap;
+
+            const touchMap = {};
+            if (THREE && THREE.TOUCH) {
+                touchMap.ONE = THREE.TOUCH.ROTATE;
+                touchMap.TWO = THREE.TOUCH.DOLLY_PAN;
+                touchMap.THREE = typeof THREE.TOUCH.PAN !== 'undefined'
+                    ? THREE.TOUCH.PAN
+                    : THREE.TOUCH.DOLLY_PAN;
+            } else {
+                touchMap.ONE = 'ROTATE';
+                touchMap.TWO = 'DOLLY_PAN';
+                touchMap.THREE = 'PAN';
+            }
+            this.controls.touches = touchMap;
+            }
+
             if (THREE && THREE.MOUSE) {
                 this.controls.mouseButtons = {
                     LEFT: THREE.MOUSE.ROTATE,
