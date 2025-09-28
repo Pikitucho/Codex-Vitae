@@ -37,6 +37,38 @@ if (!codexConfig || typeof codexConfig !== 'object') {
 }
 
 const firebaseConfig = codexConfig.firebaseConfig;
+const REQUIRED_FIREBASE_CONFIG_KEYS = Object.freeze([
+    'apiKey',
+    'authDomain',
+    'projectId',
+    'appId'
+]);
+
+function validateFirebaseConfig(config) {
+    if (!config || typeof config !== 'object') {
+        return { isValid: false, missingKeys: [...REQUIRED_FIREBASE_CONFIG_KEYS] };
+    }
+
+    const missingKeys = REQUIRED_FIREBASE_CONFIG_KEYS.filter(key => {
+        const value = config[key];
+        return typeof value !== 'string' || value.trim() === '';
+    });
+
+    return { isValid: missingKeys.length === 0, missingKeys };
+}
+
+const { isValid: firebaseConfigIsValid, missingKeys: firebaseConfigMissingKeys } =
+    validateFirebaseConfig(firebaseConfig);
+if (!firebaseConfigIsValid) {
+    const missingKeysHtml = firebaseConfigMissingKeys
+        .map(key => `<code>${key}</code>`)
+        .join(', ');
+    const details = missingKeysHtml
+        ? `Missing values for ${missingKeysHtml}. Update <code>config.js</code> with your Firebase project credentials.`
+        : 'Update <code>config.js</code> with your Firebase project credentials.';
+    displayConfigurationError('Firebase configuration is incomplete.', details);
+    throw new Error('Firebase configuration is incomplete. Update config.js with Firebase project credentials.');
+}
 const BACKEND_SERVER_URL =
     typeof codexConfig.backendUrl === 'string' ? codexConfig.backendUrl.trim() : '';
 const AI_FEATURES_AVAILABLE = BACKEND_SERVER_URL.length > 0;
