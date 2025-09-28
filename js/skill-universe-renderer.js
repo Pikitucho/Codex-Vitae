@@ -956,6 +956,33 @@
                 touchMap.THREE = 'PAN';
             }
             this.controls.touches = touchMap;
+            }
+
+            if (THREE && THREE.MOUSE) {
+                this.controls.mouseButtons = {
+                    LEFT: THREE.MOUSE.ROTATE,
+                    MIDDLE: THREE.MOUSE.DOLLY,
+                    RIGHT: THREE.MOUSE.PAN
+                };
+            } else {
+                this.controls.mouseButtons = {
+                    LEFT: 'ROTATE',
+                    MIDDLE: 'DOLLY',
+                    RIGHT: 'PAN'
+                };
+            }
+
+            if (THREE && THREE.TOUCH) {
+                this.controls.touches = {
+                    ONE: THREE.TOUCH.ROTATE,
+                    TWO: THREE.TOUCH.DOLLY_PAN
+                };
+            } else {
+                this.controls.touches = {
+                    ONE: 'ROTATE',
+                    TWO: 'DOLLY_PAN'
+                };
+            }
             this.controls.target.copy(this.cameraTarget);
             this.controls.addEventListener('start', () => {
                 this._cancelTween();

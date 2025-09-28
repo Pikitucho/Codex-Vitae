@@ -29,7 +29,14 @@ const TEXT_MODEL = normalizeGeminiModel(process.env.GENAI_MODEL || 'gemini-1.5-f
 
 async function callGemini(model, body) {
   const normalizedModel = normalizeGeminiModel(model || TEXT_MODEL);
-  const apiKey = (process.env.GENAI_API_KEY || '').trim() || 'AIzaSyD95GwAZARg-5Skr0Jw3O0Hh1TlrAfSiSY';
+  const apiKey = (process.env.GENAI_API_KEY || '').trim();
+
+  if (!apiKey) {
+    const error = new Error('GENAI_API_KEY environment variable is not configured.');
+    error.statusCode = 500;
+    throw error;
+  }
+
   const endpoint = `https://generativelanguage.googleapis.com/v1/models/${normalizedModel}:generateContent?key=${apiKey}`;
 
   try {
@@ -43,10 +50,11 @@ async function callGemini(model, body) {
     const statusText = error?.response?.statusText;
     const message = error?.message;
     const data = error?.response?.data;
+    const safeEndpoint = apiKey ? endpoint.replace(apiKey, '***') : endpoint;
     console.error('Gemini request error', {
       status,
       statusText,
-      endpoint,
+      endpoint: safeEndpoint,
       message,
       data
     });
