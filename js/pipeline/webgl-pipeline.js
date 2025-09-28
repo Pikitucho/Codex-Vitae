@@ -26,7 +26,24 @@
         console.error('CVPipeline: Three.js post-processing helpers are unavailable.');
       }
       return;
-    }
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
+
+window.CVPipeline = Object.assign(window.CVPipeline || {}, {
+  EffectComposer, RenderPass, UnrealBloomPass, ShaderPass, RGBELoader,
+  createComposer(renderer, scene, camera, { bloom = true, grade = true } = {}) {
+    const composer = new EffectComposer(renderer);
+    const renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    if (bloom) {
+      const pass = new UnrealBloomPass(undefined, 0.9, 0.4, 0.8);
+      composer.addPass(pass);
+      composer.__bloom = pass;
+   }
 
     wiredAddons = addons;
 

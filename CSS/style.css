@@ -366,15 +366,6 @@ button:active {
     opacity: 0.9;
 }
 
-.avatar-stage img.avatar-placeholder {
-    object-fit: cover;
-    object-position: center;
-    padding: 0;
-    box-sizing: border-box;
-    background: transparent;
-    filter: none;
-}
-
 .avatar-stage > * {
     position: absolute;
     inset: 0;
