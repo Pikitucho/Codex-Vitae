@@ -146,6 +146,15 @@ const QUARTERLY_MILESTONE_GOAL = 60;
 const CAMERA_ORBIT_AZIMUTH_STEP = Math.PI / 24;
 const CAMERA_ORBIT_POLAR_STEP = Math.PI / 40;
 
+const CHORE_KEYWORD_MAP = Object.freeze([
+    { stat: 'pwr', effort: 12, keywords: ['workout', 'exercise', 'gym', 'weights', 'lift', 'lifting', 'squat', 'push-up', 'pushup', 'run', 'running', 'jog', 'cardio'] },
+    { stat: 'acc', effort: 8, keywords: ['organize', 'organized', 'tidy', 'fold', 'arrange', 'sort', 'detail', 'repair', 'fix', 'calibrate', 'craft', 'precision'] },
+    { stat: 'grt', effort: 14, keywords: ['clean', 'scrub', 'mop', 'wash', 'laundry', 'dishes', 'yard', 'mow', 'shovel', 'vacuum', 'deep clean'] },
+    { stat: 'cog', effort: 10, keywords: ['study', 'read', 'research', 'learn', 'course', 'lesson', 'homework', 'analyze', 'write essay', 'brainstorm'] },
+    { stat: 'pln', effort: 9, keywords: ['plan', 'schedule', 'budget', 'calendar', 'prep', 'strategy', 'organize calendar', 'outline', 'goal'] },
+    { stat: 'soc', effort: 7, keywords: ['call', 'meet', 'network', 'message', 'email', 'connect', 'volunteer', 'support', 'mentor', 'presentation'] }
+]);
+
 function getQuarterIdentifier(date) {
     const reference = date instanceof Date ? date : new Date(date);
     if (!(reference instanceof Date) || Number.isNaN(reference.getTime())) {
@@ -444,6 +453,71 @@ function extractShardBreakdown(suggestion) {
     );
 
     return { primary, secondary, total };
+}
+
+function buildClassificationFromStat(statKeyOrLegacy, effortValue, sourceLabel) {
+    const normalizedStatKey = getStatKeyFromAny(statKeyOrLegacy) || 'grt';
+    const sanitizedEffort = sanitizeShardAmount(effortValue);
+    const classification = {
+        stat: normalizedStatKey,
+        primary_stat: normalizedStatKey
+    };
+    if (sanitizedEffort > 0) {
+        classification.effort = sanitizedEffort;
+        classification.suggested_shards = { primary: sanitizedEffort };
+    }
+    if (typeof sourceLabel === 'string' && sourceLabel.trim()) {
+        classification.source = sourceLabel.trim();
+    }
+    return classification;
+}
+
+function classifyChoreOffline(text) {
+    const normalizedText = typeof text === 'string' ? text.trim().toLowerCase() : '';
+    if (!normalizedText) {
+        const fallback = buildClassificationFromStat('grt', 10, 'keyword');
+        if (!fallback.effort) {
+            fallback.effort = 10;
+            fallback.suggested_shards = { primary: 10 };
+        }
+        return fallback;
+    }
+
+    for (let index = 0; index < CHORE_KEYWORD_MAP.length; index += 1) {
+        const entry = CHORE_KEYWORD_MAP[index];
+        if (!entry || typeof entry !== 'object') {
+            continue;
+        }
+        const keywords = Array.isArray(entry.keywords) ? entry.keywords : [];
+        const hasMatch = keywords.some(keyword => {
+            if (typeof keyword !== 'string') {
+                return false;
+            }
+            const normalizedKeyword = keyword.trim().toLowerCase();
+            if (!normalizedKeyword) {
+                return false;
+            }
+            return normalizedText.includes(normalizedKeyword);
+        });
+
+        if (hasMatch) {
+            const classification = buildClassificationFromStat(entry.stat, entry.effort, 'keyword');
+            if (!classification.effort || classification.effort <= 0) {
+                const fallbackEffort = sanitizeShardAmount(entry.effort);
+                const normalizedEffort = fallbackEffort > 0 ? fallbackEffort : 10;
+                classification.effort = normalizedEffort;
+                classification.suggested_shards = { primary: normalizedEffort };
+            }
+            return classification;
+        }
+    }
+
+    const fallback = buildClassificationFromStat('grt', 10, 'keyword');
+    if (!fallback.effort || fallback.effort <= 0) {
+        fallback.effort = 10;
+        fallback.suggested_shards = { primary: 10 };
+    }
+    return fallback;
 }
 
 function deriveLevelFromTotalStatIncreases(totalStatIncreases) {
@@ -1657,19 +1731,67 @@ function normalizeStoredChore(chore) {
             primary: primaryShard,
             secondary: secondaryShard
         },
-        completed: Boolean(chore.completed)
+        completed: Boolean(chore.completed),
+        source: typeof chore.source === 'string' && chore.source.trim() ? chore.source.trim() : undefined,
+        presetId: typeof chore.presetId === 'string' && chore.presetId.trim() ? chore.presetId.trim() : undefined
     };
 }
 
 let choreManager = {
     chores: [],
-    addChore: async function(text) {
-        if (!text) return;
+    addChore: async function(text, options = {}) {
+        if (!text) {
+            return;
+        }
 
-        const classification = await getAIChoreClassification(text);
+        const trimmedText = typeof text === 'string' ? text.trim() : '';
+        if (!trimmedText) {
+            return;
+        }
+
+        const statOverride = getStatKeyFromAny(options.statOverride);
+        const effortOverride = typeof options.effortOverride === 'number' && Number.isFinite(options.effortOverride)
+            ? sanitizeShardAmount(options.effortOverride)
+            : 0;
+
+        let classification = null;
+        if (options.classification && typeof options.classification === 'object') {
+            classification = options.classification;
+        } else if (statOverride) {
+            classification = buildClassificationFromStat(statOverride, effortOverride, 'manual');
+        } else {
+            classification = await getAIChoreClassification(trimmedText);
+        }
+
+        if (!classification || typeof classification !== 'object') {
+            const fallbackSource = statOverride ? 'manual' : 'fallback';
+            classification = buildClassificationFromStat(statOverride || 'grt', effortOverride, fallbackSource);
+        }
+
+        const fallbackStat = statOverride
+            || getStatKeyFromAny(classification.stat)
+            || getStatKeyFromAny(classification.primary_stat)
+            || 'grt';
+        const fallbackEffortCandidates = [
+            effortOverride,
+            classification.effort,
+            classification.suggested_shards?.primary,
+            classification.suggested_shards?.amount,
+            classification.suggested_shards?.total
+        ];
+        let fallbackEffort = 0;
+        for (let index = 0; index < fallbackEffortCandidates.length; index += 1) {
+            const candidate = fallbackEffortCandidates[index];
+            const sanitized = sanitizeShardAmount(candidate);
+            if (sanitized > 0) {
+                fallbackEffort = sanitized;
+                break;
+            }
+        }
+
         const shardPlan = computeChoreShardPlan(classification, {
-            stat: classification?.stat,
-            effort: classification?.effort
+            stat: fallbackStat,
+            effort: fallbackEffort
         });
         const primaryShard = {
             stat: shardPlan.primary.stat,
@@ -1688,9 +1810,19 @@ let choreManager = {
             return total > 0 ? total : (fallback > 0 ? fallback : 10);
         })();
 
+        let source = typeof classification.source === 'string' && classification.source.trim()
+            ? classification.source.trim()
+            : 'ai';
+        if (statOverride && !options.classification) {
+            source = 'manual';
+        }
+        if (typeof options.source === 'string' && options.source.trim()) {
+            source = options.source.trim();
+        }
+
         const newChore = {
             id: Date.now(),
-            text: text,
+            text: trimmedText,
             stat: primaryShard.stat,
             effort: totalShards,
             totalShards,
@@ -1698,10 +1830,37 @@ let choreManager = {
                 primary: primaryShard,
                 secondary: secondaryShard
             },
-            completed: false
+            completed: false,
+            source
         };
+
+        if (typeof options.presetId === 'string' && options.presetId.trim()) {
+            newChore.presetId = options.presetId.trim();
+        }
         this.chores.push(newChore);
         updateDashboard();
+    },
+    addPresetChore: async function(preset) {
+        if (!preset || typeof preset !== 'object') {
+            return;
+        }
+        const presetText = typeof preset.text === 'string' ? preset.text.trim() : '';
+        if (!presetText) {
+            return;
+        }
+
+        const statKey = getStatKeyFromAny(preset.stat) || 'grt';
+        const effortValue = typeof preset.effort === 'number' && Number.isFinite(preset.effort)
+            ? sanitizeShardAmount(preset.effort)
+            : 10;
+        const classification = buildClassificationFromStat(statKey, effortValue, 'preset');
+        await this.addChore(presetText, {
+            classification,
+            statOverride: statKey,
+            effortOverride: effortValue,
+            source: 'preset',
+            presetId: typeof preset.id === 'string' ? preset.id : undefined
+        });
     },
     applyShards: function(choreId) {
         const choreIndex = this.chores.findIndex(c => c.id === choreId);
@@ -2085,7 +2244,7 @@ async function loadData(userId) {
 async function getAIChoreClassification(text) {
     if (!AI_FEATURES_AVAILABLE) {
         console.info('AI classification skipped because backendUrl is not configured.');
-        return { primary_stat: 'constitution', stat: 'constitution', suggested_shards: { primary: 10 }, effort: 10 };
+        return classifyChoreOffline(text);
     }
 
     try {
@@ -2102,13 +2261,13 @@ async function getAIChoreClassification(text) {
 
         const data = await response.json();
         if (!data || typeof data !== 'object') {
-            return { primary_stat: 'constitution', stat: 'constitution', suggested_shards: { primary: 10 }, effort: 10 };
+            return classifyChoreOffline(text);
         }
         return data;
     } catch (error) {
         console.error("AI classification failed:", error);
         showToast("AI classification failed. Assigning a default chore.");
-        return { primary_stat: 'constitution', stat: 'constitution', suggested_shards: { primary: 10 }, effort: 10 };
+        return classifyChoreOffline(text);
     }
 }
 
@@ -2280,16 +2439,40 @@ function updateDashboard() {
         choreManager.chores.forEach(chore => {
             const li = document.createElement('li');
             li.className = 'chore-item';
+            const textBlock = document.createElement('span');
+            textBlock.className = 'chore-text-block';
+
+            const textSpan = document.createElement('span');
+            textSpan.className = 'chore-text';
+            textSpan.textContent = chore.text;
+
+            const statBadge = document.createElement('span');
+            statBadge.className = 'chore-stat-badge';
+            statBadge.textContent = getModernStatShortLabel(chore.stat);
+
+            textBlock.appendChild(textSpan);
+            textBlock.appendChild(statBadge);
+            li.appendChild(textBlock);
+
             const detailText = formatChoreShardDetails(chore.shards);
-            const detailMarkup = detailText
-                ? `<span class="chore-details">(${detailText})</span>`
-                : '';
-            li.innerHTML = `
-                <span>${chore.text}</span>
-                ${detailMarkup}
-                <button class="complete-chore-btn">✓</button>
-            `;
-            li.querySelector('.complete-chore-btn').addEventListener('click', () => choreManager.applyShards(chore.id));
+            if (detailText) {
+                const detailSpan = document.createElement('span');
+                detailSpan.className = 'chore-details';
+                detailSpan.textContent = `(${detailText})`;
+                li.appendChild(detailSpan);
+            }
+
+            const completeButton = document.createElement('button');
+            completeButton.className = 'complete-chore-btn';
+            completeButton.type = 'button';
+            completeButton.textContent = '✓';
+            completeButton.addEventListener('click', () => choreManager.applyShards(chore.id));
+
+            li.appendChild(completeButton);
+
+            if (typeof chore.source === 'string' && chore.source) {
+                li.dataset.source = chore.source;
+            }
             choreList.appendChild(li);
         });
     }
@@ -3067,6 +3250,7 @@ function setupEventListeners() {
     }
 
     const choreInput = document.getElementById('chore-input');
+    const choreStatSelect = document.getElementById('chore-stat-select');
     if (choreInput) {
         const handleAddChore = async () => {
             const text = choreInput.value.trim();
@@ -3075,11 +3259,25 @@ function setupEventListeners() {
             }
 
             choreInput.disabled = true;
+            if (choreStatSelect) {
+                choreStatSelect.disabled = true;
+            }
             try {
-                await choreManager.addChore(text);
+                const statValue = choreStatSelect ? choreStatSelect.value : '';
+                const options = {};
+                if (statValue) {
+                    options.statOverride = statValue;
+                }
+                await choreManager.addChore(text, options);
                 choreInput.value = '';
+                if (choreStatSelect) {
+                    choreStatSelect.value = '';
+                }
             } finally {
                 choreInput.disabled = false;
+                if (choreStatSelect) {
+                    choreStatSelect.disabled = false;
+                }
                 choreInput.focus();
             }
         };
@@ -3090,6 +3288,29 @@ function setupEventListeners() {
             }
         });
     }
+
+    const presetButtons = document.querySelectorAll('[data-chore-preset]');
+    presetButtons.forEach(button => {
+        button.addEventListener('click', async () => {
+            const presetId = typeof button.dataset.presetId === 'string' ? button.dataset.presetId : undefined;
+            const presetText = typeof button.dataset.choreText === 'string' ? button.dataset.choreText : '';
+            const presetStat = typeof button.dataset.choreStat === 'string' ? button.dataset.choreStat : '';
+            const rawEffort = Number.parseInt(button.dataset.choreEffort, 10);
+            const presetEffort = Number.isFinite(rawEffort) ? rawEffort : undefined;
+
+            button.disabled = true;
+            try {
+                await choreManager.addPresetChore({
+                    id: presetId,
+                    text: presetText,
+                    stat: presetStat,
+                    effort: presetEffort
+                });
+            } finally {
+                button.disabled = false;
+            }
+        });
+    });
 
     const codexModal = document.getElementById('codex-modal');
     const openCodexBtn = document.getElementById('open-codex-btn');

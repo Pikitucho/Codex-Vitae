@@ -226,6 +226,73 @@
 
             <div id="add-chore-input-group" class="input-group">
                 <input type="text" id="chore-input" placeholder="Log a completed chore and press Enter...">
+                <label for="chore-stat-select" class="visually-hidden">Select chore stat</label>
+                <select id="chore-stat-select" aria-label="Select a stat for this chore">
+                    <option value="">Auto (AI / keywords)</option>
+                    <option value="pwr">Force</option>
+                    <option value="acc">Precision</option>
+                    <option value="grt">Resilience</option>
+                    <option value="cog">Intellect</option>
+                    <option value="pln">Foresight</option>
+                    <option value="soc">Influence</option>
+                </select>
+            </div>
+
+            <div id="chore-presets" class="chore-preset-grid" role="group" aria-label="Log a preset chore">
+                <button
+                    type="button"
+                    class="chore-preset-btn"
+                    data-chore-preset
+                    data-preset-id="preset-force"
+                    data-chore-text="Completed a strength workout"
+                    data-chore-stat="pwr"
+                    data-chore-effort="12"
+                >Force Workout</button>
+                <button
+                    type="button"
+                    class="chore-preset-btn"
+                    data-chore-preset
+                    data-preset-id="preset-precision"
+                    data-chore-text="Organized and decluttered a space"
+                    data-chore-stat="acc"
+                    data-chore-effort="8"
+                >Precision Organizing</button>
+                <button
+                    type="button"
+                    class="chore-preset-btn"
+                    data-chore-preset
+                    data-preset-id="preset-resilience"
+                    data-chore-text="Finished a deep cleaning session"
+                    data-chore-stat="grt"
+                    data-chore-effort="14"
+                >Resilience Cleaning</button>
+                <button
+                    type="button"
+                    class="chore-preset-btn"
+                    data-chore-preset
+                    data-preset-id="preset-intellect"
+                    data-chore-text="Studied or learned something new"
+                    data-chore-stat="cog"
+                    data-chore-effort="10"
+                >Intellect Study</button>
+                <button
+                    type="button"
+                    class="chore-preset-btn"
+                    data-chore-preset
+                    data-preset-id="preset-foresight"
+                    data-chore-text="Planned the upcoming schedule"
+                    data-chore-stat="pln"
+                    data-chore-effort="9"
+                >Foresight Planning</button>
+                <button
+                    type="button"
+                    class="chore-preset-btn"
+                    data-chore-preset
+                    data-preset-id="preset-influence"
+                    data-chore-text="Reached out to build relationships"
+                    data-chore-stat="soc"
+                    data-chore-effort="7"
+                >Influence Outreach</button>
             </div>
 
             <ul id="chore-list" class="chore-list"></ul>
