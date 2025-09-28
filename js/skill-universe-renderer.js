@@ -1,12 +1,23 @@
 (function(global) {
     'use strict';
 
-    if (!global || typeof global.THREE === 'undefined') {
-        console.error('SkillUniverseRenderer requires Three.js to be loaded before this script.');
+    if (!global) {
+        console.error('SkillUniverseRenderer requires a global scope.');
         return;
     }
 
-    const THREE = global.THREE;
+    let isInitialized = false;
+
+    function initialize() {
+        if (isInitialized) {
+            return true;
+        }
+        if (typeof global.THREE === 'undefined') {
+            console.error('SkillUniverseRenderer initialize called without Three.js.');
+            return false;
+        }
+
+        const THREE = global.THREE;
 
     // Support both legacy Geometry and newer BufferGeometry naming.
     const CircleGeometryClass = typeof THREE.CircleGeometry === 'function'
@@ -3553,6 +3564,14 @@
 
         _bindEvents() {
             const domElement = this.renderer.domElement;
+            if (domElement) {
+                if (typeof domElement.setAttribute === 'function') {
+                    domElement.setAttribute('role', 'application');
+                }
+                if (!domElement.hasAttribute('tabindex')) {
+                    domElement.tabIndex = 0;
+                }
+            }
             const passivePointerOptions = { passive: true };
             domElement.addEventListener('pointermove', (event) => this._onPointerMove(event), passivePointerOptions);
             domElement.addEventListener('pointerdown', (event) => this._onPointerDown(event), passivePointerOptions);
@@ -3581,6 +3600,9 @@
                     this.pointerDownInfo = null;
                     return;
                 }
+            }
+            if (this.renderer?.domElement && typeof this.renderer.domElement.focus === 'function') {
+                this.renderer.domElement.focus({ preventScroll: true });
             }
             this.pointerDownInfo = {
                 x: event.clientX,
@@ -4057,4 +4079,49 @@
         console.info('SkillUniverseRenderer', SkillUniverseRenderer.VERSION, 'Color.lerp available:', lerpExists);
     }
     global.SkillUniverseRenderer = SkillUniverseRenderer;
+    isInitialized = true;
+    return true;
+    }
+
+    function waitForThreeAndInitialize() {
+        const maxAttempts = 60;
+        const retryDelay = 150;
+        let attempts = 0;
+
+        const attemptInitialization = () => {
+            if (isInitialized) {
+                return;
+            }
+            if (typeof global.THREE !== 'undefined') {
+                try {
+                    if (initialize()) {
+                        return;
+                    }
+                } catch (error) {
+                    console.error('SkillUniverseRenderer failed to initialize after Three.js became available.', error);
+                    return;
+                }
+            }
+
+            attempts += 1;
+            if (attempts >= maxAttempts) {
+                console.error('SkillUniverseRenderer: Three.js failed to load; the 3D skill tree will remain disabled.');
+                return;
+            }
+
+            if (typeof global.setTimeout === 'function') {
+                global.setTimeout(attemptInitialization, retryDelay);
+            } else {
+                console.error('SkillUniverseRenderer: setTimeout is unavailable; cannot wait for Three.js to load.');
+            }
+        };
+
+        attemptInitialization();
+    }
+
+    if (typeof global.THREE !== 'undefined') {
+        initialize();
+    } else {
+        waitForThreeAndInitialize();
+    }
 })(typeof window !== 'undefined' ? window : this);
