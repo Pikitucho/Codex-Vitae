@@ -63,6 +63,13 @@
   // above.
   const INLINE_RUNTIME_CONFIG = {
     firebaseConfig: {
+      apiKey: 'AIzaSyC11QPS3V1qZNGIQdEYp_Odsy5UoGl-fTo',
+      authDomain: 'codex-vitae-7b7c8.firebaseapp.com',
+      projectId: 'codex-vitae-7b7c8',
+      storageBucket: 'codex-vitae-7b7c8.appspot.com',
+      messagingSenderId: '1078938226885',
+      appId: '1:1078938226885:web:918e532b901f2390173f27',
+      measurementId: 'G-0E0Z4R2T73'
       apiKey: '',
       authDomain: '',
       projectId: '',
