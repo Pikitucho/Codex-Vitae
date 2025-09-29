@@ -105,15 +105,25 @@ if (!AI_FEATURES_AVAILABLE) {
 }
 
 // --- Firebase Initialization ---
-const firebaseApp = (firebase.apps && firebase.apps.length)
-    ? firebase.app()
-    : firebase.initializeApp(firebaseConfig);
+const firebaseNamespace = window.firebase;
+if (!firebaseNamespace || typeof firebaseNamespace !== 'object' || typeof firebaseNamespace.initializeApp !== 'function') {
+    displayConfigurationError(
+        'Firebase services failed to load.',
+        'Check your network connection and ensure the Firebase SDK scripts are available.'
+    );
+    console.error('Firebase namespace unavailable on window. Ensure Firebase SDK scripts are loaded before main.js.');
+    return;
+}
+
+const firebaseApp = (firebaseNamespace.apps && firebaseNamespace.apps.length)
+    ? firebaseNamespace.app()
+    : firebaseNamespace.initializeApp(firebaseConfig);
 const auth = firebaseApp.auth();
 const db = firebaseApp.firestore();
 let storage = null;
 if (firebaseConfig.storageBucket && typeof firebaseConfig.storageBucket === 'string' && firebaseConfig.storageBucket.trim()) {
     try {
-        storage = firebase.storage(firebaseApp);
+        storage = firebaseNamespace.storage(firebaseApp);
     } catch (error) {
         console.warn('Firebase Storage could not be initialized:', error);
     }
