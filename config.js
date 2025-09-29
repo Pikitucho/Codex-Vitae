@@ -69,14 +69,7 @@
       storageBucket: 'codex-vitae-7b7c8.appspot.com',
       messagingSenderId: '1078938226885',
       appId: '1:1078938226885:web:918e532b901f2390173f27',
-      measurementId: 'G-0E0Z4R2T73'
-      apiKey: '',
-      authDomain: '',
-      projectId: '',
-      storageBucket: '',
-      messagingSenderId: '',
-      appId: '',
-      measurementId: ''
+      measurementId: 'G-0E0Z4R2T73',
     },
     backendUrl: ''
   };
@@ -129,7 +122,6 @@
   const initialConfig = cloneDefaultConfig();
   mergeConfig(initialConfig, INLINE_RUNTIME_CONFIG);
   mergeConfig(initialConfig, global.__CODEX_CONFIG__);
-  const initialConfig = mergeConfig(cloneDefaultConfig(), global.__CODEX_CONFIG__);
 
   let resolveReady;
   const readyPromise = new Promise(resolve => {
