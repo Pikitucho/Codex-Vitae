@@ -1,5 +1,8 @@
-// Copy this file to config.js and replace the placeholder values with your
-// real configuration. Do not commit config.js to version control.
+// Example runtime configuration for Codex Vitae.
+//
+// Use this file as a reference when populating INLINE_RUNTIME_CONFIG inside
+// config.js, or copy the object below into a deployment-generated
+// config.runtime.json file.
 window.__CODEX_CONFIG__ = {
   firebaseConfig: {
     apiKey: "YOUR_FIREBASE_API_KEY",

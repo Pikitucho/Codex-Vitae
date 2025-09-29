@@ -28,7 +28,7 @@ function displayConfigurationError(message, details) {
         <h1>Codex Vitae</h1>
         <p class="config-error-message">${message}</p>
         ${extraDetails}
-        <p>Please copy <code>config.example.js</code> to <code>config.js</code> and fill in your Firebase project values.</p>
+        <p>Update the placeholders in <code>config.js</code> or provide a <code>config.runtime.json</code> file with your Firebase project values.</p>
     `;
 }
 
