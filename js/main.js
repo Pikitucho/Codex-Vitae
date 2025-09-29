@@ -1,11 +1,19 @@
 // js/main.js
 
-(() => {
+(async () => {
     'use strict';
 
 // --- CONFIGURATION ---
 // Sensitive configuration values are now injected via config.js which
 // should define window.__CODEX_CONFIG__.
+    const codexConfigReady = window.__CODEX_CONFIG_READY__;
+    if (codexConfigReady && typeof codexConfigReady.then === 'function') {
+        try {
+            await codexConfigReady;
+        } catch (error) {
+            console.error('Failed to resolve Codex Vitae runtime configuration before app start.', error);
+        }
+    }
 function displayConfigurationError(message, details) {
     const authScreenElement = document.getElementById('auth-screen');
     if (!authScreenElement) {
@@ -20,7 +28,7 @@ function displayConfigurationError(message, details) {
         <h1>Codex Vitae</h1>
         <p class="config-error-message">${message}</p>
         ${extraDetails}
-        <p>Please copy <code>config.example.js</code> to <code>config.js</code> and fill in your Firebase project values.</p>
+        <p>Update the placeholders in <code>config.js</code> or provide a <code>config.runtime.json</code> file with your Firebase project values.</p>
     `;
 }
 
