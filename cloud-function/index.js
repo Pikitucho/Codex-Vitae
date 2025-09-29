@@ -84,7 +84,7 @@ app.post('/classify-chore', async (req, res) => {
     }
 
     const response = await callGemini(TEXT_MODEL, {
-      system_instruction: {
+      systemInstruction: {
         role: 'system',
         parts: [
           {
