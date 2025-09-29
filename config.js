@@ -21,6 +21,17 @@
 //      platform).
 //   3. A static JSON file (`config.runtime.json`).
 //   4. Firebase Hosting's discovery endpoint (`/__/firebase/init.json`).
+// This loader keeps secrets out of version control while still allowing the
+// app to run in production. It attempts to hydrate `window.__CODEX_CONFIG__`
+// from a few potential sources:
+//   1. Any configuration that was already assigned to `window.__CODEX_CONFIG__`
+//      before this script executed (for example, an inline script generated
+//      by the hosting platform).
+//   2. A static JSON file (`config.runtime.json`) that can be generated during
+//      deployment with the correct credentials.
+//   3. Firebase Hosting's discovery endpoint (`/__/firebase/init.json`), which
+//      exposes the app's Firebase configuration at runtime without embedding it
+//      in the repository.
 //
 // When a valid configuration is discovered, the loader resolves the
 // `window.__CODEX_CONFIG_READY__` promise so the rest of the app can start
@@ -59,6 +70,13 @@
       messagingSenderId: '1078938226885',
       appId: '1:1078938226885:web:918e532b901f2390173f27',
       measurementId: 'G-0E0Z4R2T73'
+      apiKey: '',
+      authDomain: '',
+      projectId: '',
+      storageBucket: '',
+      messagingSenderId: '',
+      appId: '',
+      measurementId: ''
     },
     backendUrl: ''
   };
@@ -111,6 +129,7 @@
   const initialConfig = cloneDefaultConfig();
   mergeConfig(initialConfig, INLINE_RUNTIME_CONFIG);
   mergeConfig(initialConfig, global.__CODEX_CONFIG__);
+  const initialConfig = mergeConfig(cloneDefaultConfig(), global.__CODEX_CONFIG__);
 
   let resolveReady;
   const readyPromise = new Promise(resolve => {
