@@ -65,6 +65,13 @@
       messagingSenderId: '1078938226885',
       appId: '1:1078938226885:web:918e532b901f2390173f27',
       measurementId: 'G-0E0Z4R2T73'
+      apiKey: '',
+      authDomain: '',
+      projectId: '',
+      storageBucket: '',
+      messagingSenderId: '',
+      appId: '',
+      measurementId: ''
     },
     backendUrl: '',
     firebaseHostingOrigin: 'https://codex-vitae-470801.web.app'
