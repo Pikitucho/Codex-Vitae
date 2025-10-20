@@ -13,5 +13,6 @@ window.__CODEX_CONFIG__ = {
     appId: "YOUR_FIREBASE_APP_ID",
     measurementId: "YOUR_FIREBASE_MEASUREMENT_ID"
   },
-  backendUrl: "https://your-backend-endpoint.example.com"
+  backendUrl: "https://your-backend-endpoint.example.com",
+  firebaseHostingOrigin: "https://your-firebase-hosting-app.web.app"
 };

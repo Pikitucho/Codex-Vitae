@@ -55,29 +55,34 @@
       appId: '',
       measurementId: ''
     },
-    backendUrl: ''
+    backendUrl: '',
+    firebaseHostingOrigin: ''
   });
 
   // Replace the empty strings below with your project's credentials for local
   // development, or leave them blank to rely on the runtime loaders described
-  // above.
+  // above. You may also set `firebaseHostingOrigin` to point at a Firebase
+  // Hosting instance (for example, "https://your-app.web.app") so the loader
+  // can fetch `/__/firebase/init.json` cross-origin without hardcoding secrets.
   const INLINE_RUNTIME_CONFIG = {
     firebaseConfig: {
-      apiKey: 'AIzaSyC11QPS3V1qZNGIQdEYp_Odsy5UoGl-fTo',
-      authDomain: 'codex-vitae-7b7c8.firebaseapp.com',
-      projectId: 'codex-vitae-7b7c8',
-      storageBucket: 'codex-vitae-7b7c8.appspot.com',
-      messagingSenderId: '1078938226885',
-      appId: '1:1078938226885:web:918e532b901f2390173f27',
-      measurementId: 'G-0E0Z4R2T73',
+      apiKey: '',
+      authDomain: '',
+      projectId: '',
+      storageBucket: '',
+      messagingSenderId: '',
+      appId: '',
+      measurementId: ''
     },
-    backendUrl: ''
+    backendUrl: '',
+    firebaseHostingOrigin: 'https://codex-vitae-470801.web.app'
   };
 
   function cloneDefaultConfig() {
     return {
       firebaseConfig: { ...DEFAULT_CONFIG.firebaseConfig },
-      backendUrl: DEFAULT_CONFIG.backendUrl
+      backendUrl: DEFAULT_CONFIG.backendUrl,
+      firebaseHostingOrigin: DEFAULT_CONFIG.firebaseHostingOrigin
     };
   }
 
@@ -98,6 +103,10 @@
 
     if (typeof source.backendUrl === 'string') {
       target.backendUrl = source.backendUrl;
+    }
+
+    if (typeof source.firebaseHostingOrigin === 'string') {
+      target.firebaseHostingOrigin = source.firebaseHostingOrigin.trim();
     }
 
     return target;
@@ -153,23 +162,46 @@
         if (typeof data.backendUrl === 'string') {
           normalized.backendUrl = data.backendUrl;
         }
+        if (typeof data.firebaseHostingOrigin === 'string') {
+          normalized.firebaseHostingOrigin = data.firebaseHostingOrigin;
+        }
       }
       return normalized;
-    },
-    async function loadFromFirebaseHosting() {
-      const response = await fetch('/__/firebase/init.json', { cache: 'no-store' });
-      if (!response.ok) {
-        throw new Error(`Firebase init.json request failed with status ${response.status}`);
-      }
-      const data = await response.json();
-      if (!data || typeof data !== 'object') {
-        throw new Error('Firebase init.json response did not contain an object.');
-      }
-
-      // Firebase returns the config at the top level. Preserve any existing backendUrl.
-      return { firebaseConfig: data };
     }
   ];
+
+  if (typeof initialConfig.firebaseHostingOrigin === 'string' && initialConfig.firebaseHostingOrigin.trim()) {
+    runtimeLoaders.push(async function loadFromConfiguredFirebaseHosting() {
+      const origin = initialConfig.firebaseHostingOrigin.trim();
+      const sanitizedOrigin = origin.replace(/\/+$/, '');
+      const requestUrl = `${sanitizedOrigin}/__/firebase/init.json`;
+      const response = await fetch(requestUrl, { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`Firebase init.json request to ${requestUrl} failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (!data || typeof data !== 'object') {
+        throw new Error('Firebase init.json response from configured hosting did not contain an object.');
+      }
+
+      return { firebaseConfig: data };
+    });
+  }
+
+  runtimeLoaders.push(async function loadFromFirebaseHosting() {
+    const response = await fetch('/__/firebase/init.json', { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`Firebase init.json request failed with status ${response.status}`);
+    }
+    const data = await response.json();
+    if (!data || typeof data !== 'object') {
+      throw new Error('Firebase init.json response did not contain an object.');
+    }
+
+    // Firebase returns the config at the top level. Preserve any existing backendUrl.
+    return { firebaseConfig: data };
+  });
 
   (async () => {
     const merged = cloneDefaultConfig();
