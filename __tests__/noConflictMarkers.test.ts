@@ -49,7 +49,7 @@ function collectTextFiles(directory: string, files: string[] = []): string[] {
 
 describe('repository hygiene', () => {
   it('does not contain unresolved merge conflict markers', () => {
-    const markers = ['<'.repeat(7), '='.repeat(7), '>'.repeat(7)];
+    const markers = [60, 61, 62].map(code => String.fromCharCode(code).repeat(7));
     const offenders: string[] = [];
 
     for (const file of collectTextFiles('.')) {
