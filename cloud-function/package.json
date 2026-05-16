@@ -1,7 +1,7 @@
 {
-  "name": "codex-vitae-backend",
+  "name": "virtual-me-origins-backend",
   "version": "1.0.0",
-  "description": "Backend server for the Codex Vitae app.",
+  "description": "Backend server for the Virtual Me: Origins app.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"

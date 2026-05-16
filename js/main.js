@@ -3,17 +3,8 @@
 (async () => {
     'use strict';
 
-// --- CONFIGURATION ---
-// Sensitive configuration values are now injected via config.js which
-// should define window.__CODEX_CONFIG__.
-    const codexConfigReady = window.__CODEX_CONFIG_READY__;
-    if (codexConfigReady && typeof codexConfigReady.then === 'function') {
-        try {
-            await codexConfigReady;
-        } catch (error) {
-            console.error('Failed to resolve Codex Vitae runtime configuration before app start.', error);
-        }
-    }
+    const PREVIEW_MODE = true;
+
 function displayConfigurationError(message, details) {
     const authScreenElement = document.getElementById('auth-screen');
     if (!authScreenElement) {
@@ -25,21 +16,21 @@ function displayConfigurationError(message, details) {
         : '';
 
     authScreenElement.innerHTML = `
-        <h1>Codex Vitae</h1>
+        <h1>Virtual Me: Origins</h1>
         <p class="config-error-message">${message}</p>
         ${extraDetails}
-        <p>Update the placeholders in <code>config.js</code> or provide a <code>config.runtime.json</code> file with your Firebase project values.</p>
+        <p>Refresh the page. If this persists, confirm <code>config.js</code> is published with the app or provide a <code>config.runtime.json</code> file with your Firebase project values.</p>
     `;
 }
 
-const codexConfig = window.__CODEX_CONFIG__;
+const codexConfig = { firebaseConfig: {}, backendUrl: '' };
 
-if (!codexConfig || typeof codexConfig !== 'object') {
+if (!PREVIEW_MODE && (!codexConfig || typeof codexConfig !== 'object')) {
     displayConfigurationError(
-        'Codex Vitae configuration is missing.',
-        'Define <code>window.__CODEX_CONFIG__</code> in config.js before loading the app.'
+        'Virtual Me: Origins configuration is missing.',
+        'The runtime config script did not publish <code>window.__CODEX_CONFIG__</code> before the app started.'
     );
-    console.error('Codex Vitae configuration is missing. Define window.__CODEX_CONFIG__ in config.js.');
+    console.error('Virtual Me: Origins configuration is missing. Runtime config was unavailable before app start.');
     return;
 }
 
@@ -66,7 +57,7 @@ function validateFirebaseConfig(config) {
 
 const { isValid: firebaseConfigIsValid, missingKeys: firebaseConfigMissingKeys } =
     validateFirebaseConfig(firebaseConfig);
-if (!firebaseConfigIsValid) {
+if (!PREVIEW_MODE && !firebaseConfigIsValid) {
     const missingKeysHtml = firebaseConfigMissingKeys
         .map(key => `<code>${key}</code>`)
         .join(', ');
@@ -80,7 +71,7 @@ if (!firebaseConfigIsValid) {
     return;
 }
 const BACKEND_SERVER_URL =
-    typeof codexConfig.backendUrl === 'string' ? codexConfig.backendUrl.trim() : '';
+    !PREVIEW_MODE && typeof codexConfig.backendUrl === 'string' ? codexConfig.backendUrl.trim() : '';
 const AI_FEATURES_AVAILABLE = BACKEND_SERVER_URL.length > 0;
 const AVATAR_ASSETS = Object.freeze({
     modelSrc: 'assets/avatars/codex-vitae-avatar.gltf',
@@ -89,7 +80,7 @@ const AVATAR_ASSETS = Object.freeze({
 const DEFAULT_AVATAR_MODEL_SRC = 'assets/avatars/codex-vitae-avatar.gltf';
 const AVATAR_MODEL_EXTENSIONS = ['.glb', '.gltf'];
 
-if (!firebaseConfig || typeof firebaseConfig !== 'object') {
+if (!PREVIEW_MODE && (!firebaseConfig || typeof firebaseConfig !== 'object')) {
     displayConfigurationError(
         'Firebase configuration is missing or invalid.',
         'Ensure config.js assigns your Firebase project credentials to <code>firebaseConfig</code>.'
@@ -100,35 +91,70 @@ if (!firebaseConfig || typeof firebaseConfig !== 'object') {
 
 if (!AI_FEATURES_AVAILABLE) {
     console.warn(
-        'Codex Vitae backendUrl is not configured. AI-powered features will be disabled until it is set.'
+        'Virtual Me: Origins backendUrl is not configured. AI-powered features will be disabled until it is set.'
     );
 }
 
-// --- Firebase Initialization ---
-const firebaseNamespace = window.firebase;
-if (!firebaseNamespace || typeof firebaseNamespace !== 'object' || typeof firebaseNamespace.initializeApp !== 'function') {
-    displayConfigurationError(
-        'Firebase services failed to load.',
-        'Check your network connection and ensure the Firebase SDK scripts are available.'
-    );
-    console.error('Firebase namespace unavailable on window. Ensure Firebase SDK scripts are loaded before main.js.');
-    return;
-}
-
-const firebaseApp = (firebaseNamespace.apps && firebaseNamespace.apps.length)
-    ? firebaseNamespace.app()
-    : firebaseNamespace.initializeApp(firebaseConfig);
-const auth = firebaseApp.auth();
-const db = firebaseApp.firestore();
+let auth;
+let db;
 let storage = null;
-if (firebaseConfig.storageBucket && typeof firebaseConfig.storageBucket === 'string' && firebaseConfig.storageBucket.trim()) {
-    try {
-        storage = firebaseNamespace.storage(firebaseApp);
-    } catch (error) {
-        console.warn('Firebase Storage could not be initialized:', error);
-    }
+
+if (PREVIEW_MODE) {
+    const previewUser = {
+        uid: 'preview-user',
+        email: 'preview@virtual-me.local',
+        metadata: { creationTime: 'preview', lastSignInTime: 'preview' }
+    };
+    auth = {
+        currentUser: previewUser,
+        onAuthStateChanged(callback) {
+            Promise.resolve().then(() => callback(previewUser));
+            return () => {};
+        },
+        signOut() {
+            showToast('Preview mode keeps the dashboard open without signing in.');
+            return Promise.resolve();
+        }
+    };
+    db = {
+        collection() {
+            return {
+                doc() {
+                    return {
+                        async get() {
+                            return { exists: false, data: () => null };
+                        },
+                        async set() {}
+                    };
+                }
+            };
+        }
+    };
 } else {
-    console.warn('Skipping Firebase Storage initialization because no storageBucket was provided in config.js');
+    const firebaseNamespace = window.firebase;
+    if (!firebaseNamespace || typeof firebaseNamespace !== 'object' || typeof firebaseNamespace.initializeApp !== 'function') {
+        displayConfigurationError(
+            'Firebase services failed to load.',
+            'Check your network connection and ensure the Firebase SDK scripts are available.'
+        );
+        console.error('Firebase namespace unavailable on window. Ensure Firebase SDK scripts are loaded before main.js.');
+        return;
+    }
+
+    const firebaseApp = (firebaseNamespace.apps && firebaseNamespace.apps.length)
+        ? firebaseNamespace.app()
+        : firebaseNamespace.initializeApp(firebaseConfig);
+    auth = firebaseApp.auth();
+    db = firebaseApp.firestore();
+    if (firebaseConfig.storageBucket && typeof firebaseConfig.storageBucket === 'string' && firebaseConfig.storageBucket.trim()) {
+        try {
+            storage = firebaseNamespace.storage(firebaseApp);
+        } catch (error) {
+            console.warn('Firebase Storage could not be initialized:', error);
+        }
+    } else {
+        console.warn('Skipping Firebase Storage initialization because no storageBucket was provided in config.js');
+    }
 }
 
 // --- Get references to HTML elements ---
@@ -2114,6 +2140,9 @@ function handleLogout() {
 }
 
 async function saveData() {
+    if (PREVIEW_MODE) {
+        return;
+    }
     if (!auth.currentUser) return;
     const userId = auth.currentUser.uid;
     characterData.chores = choreManager.chores;
@@ -2124,6 +2153,10 @@ async function saveData() {
 }
 
 async function loadData(userId) {
+    if (PREVIEW_MODE) {
+        return false;
+    }
+
     try {
         const userRef = db.collection('users').doc(userId);
         const doc = await userRef.get();
@@ -2243,7 +2276,7 @@ async function loadData(userId) {
             webcamFeed.classList.add('hidden');
         }
         if (scanButton) {
-            scanButton.textContent = characterData.avatarUrl ? 'Update Avatar' : 'Scan Your Face & Body';
+            scanButton.textContent = characterData.avatarUrl ? 'Update Identity Scan' : 'Begin Identity Scan';
         }
 
         syncSkillSearchInputWithTarget(characterData.skillSearchTarget);
@@ -2352,6 +2385,61 @@ function calculateStartingStats() {
     };
 }
 
+function createPreviewCharacterData() {
+    const now = new Date();
+    const legacy = createDefaultLegacyState();
+    const previewLegacyLevels = { pwr: 4, acc: 3, grt: 5, cog: 4, pln: 3, soc: 4 };
+    const previewLegacyCounters = { pwr: 420, acc: 280, grt: 610, cog: 360, pln: 190, soc: 480 };
+
+    STAT_KEYS.forEach(key => {
+        const legacyStat = legacy.stats[key];
+        legacyStat.level = previewLegacyLevels[key];
+        legacyStat.totalEarned = previewLegacyLevels[key] * LEGACY_ROLLOVER_THRESHOLD + previewLegacyCounters[key];
+        setLegacyCounterValue(legacyStat, previewLegacyCounters[key]);
+    });
+
+    const totalStatIncreases = Object.values(previewLegacyLevels).reduce((total, value) => total + value, 0);
+    const previewChores = [
+        normalizeStoredChore({ id: 101, text: 'Preview the Animus dashboard', stat: 'cog', effort: 16, source: 'preview' }),
+        normalizeStoredChore({ id: 102, text: 'Open the Skill Universe', stat: 'pln', effort: 14, source: 'preview' }),
+        normalizeStoredChore({ id: 103, text: 'Complete a real-world habit', stat: 'grt', effort: 18, source: 'preview' })
+    ].filter(Boolean);
+
+    choreManager.chores = previewChores;
+    characterData = {
+        level: deriveLevelFromTotalStatIncreases(totalStatIncreases),
+        totalStatIncreases,
+        stats: normalizeCharacterStats({ pwr: 42, acc: 36, grt: 48, cog: 44, pln: 39, soc: 41 }),
+        statConfidence: createEmptyPerStatMap(() => 0.82),
+        legacy: normalizeLegacyState(legacy),
+        recentTrainingLoad: normalizePerStatNumericMap({ pwr: 18, acc: 10, grt: 24, cog: 16, pln: 12, soc: 14 }, { defaultValue: 0, clamp: value => Math.max(0, value) }),
+        choreProgress: createEmptyPerStatMap(key => previewLegacyCounters[key]),
+        avatarUrl: '',
+        skillPoints: 8,
+        unlockedPerks: [],
+        verifiedProofs: [],
+        verifiedCredentials: [],
+        quarterlyActivityLog: [now.toISOString().split('T')[0]],
+        activityLogQuarter: getQuarterIdentifier(now) || `${now.getFullYear()}-Q${Math.floor(now.getMonth() / 3) + 1}`,
+        quarterlyPerkClaimed: false,
+        skillSearchTarget: null,
+        chores: previewChores,
+        onboardingComplete: true
+    };
+}
+
+function enterPreviewDashboard() {
+    createPreviewCharacterData();
+    authScreen.classList.add('hidden');
+    appScreen.classList.remove('hidden');
+    document.getElementById('onboarding-modal').classList.add('hidden');
+    setupEventListeners();
+    updateDashboard();
+    dispatchSkillTreeDataReady({ force: true });
+    setTimeout(() => rebuildSkillUniverseIfReady({ force: true }), 0);
+    showToast('Preview mode active: dashboard and Skill Universe are available without sign-in.');
+}
+
 async function handleOnboarding(event) {
     event.preventDefault();
 
@@ -2389,7 +2477,7 @@ async function handleFaceScan() {
             scanButton.textContent = 'Capture';
         } catch (error) {
             console.error('Webcam access error:', error);
-            alert("Could not access webcam. Please ensure you've given permission.");
+            showToast("Could not access webcam. Please ensure you've given permission.", { variant: 'warning' });
         }
         return;
     }
@@ -2426,7 +2514,7 @@ async function handleFaceScan() {
         updateDashboard();
     } catch (error) {
         console.error('Avatar generation failed:', error);
-        alert('Avatar generation failed. Try again later.');
+        showToast('Avatar generation failed. Try again later.', { variant: 'warning' });
     } finally {
         if (webcamFeed) {
             webcamFeed.classList.add('hidden');
@@ -2434,7 +2522,7 @@ async function handleFaceScan() {
         }
         updateCapturedPhotoElement(capturedPhoto, characterData.avatarUrl);
         if (scanButton) {
-            scanButton.textContent = characterData.avatarUrl ? 'Update Avatar' : 'Scan Your Face & Body';
+            scanButton.textContent = characterData.avatarUrl ? 'Update Identity Scan' : 'Begin Identity Scan';
             scanButton.disabled = false;
         }
     }
@@ -2503,7 +2591,7 @@ function updateDashboard() {
         webcamFeed.classList.add('hidden');
     }
     if (scanButton) {
-        scanButton.textContent = characterData.avatarUrl ? 'Update Avatar' : 'Scan Your Face & Body';
+        scanButton.textContent = characterData.avatarUrl ? 'Update Identity Scan' : 'Begin Identity Scan';
     }
 
     if (auth.currentUser) saveData();
@@ -2817,8 +2905,43 @@ function updateSkillTreeUI(title, breadcrumbs, showBack) {
     skillBackBtn.classList.toggle('hidden', !showBack);
 }
 
-function showToast(message) {
-    alert(message);
+function renderHudToast(message, options = {}) {
+    const text = typeof message === 'string' ? message.trim() : String(message || '').trim();
+    if (!text) {
+        return;
+    }
+
+    let region = document.getElementById('hud-toast-region');
+    if (!region) {
+        region = document.createElement('div');
+        region.id = 'hud-toast-region';
+        region.className = 'hud-toast-region';
+        region.setAttribute('aria-live', 'polite');
+        region.setAttribute('aria-atomic', 'false');
+        document.body.appendChild(region);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = 'hud-toast';
+    toast.dataset.variant = typeof options.variant === 'string' ? options.variant : 'sync';
+    toast.innerHTML = `
+        <span class="hud-toast-label">ANIMUS SIGNAL</span>
+        <span class="hud-toast-message"></span>
+    `;
+    const messageElement = toast.querySelector('.hud-toast-message');
+    if (messageElement) {
+        messageElement.textContent = text;
+    }
+
+    region.appendChild(toast);
+    window.setTimeout(() => {
+        toast.classList.add('is-dismissing');
+        window.setTimeout(() => toast.remove(), 260);
+    }, Number.isFinite(options.duration) ? options.duration : 4200);
+}
+
+function showToast(message, options) {
+    renderHudToast(message, options);
 }
 
 function findSkillTreePath(query) {
@@ -3226,10 +3349,6 @@ function requestSkillPath(path) {
 
 window.requestSkillPath = requestSkillPath;
 
-function showToast(message) {
-    alert(message);
-}
-
 function determineStarStatus(starName, starData) {
     if (!starData || !characterData) {
         return 'locked';
@@ -3470,6 +3589,11 @@ function setupEventListeners() {
 
 // --- APP INITIALIZATION & AUTH STATE LISTENER ---
 auth.onAuthStateChanged(async user => {
+    if (PREVIEW_MODE) {
+        enterPreviewDashboard();
+        return;
+    }
+
     if (user) {
         const hasData = await loadData(user.uid);
         const isFirstSignIn = user.metadata && user.metadata.creationTime === user.metadata.lastSignInTime;

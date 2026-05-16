@@ -21,8 +21,9 @@ if (existingThree && existingThree !== THREE) {
     }
 }
 
-window.THREE = THREE;
-THREE.OrbitControls = OrbitControls;
+const threeFacade = { ...THREE, OrbitControls };
+
+window.THREE = threeFacade;
 
 const addons = Object.freeze({
     EffectComposer,
@@ -34,4 +35,4 @@ const addons = Object.freeze({
 
 window.__THREE_ADDONS__ = addons;
 
-window.dispatchEvent(new CustomEvent('three-ready', { detail: { THREE, addons } }));
+window.dispatchEvent(new CustomEvent('three-ready', { detail: { THREE: threeFacade, addons } }));
