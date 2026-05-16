@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Codex Vitae</title>
+    <title>Virtual Me: Origins</title>
     <link rel="stylesheet" href="CSS/style.css">
     <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
     <script type="importmap">
@@ -18,7 +18,7 @@
 <body>
 
     <div id="auth-screen">
-        <h1>Codex Vitae</h1>
+        <h1>Virtual Me: Origins</h1>
         <input type="email" id="email-input" placeholder="Email">
         <input type="password" id="password-input" placeholder="Password">
         <button id="login-btn" type="button">Login</button>
@@ -26,11 +26,15 @@
     </div>
 
     <div id="app-screen" class="hidden">
-        <h2>Welcome to Your Codex</h2>
+        <header class="animus-shell-header" aria-label="Virtual Me identity synchronization status">
+            <div class="animus-kicker">Virtual Me: Origins</div>
+            <h2>Identity Synchronization</h2>
+            <p>Animus shell online — reconstructing your real-world character passport.</p>
+        </header>
 
         <div id="legacy-level-section" class="widget level-card" role="region" aria-label="Legacy Level">
             <div class="level-card-header">
-                <h3>Legacy Level</h3>
+                <h3>Legacy Archive</h3>
                 <div class="legacy-level-display">
                     <span class="legacy-level-label">Lvl</span>
                     <span id="legacy-level">0</span>
@@ -63,11 +67,11 @@
         </div>
 
         <div id="face-scan-section" class="widget">
-            <button id="scan-face-btn">Scan Your Face &amp; Body</button>
+            <button id="scan-face-btn">Begin Identity Scan</button>
         </div>
 
         <div id="stat-panel" class="widget" role="region" aria-label="Ability stats">
-            <h3>Ability Stats</h3>
+            <h3>Ability Now Matrix</h3>
             <div id="stat-rows" class="stat-rows" aria-live="polite">
                 <div class="stat-row" data-stat="pwr">
                     <div class="stat-row-header">
@@ -181,12 +185,12 @@
         </div>
 
         <div id="maintenance-card" class="widget maintenance-card" role="region" aria-live="polite">
-            <h3>Atrophy &amp; Maintenance</h3>
+            <h3>Atrophy &amp; Maintenance Signals</h3>
             <p id="maintenance-message">Loading personalized guidance…</p>
         </div>
 
         <div id="perk-panel" class="widget" role="region" aria-label="Perk Progression">
-            <h3>Perk Progression</h3>
+            <h3>Perk Activation Ledger</h3>
             <div class="perk-progress-summary">
                 <div class="perk-points-available">
                     <span class="meta-label">Perk Points Available</span>
@@ -221,11 +225,11 @@
         </div>
 
         <div id="chore-section" class="widget">
-            <h4>Log Your Chores</h4>
-            <p class="widget-subtitle">Record the actions that build your Legacy Level.</p>
+            <h4>Record Memory Fragment</h4>
+            <p class="widget-subtitle">Synchronize real actions into Legacy fragments and Ability signals.</p>
 
             <div id="add-chore-input-group" class="input-group">
-                <input type="text" id="chore-input" placeholder="Log a completed chore and press Enter...">
+                <input type="text" id="chore-input" placeholder="Describe a completed real-world action and press Enter...">
                 <label for="chore-stat-select" class="visually-hidden">Select chore stat</label>
                 <select id="chore-stat-select" aria-label="Select a stat for this chore">
                     <option value="">Auto (AI / keywords)</option>
@@ -298,8 +302,10 @@
             <ul id="chore-list" class="chore-list"></ul>
         </div>
 
-        <button id="open-codex-btn">Open Codex</button>
+        <button id="open-codex-btn">Open Skill Universe</button>
     </div>
+
+    <div id="hud-toast-region" class="hud-toast-region" aria-live="polite" aria-atomic="false"></div>
 
     <div id="onboarding-modal" class="modal hidden">
         <div class="modal-content">
@@ -371,9 +377,9 @@
 
     <div id="codex-modal" class="modal hidden">
         <div class="modal-content">
-            <h2>Codex Menu</h2>
+            <h2>Virtual Me Menu</h2>
             <div class="codex-menu">
-                <button id="codex-skills-btn">Constellation Skills</button>
+                <button id="codex-skills-btn">Enter Skill Universe</button>
                 <button id="codex-logout-btn">Logout</button>
             </div>
             <button id="close-codex-btn">Close</button>

@@ -1,10 +1,11 @@
 {
-  "name": "codex-vitae",
+  "name": "virtual-me-origins",
   "version": "1.0.0",
-  "description": "Codex Vitae web app",
+  "description": "Virtual Me: Origins web app",
   "scripts": {
     "test": "jest",
-    "generate:skill-library": "node tools/build-skill-universe-library.js"
+    "generate:skill-library": "node tools/build-skill-universe-library.js",
+    "check": "node --check config.js && node --check js/main.js && node --check js/skill-tree-data.js && node --check js/skill-universe-star-mixer.js && node --check js/skill-universe-renderer.js && node --check cloud-function/index.js && tsc --noEmit && npm test -- --runInBand"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
