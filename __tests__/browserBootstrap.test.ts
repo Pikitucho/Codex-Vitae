@@ -43,6 +43,7 @@ describe('browser bootstrap scripts', () => {
     expect(source).toContain('window.THREE = threeFacade;');
     expect(source).not.toContain('THREE.OrbitControls = OrbitControls;');
   });
+ codex/review-codex-vitae-project-objectives-0858z4
 
   it('uses the same cache-busted config URL in the HTML and main fallback loader', () => {
     const html = readFileSync('index.html', 'utf-8');
@@ -57,4 +58,6 @@ describe('browser bootstrap scripts', () => {
     expect(main).toContain(`const RUNTIME_CONFIG_SCRIPT_SRC = '${configSrc}';`);
   });
 
+
+ main
 });

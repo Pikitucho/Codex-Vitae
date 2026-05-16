@@ -54,9 +54,15 @@ const codexConfig = window.__CODEX_CONFIG__;
 if (!codexConfig || typeof codexConfig !== 'object') {
     displayConfigurationError(
         'Virtual Me: Origins configuration is missing.',
+ codex/review-codex-vitae-project-objectives-0858z4
         'The runtime config script did not publish <code>window.__CODEX_CONFIG__</code> before the app started.'
     );
     console.error('Virtual Me: Origins configuration is missing. Runtime config was unavailable before app start.');
+
+        'Define <code>window.__CODEX_CONFIG__</code> in config.js before loading the app.'
+    );
+    console.error('Virtual Me: Origins configuration is missing. Define window.__CODEX_CONFIG__ in config.js.');
+ main
     return;
 }
 
