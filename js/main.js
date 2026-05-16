@@ -11,7 +11,7 @@
         try {
             await codexConfigReady;
         } catch (error) {
-            console.error('Failed to resolve Codex Vitae runtime configuration before app start.', error);
+            console.error('Failed to resolve Virtual Me: Origins runtime configuration before app start.', error);
         }
     }
 function displayConfigurationError(message, details) {
@@ -25,7 +25,7 @@ function displayConfigurationError(message, details) {
         : '';
 
     authScreenElement.innerHTML = `
-        <h1>Codex Vitae</h1>
+        <h1>Virtual Me: Origins</h1>
         <p class="config-error-message">${message}</p>
         ${extraDetails}
         <p>Update the placeholders in <code>config.js</code> or provide a <code>config.runtime.json</code> file with your Firebase project values.</p>
@@ -36,10 +36,10 @@ const codexConfig = window.__CODEX_CONFIG__;
 
 if (!codexConfig || typeof codexConfig !== 'object') {
     displayConfigurationError(
-        'Codex Vitae configuration is missing.',
+        'Virtual Me: Origins configuration is missing.',
         'Define <code>window.__CODEX_CONFIG__</code> in config.js before loading the app.'
     );
-    console.error('Codex Vitae configuration is missing. Define window.__CODEX_CONFIG__ in config.js.');
+    console.error('Virtual Me: Origins configuration is missing. Define window.__CODEX_CONFIG__ in config.js.');
     return;
 }
 
@@ -100,7 +100,7 @@ if (!firebaseConfig || typeof firebaseConfig !== 'object') {
 
 if (!AI_FEATURES_AVAILABLE) {
     console.warn(
-        'Codex Vitae backendUrl is not configured. AI-powered features will be disabled until it is set.'
+        'Virtual Me: Origins backendUrl is not configured. AI-powered features will be disabled until it is set.'
     );
 }
 
@@ -2243,7 +2243,7 @@ async function loadData(userId) {
             webcamFeed.classList.add('hidden');
         }
         if (scanButton) {
-            scanButton.textContent = characterData.avatarUrl ? 'Update Avatar' : 'Scan Your Face & Body';
+            scanButton.textContent = characterData.avatarUrl ? 'Update Identity Scan' : 'Begin Identity Scan';
         }
 
         syncSkillSearchInputWithTarget(characterData.skillSearchTarget);
@@ -2389,7 +2389,7 @@ async function handleFaceScan() {
             scanButton.textContent = 'Capture';
         } catch (error) {
             console.error('Webcam access error:', error);
-            alert("Could not access webcam. Please ensure you've given permission.");
+            showToast("Could not access webcam. Please ensure you've given permission.", { variant: 'warning' });
         }
         return;
     }
@@ -2426,7 +2426,7 @@ async function handleFaceScan() {
         updateDashboard();
     } catch (error) {
         console.error('Avatar generation failed:', error);
-        alert('Avatar generation failed. Try again later.');
+        showToast('Avatar generation failed. Try again later.', { variant: 'warning' });
     } finally {
         if (webcamFeed) {
             webcamFeed.classList.add('hidden');
@@ -2434,7 +2434,7 @@ async function handleFaceScan() {
         }
         updateCapturedPhotoElement(capturedPhoto, characterData.avatarUrl);
         if (scanButton) {
-            scanButton.textContent = characterData.avatarUrl ? 'Update Avatar' : 'Scan Your Face & Body';
+            scanButton.textContent = characterData.avatarUrl ? 'Update Identity Scan' : 'Begin Identity Scan';
             scanButton.disabled = false;
         }
     }
@@ -2503,7 +2503,7 @@ function updateDashboard() {
         webcamFeed.classList.add('hidden');
     }
     if (scanButton) {
-        scanButton.textContent = characterData.avatarUrl ? 'Update Avatar' : 'Scan Your Face & Body';
+        scanButton.textContent = characterData.avatarUrl ? 'Update Identity Scan' : 'Begin Identity Scan';
     }
 
     if (auth.currentUser) saveData();
@@ -2817,8 +2817,43 @@ function updateSkillTreeUI(title, breadcrumbs, showBack) {
     skillBackBtn.classList.toggle('hidden', !showBack);
 }
 
-function showToast(message) {
-    alert(message);
+function renderHudToast(message, options = {}) {
+    const text = typeof message === 'string' ? message.trim() : String(message || '').trim();
+    if (!text) {
+        return;
+    }
+
+    let region = document.getElementById('hud-toast-region');
+    if (!region) {
+        region = document.createElement('div');
+        region.id = 'hud-toast-region';
+        region.className = 'hud-toast-region';
+        region.setAttribute('aria-live', 'polite');
+        region.setAttribute('aria-atomic', 'false');
+        document.body.appendChild(region);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = 'hud-toast';
+    toast.dataset.variant = typeof options.variant === 'string' ? options.variant : 'sync';
+    toast.innerHTML = `
+        <span class="hud-toast-label">ANIMUS SIGNAL</span>
+        <span class="hud-toast-message"></span>
+    `;
+    const messageElement = toast.querySelector('.hud-toast-message');
+    if (messageElement) {
+        messageElement.textContent = text;
+    }
+
+    region.appendChild(toast);
+    window.setTimeout(() => {
+        toast.classList.add('is-dismissing');
+        window.setTimeout(() => toast.remove(), 260);
+    }, Number.isFinite(options.duration) ? options.duration : 4200);
+}
+
+function showToast(message, options) {
+    renderHudToast(message, options);
 }
 
 function findSkillTreePath(query) {
@@ -3225,10 +3260,6 @@ function requestSkillPath(path) {
 }
 
 window.requestSkillPath = requestSkillPath;
-
-function showToast(message) {
-    alert(message);
-}
 
 function determineStarStatus(starName, starData) {
     if (!starData || !characterData) {
