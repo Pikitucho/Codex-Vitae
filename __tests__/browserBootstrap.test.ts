@@ -43,6 +43,9 @@ describe('browser bootstrap scripts', () => {
     expect(source).toContain('window.THREE = threeFacade;');
     expect(source).not.toContain('THREE.OrbitControls = OrbitControls;');
   });
+ codex/review-codex-vitae-project-objectives-pb5syj
+ codex/review-codex-vitae-project-objectives-0858z4
+ main
 
   it('uses the same cache-busted config URL in the HTML and main fallback loader', () => {
     const html = readFileSync('index.html', 'utf-8');
@@ -58,6 +61,7 @@ describe('browser bootstrap scripts', () => {
   });
 
 
+ codex/review-codex-vitae-project-objectives-pb5syj
   it('opens the dashboard in preview mode without Firebase SDK scripts', () => {
     const html = readFileSync('index.html', 'utf-8');
     const main = readFileSync('js/main.js', 'utf-8');
@@ -69,4 +73,7 @@ describe('browser bootstrap scripts', () => {
     expect(main).toContain('enterPreviewDashboard();');
   });
 
+
+ main
+ main
 });

@@ -3,7 +3,10 @@
 (async () => {
     'use strict';
 
+ codex/review-codex-vitae-project-objectives-pb5syj
     const PREVIEW_MODE = true;
+
+ main
     const RUNTIME_CONFIG_SCRIPT_SRC = 'config.js?v=20260516';
 
     function loadRuntimeConfigScript() {
@@ -55,9 +58,21 @@ const codexConfig = window.__CODEX_CONFIG__ || (PREVIEW_MODE ? { firebaseConfig:
 if (!PREVIEW_MODE && (!codexConfig || typeof codexConfig !== 'object')) {
     displayConfigurationError(
         'Virtual Me: Origins configuration is missing.',
+ codex/review-codex-vitae-project-objectives-pb5syj
         'The runtime config script did not publish <code>window.__CODEX_CONFIG__</code> before the app started.'
     );
     console.error('Virtual Me: Origins configuration is missing. Runtime config was unavailable before app start.');
+
+ codex/review-codex-vitae-project-objectives-0858z4
+        'The runtime config script did not publish <code>window.__CODEX_CONFIG__</code> before the app started.'
+    );
+    console.error('Virtual Me: Origins configuration is missing. Runtime config was unavailable before app start.');
+
+        'Define <code>window.__CODEX_CONFIG__</code> in config.js before loading the app.'
+    );
+    console.error('Virtual Me: Origins configuration is missing. Define window.__CODEX_CONFIG__ in config.js.');
+ main
+ main
     return;
 }
 
@@ -119,6 +134,18 @@ if (!PREVIEW_MODE && (!firebaseConfig || typeof firebaseConfig !== 'object')) {
 if (!AI_FEATURES_AVAILABLE) {
     console.warn(
         'Virtual Me: Origins backendUrl is not configured. AI-powered features will be disabled until it is set.'
+ codex/review-codex-vitae-project-objectives-pb5syj
+
+    );
+}
+
+// --- Firebase Initialization ---
+const firebaseNamespace = window.firebase;
+if (!firebaseNamespace || typeof firebaseNamespace !== 'object' || typeof firebaseNamespace.initializeApp !== 'function') {
+    displayConfigurationError(
+        'Firebase services failed to load.',
+        'Check your network connection and ensure the Firebase SDK scripts are available.'
+ main
     );
 }
 
