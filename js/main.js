@@ -3,6 +3,10 @@
 (async () => {
     'use strict';
 
+ codex/review-codex-vitae-project-objectives-pb5syj
+    const PREVIEW_MODE = true;
+
+ main
     const RUNTIME_CONFIG_SCRIPT_SRC = 'config.js?v=20260516';
 
     function loadRuntimeConfigScript() {
@@ -49,11 +53,16 @@ function displayConfigurationError(message, details) {
     `;
 }
 
-const codexConfig = window.__CODEX_CONFIG__;
+const codexConfig = window.__CODEX_CONFIG__ || (PREVIEW_MODE ? { firebaseConfig: {}, backendUrl: '' } : null);
 
-if (!codexConfig || typeof codexConfig !== 'object') {
+if (!PREVIEW_MODE && (!codexConfig || typeof codexConfig !== 'object')) {
     displayConfigurationError(
         'Virtual Me: Origins configuration is missing.',
+ codex/review-codex-vitae-project-objectives-pb5syj
+        'The runtime config script did not publish <code>window.__CODEX_CONFIG__</code> before the app started.'
+    );
+    console.error('Virtual Me: Origins configuration is missing. Runtime config was unavailable before app start.');
+
  codex/review-codex-vitae-project-objectives-0858z4
         'The runtime config script did not publish <code>window.__CODEX_CONFIG__</code> before the app started.'
     );
@@ -62,6 +71,7 @@ if (!codexConfig || typeof codexConfig !== 'object') {
         'Define <code>window.__CODEX_CONFIG__</code> in config.js before loading the app.'
     );
     console.error('Virtual Me: Origins configuration is missing. Define window.__CODEX_CONFIG__ in config.js.');
+ main
  main
     return;
 }
@@ -89,7 +99,7 @@ function validateFirebaseConfig(config) {
 
 const { isValid: firebaseConfigIsValid, missingKeys: firebaseConfigMissingKeys } =
     validateFirebaseConfig(firebaseConfig);
-if (!firebaseConfigIsValid) {
+if (!PREVIEW_MODE && !firebaseConfigIsValid) {
     const missingKeysHtml = firebaseConfigMissingKeys
         .map(key => `<code>${key}</code>`)
         .join(', ');
@@ -103,7 +113,7 @@ if (!firebaseConfigIsValid) {
     return;
 }
 const BACKEND_SERVER_URL =
-    typeof codexConfig.backendUrl === 'string' ? codexConfig.backendUrl.trim() : '';
+    !PREVIEW_MODE && typeof codexConfig.backendUrl === 'string' ? codexConfig.backendUrl.trim() : '';
 const AI_FEATURES_AVAILABLE = BACKEND_SERVER_URL.length > 0;
 const AVATAR_ASSETS = Object.freeze({
     modelSrc: 'assets/avatars/codex-vitae-avatar.gltf',
@@ -112,7 +122,7 @@ const AVATAR_ASSETS = Object.freeze({
 const DEFAULT_AVATAR_MODEL_SRC = 'assets/avatars/codex-vitae-avatar.gltf';
 const AVATAR_MODEL_EXTENSIONS = ['.glb', '.gltf'];
 
-if (!firebaseConfig || typeof firebaseConfig !== 'object') {
+if (!PREVIEW_MODE && (!firebaseConfig || typeof firebaseConfig !== 'object')) {
     displayConfigurationError(
         'Firebase configuration is missing or invalid.',
         'Ensure config.js assigns your Firebase project credentials to <code>firebaseConfig</code>.'
@@ -124,6 +134,8 @@ if (!firebaseConfig || typeof firebaseConfig !== 'object') {
 if (!AI_FEATURES_AVAILABLE) {
     console.warn(
         'Virtual Me: Origins backendUrl is not configured. AI-powered features will be disabled until it is set.'
+ codex/review-codex-vitae-project-objectives-pb5syj
+
     );
 }
 
@@ -133,25 +145,70 @@ if (!firebaseNamespace || typeof firebaseNamespace !== 'object' || typeof fireba
     displayConfigurationError(
         'Firebase services failed to load.',
         'Check your network connection and ensure the Firebase SDK scripts are available.'
+ main
     );
-    console.error('Firebase namespace unavailable on window. Ensure Firebase SDK scripts are loaded before main.js.');
-    return;
 }
 
-const firebaseApp = (firebaseNamespace.apps && firebaseNamespace.apps.length)
-    ? firebaseNamespace.app()
-    : firebaseNamespace.initializeApp(firebaseConfig);
-const auth = firebaseApp.auth();
-const db = firebaseApp.firestore();
+let auth;
+let db;
 let storage = null;
-if (firebaseConfig.storageBucket && typeof firebaseConfig.storageBucket === 'string' && firebaseConfig.storageBucket.trim()) {
-    try {
-        storage = firebaseNamespace.storage(firebaseApp);
-    } catch (error) {
-        console.warn('Firebase Storage could not be initialized:', error);
-    }
+
+if (PREVIEW_MODE) {
+    const previewUser = {
+        uid: 'preview-user',
+        email: 'preview@virtual-me.local',
+        metadata: { creationTime: 'preview', lastSignInTime: 'preview' }
+    };
+    auth = {
+        currentUser: previewUser,
+        onAuthStateChanged(callback) {
+            Promise.resolve().then(() => callback(previewUser));
+            return () => {};
+        },
+        signOut() {
+            showToast('Preview mode keeps the dashboard open without signing in.');
+            return Promise.resolve();
+        }
+    };
+    db = {
+        collection() {
+            return {
+                doc() {
+                    return {
+                        async get() {
+                            return { exists: false, data: () => null };
+                        },
+                        async set() {}
+                    };
+                }
+            };
+        }
+    };
 } else {
-    console.warn('Skipping Firebase Storage initialization because no storageBucket was provided in config.js');
+    const firebaseNamespace = window.firebase;
+    if (!firebaseNamespace || typeof firebaseNamespace !== 'object' || typeof firebaseNamespace.initializeApp !== 'function') {
+        displayConfigurationError(
+            'Firebase services failed to load.',
+            'Check your network connection and ensure the Firebase SDK scripts are available.'
+        );
+        console.error('Firebase namespace unavailable on window. Ensure Firebase SDK scripts are loaded before main.js.');
+        return;
+    }
+
+    const firebaseApp = (firebaseNamespace.apps && firebaseNamespace.apps.length)
+        ? firebaseNamespace.app()
+        : firebaseNamespace.initializeApp(firebaseConfig);
+    auth = firebaseApp.auth();
+    db = firebaseApp.firestore();
+    if (firebaseConfig.storageBucket && typeof firebaseConfig.storageBucket === 'string' && firebaseConfig.storageBucket.trim()) {
+        try {
+            storage = firebaseNamespace.storage(firebaseApp);
+        } catch (error) {
+            console.warn('Firebase Storage could not be initialized:', error);
+        }
+    } else {
+        console.warn('Skipping Firebase Storage initialization because no storageBucket was provided in config.js');
+    }
 }
 
 // --- Get references to HTML elements ---
@@ -2137,6 +2194,9 @@ function handleLogout() {
 }
 
 async function saveData() {
+    if (PREVIEW_MODE) {
+        return;
+    }
     if (!auth.currentUser) return;
     const userId = auth.currentUser.uid;
     characterData.chores = choreManager.chores;
@@ -2147,6 +2207,10 @@ async function saveData() {
 }
 
 async function loadData(userId) {
+    if (PREVIEW_MODE) {
+        return false;
+    }
+
     try {
         const userRef = db.collection('users').doc(userId);
         const doc = await userRef.get();
@@ -2373,6 +2437,61 @@ function calculateStartingStats() {
         chores: [],
         onboardingComplete: true
     };
+}
+
+function createPreviewCharacterData() {
+    const now = new Date();
+    const legacy = createDefaultLegacyState();
+    const previewLegacyLevels = { pwr: 4, acc: 3, grt: 5, cog: 4, pln: 3, soc: 4 };
+    const previewLegacyCounters = { pwr: 420, acc: 280, grt: 610, cog: 360, pln: 190, soc: 480 };
+
+    STAT_KEYS.forEach(key => {
+        const legacyStat = legacy.stats[key];
+        legacyStat.level = previewLegacyLevels[key];
+        legacyStat.totalEarned = previewLegacyLevels[key] * LEGACY_ROLLOVER_THRESHOLD + previewLegacyCounters[key];
+        setLegacyCounterValue(legacyStat, previewLegacyCounters[key]);
+    });
+
+    const totalStatIncreases = Object.values(previewLegacyLevels).reduce((total, value) => total + value, 0);
+    const previewChores = [
+        normalizeStoredChore({ id: 101, text: 'Preview the Animus dashboard', stat: 'cog', effort: 16, source: 'preview' }),
+        normalizeStoredChore({ id: 102, text: 'Open the Skill Universe', stat: 'pln', effort: 14, source: 'preview' }),
+        normalizeStoredChore({ id: 103, text: 'Complete a real-world habit', stat: 'grt', effort: 18, source: 'preview' })
+    ].filter(Boolean);
+
+    choreManager.chores = previewChores;
+    characterData = {
+        level: deriveLevelFromTotalStatIncreases(totalStatIncreases),
+        totalStatIncreases,
+        stats: normalizeCharacterStats({ pwr: 42, acc: 36, grt: 48, cog: 44, pln: 39, soc: 41 }),
+        statConfidence: createEmptyPerStatMap(() => 0.82),
+        legacy: normalizeLegacyState(legacy),
+        recentTrainingLoad: normalizePerStatNumericMap({ pwr: 18, acc: 10, grt: 24, cog: 16, pln: 12, soc: 14 }, { defaultValue: 0, clamp: value => Math.max(0, value) }),
+        choreProgress: createEmptyPerStatMap(key => previewLegacyCounters[key]),
+        avatarUrl: '',
+        skillPoints: 8,
+        unlockedPerks: [],
+        verifiedProofs: [],
+        verifiedCredentials: [],
+        quarterlyActivityLog: [now.toISOString().split('T')[0]],
+        activityLogQuarter: getQuarterIdentifier(now) || `${now.getFullYear()}-Q${Math.floor(now.getMonth() / 3) + 1}`,
+        quarterlyPerkClaimed: false,
+        skillSearchTarget: null,
+        chores: previewChores,
+        onboardingComplete: true
+    };
+}
+
+function enterPreviewDashboard() {
+    createPreviewCharacterData();
+    authScreen.classList.add('hidden');
+    appScreen.classList.remove('hidden');
+    document.getElementById('onboarding-modal').classList.add('hidden');
+    setupEventListeners();
+    updateDashboard();
+    dispatchSkillTreeDataReady({ force: true });
+    setTimeout(() => rebuildSkillUniverseIfReady({ force: true }), 0);
+    showToast('Preview mode active: dashboard and Skill Universe are available without sign-in.');
 }
 
 async function handleOnboarding(event) {
@@ -3524,6 +3643,11 @@ function setupEventListeners() {
 
 // --- APP INITIALIZATION & AUTH STATE LISTENER ---
 auth.onAuthStateChanged(async user => {
+    if (PREVIEW_MODE) {
+        enterPreviewDashboard();
+        return;
+    }
+
     if (user) {
         const hasData = await loadData(user.uid);
         const isFirstSignIn = user.metadata && user.metadata.creationTime === user.metadata.lastSignInTime;
