@@ -57,6 +57,7 @@
   // with `window.__CODEX_CONFIG__` or `config.runtime.json` for another project.
   const INLINE_RUNTIME_CONFIG = {
     firebaseConfig: {
+codex/review-codex-vitae-project-objectives-b4xhg4
       apiKey: 'AIzaSyC11QPS3V1qZNGIQdEYp_Odsy5UoGl-fTo',
       authDomain: 'codex-vitae-7b7c8.firebaseapp.com',
       projectId: 'codex-vitae-7b7c8',
@@ -64,9 +65,26 @@
       messagingSenderId: '1078938226885',
       appId: '1:1078938226885:web:918e532b901f2390173f27',
       measurementId: 'G-0E0Z4R2T73'
+ codex/review-codex-vitae-project-objectives-38mi3z
+
+ codex/review-codex-vitae-project-objectives-pb5syj
+
+ codex/review-codex-vitae-project-objectives-0858z4
+
+      apiKey: '',
+      authDomain: '',
+      projectId: '',
+      storageBucket: '',
+      messagingSenderId: '',
+      appId: '',
+      measurementId: ''
+main
+ main
+ main
+ main
     },
     backendUrl: '',
-    firebaseHostingOrigin: 'https://codex-vitae-470801.web.app'
+    firebaseHostingOrigin: ''
   };
 
   function cloneDefaultConfig() {

@@ -3,8 +3,43 @@
 (async () => {
     'use strict';
 
+ codex/review-codex-vitae-project-objectives-38mi3z
     const PREVIEW_MODE = true;
 
+
+ codex/review-codex-vitae-project-objectives-pb5syj
+    const PREVIEW_MODE = true;
+
+ main
+    const RUNTIME_CONFIG_SCRIPT_SRC = 'config.js?v=20260516';
+
+    function loadRuntimeConfigScript() {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = RUNTIME_CONFIG_SCRIPT_SRC;
+            script.onload = resolve;
+            script.onerror = () => reject(new Error(`Failed to load ${RUNTIME_CONFIG_SCRIPT_SRC}`));
+            document.head.appendChild(script);
+        });
+    }
+
+    if (!window.__CODEX_CONFIG_READY__ && !window.__CODEX_CONFIG__) {
+        try {
+            await loadRuntimeConfigScript();
+        } catch (error) {
+            console.error('Failed to load Virtual Me: Origins runtime configuration script before app start.', error);
+        }
+    }
+
+    const codexConfigReady = window.__CODEX_CONFIG_READY__;
+    if (codexConfigReady && typeof codexConfigReady.then === 'function') {
+        try {
+            await codexConfigReady;
+        } catch (error) {
+            console.error('Failed to resolve Virtual Me: Origins runtime configuration before app start.', error);
+        }
+    }
+ main
 function displayConfigurationError(message, details) {
     const authScreenElement = document.getElementById('auth-screen');
     if (!authScreenElement) {
@@ -23,14 +58,36 @@ function displayConfigurationError(message, details) {
     `;
 }
 
+ codex/review-codex-vitae-project-objectives-38mi3z
 const codexConfig = { firebaseConfig: {}, backendUrl: '' };
+
+const codexConfig = window.__CODEX_CONFIG__ || (PREVIEW_MODE ? { firebaseConfig: {}, backendUrl: '' } : null);
+ main
 
 if (!PREVIEW_MODE && (!codexConfig || typeof codexConfig !== 'object')) {
     displayConfigurationError(
         'Virtual Me: Origins configuration is missing.',
+ codex/review-codex-vitae-project-objectives-38mi3z
         'The runtime config script did not publish <code>window.__CODEX_CONFIG__</code> before the app started.'
     );
     console.error('Virtual Me: Origins configuration is missing. Runtime config was unavailable before app start.');
+
+ codex/review-codex-vitae-project-objectives-pb5syj
+        'The runtime config script did not publish <code>window.__CODEX_CONFIG__</code> before the app started.'
+    );
+    console.error('Virtual Me: Origins configuration is missing. Runtime config was unavailable before app start.');
+
+ codex/review-codex-vitae-project-objectives-0858z4
+        'The runtime config script did not publish <code>window.__CODEX_CONFIG__</code> before the app started.'
+    );
+    console.error('Virtual Me: Origins configuration is missing. Runtime config was unavailable before app start.');
+
+        'Define <code>window.__CODEX_CONFIG__</code> in config.js before loading the app.'
+    );
+    console.error('Virtual Me: Origins configuration is missing. Define window.__CODEX_CONFIG__ in config.js.');
+ main
+ main
+ main
     return;
 }
 
@@ -92,9 +149,27 @@ if (!PREVIEW_MODE && (!firebaseConfig || typeof firebaseConfig !== 'object')) {
 if (!AI_FEATURES_AVAILABLE) {
     console.warn(
         'Virtual Me: Origins backendUrl is not configured. AI-powered features will be disabled until it is set.'
+ codex/review-codex-vitae-project-objectives-38mi3z
     );
 }
 
+
+ codex/review-codex-vitae-project-objectives-pb5syj
+
+    );
+}
+
+// --- Firebase Initialization ---
+const firebaseNamespace = window.firebase;
+if (!firebaseNamespace || typeof firebaseNamespace !== 'object' || typeof firebaseNamespace.initializeApp !== 'function') {
+    displayConfigurationError(
+        'Firebase services failed to load.',
+        'Check your network connection and ensure the Firebase SDK scripts are available.'
+ main
+    );
+}
+
+ main
 let auth;
 let db;
 let storage = null;
