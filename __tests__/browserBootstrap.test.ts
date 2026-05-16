@@ -43,6 +43,22 @@ describe('browser bootstrap scripts', () => {
     expect(source).toContain('window.THREE = threeFacade;');
     expect(source).not.toContain('THREE.OrbitControls = OrbitControls;');
   });
+ codex/review-codex-vitae-project-objectives-38mi3z
+
+  it('loads the preview app without the runtime config script', () => {
+    const html = readFileSync('index.html', 'utf-8');
+    const main = readFileSync('js/main.js', 'utf-8');
+    const configSrc = 'config.js?v=20260517';
+    const mainSrc = 'js/main.js?v=20260517';
+
+    expect(html).not.toContain(configSrc);
+    expect(html).toContain(mainSrc);
+    expect(html).not.toContain('v=20240621');
+    expect(html).not.toContain('config.js?v=');
+  });
+
+
+
  codex/review-codex-vitae-project-objectives-pb5syj
  codex/review-codex-vitae-project-objectives-0858z4
  main
@@ -62,6 +78,7 @@ describe('browser bootstrap scripts', () => {
 
 
  codex/review-codex-vitae-project-objectives-pb5syj
+ main
   it('opens the dashboard in preview mode without Firebase SDK scripts', () => {
     const html = readFileSync('index.html', 'utf-8');
     const main = readFileSync('js/main.js', 'utf-8');
@@ -69,11 +86,18 @@ describe('browser bootstrap scripts', () => {
     expect(html).toContain('<div id="auth-screen" class="hidden">');
     expect(html).toContain('<div id="app-screen">');
     expect(html).not.toContain('gstatic.com/firebasejs');
+ codex/review-codex-vitae-project-objectives-38mi3z
+    expect(html).not.toContain('model-viewer.min.js');
+
+ main
     expect(main).toContain('const PREVIEW_MODE = true;');
     expect(main).toContain('enterPreviewDashboard();');
   });
 
+ codex/review-codex-vitae-project-objectives-38mi3z
 
+
+ main
  main
  main
 });

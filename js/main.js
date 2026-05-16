@@ -3,6 +3,10 @@
 (async () => {
     'use strict';
 
+ codex/review-codex-vitae-project-objectives-38mi3z
+    const PREVIEW_MODE = true;
+
+
  codex/review-codex-vitae-project-objectives-pb5syj
     const PREVIEW_MODE = true;
 
@@ -35,6 +39,7 @@
             console.error('Failed to resolve Virtual Me: Origins runtime configuration before app start.', error);
         }
     }
+ main
 function displayConfigurationError(message, details) {
     const authScreenElement = document.getElementById('auth-screen');
     if (!authScreenElement) {
@@ -53,11 +58,20 @@ function displayConfigurationError(message, details) {
     `;
 }
 
+ codex/review-codex-vitae-project-objectives-38mi3z
+const codexConfig = { firebaseConfig: {}, backendUrl: '' };
+
 const codexConfig = window.__CODEX_CONFIG__ || (PREVIEW_MODE ? { firebaseConfig: {}, backendUrl: '' } : null);
+ main
 
 if (!PREVIEW_MODE && (!codexConfig || typeof codexConfig !== 'object')) {
     displayConfigurationError(
         'Virtual Me: Origins configuration is missing.',
+ codex/review-codex-vitae-project-objectives-38mi3z
+        'The runtime config script did not publish <code>window.__CODEX_CONFIG__</code> before the app started.'
+    );
+    console.error('Virtual Me: Origins configuration is missing. Runtime config was unavailable before app start.');
+
  codex/review-codex-vitae-project-objectives-pb5syj
         'The runtime config script did not publish <code>window.__CODEX_CONFIG__</code> before the app started.'
     );
@@ -71,6 +85,7 @@ if (!PREVIEW_MODE && (!codexConfig || typeof codexConfig !== 'object')) {
         'Define <code>window.__CODEX_CONFIG__</code> in config.js before loading the app.'
     );
     console.error('Virtual Me: Origins configuration is missing. Define window.__CODEX_CONFIG__ in config.js.');
+ main
  main
  main
     return;
@@ -134,6 +149,11 @@ if (!PREVIEW_MODE && (!firebaseConfig || typeof firebaseConfig !== 'object')) {
 if (!AI_FEATURES_AVAILABLE) {
     console.warn(
         'Virtual Me: Origins backendUrl is not configured. AI-powered features will be disabled until it is set.'
+ codex/review-codex-vitae-project-objectives-38mi3z
+    );
+}
+
+
  codex/review-codex-vitae-project-objectives-pb5syj
 
     );
@@ -149,6 +169,7 @@ if (!firebaseNamespace || typeof firebaseNamespace !== 'object' || typeof fireba
     );
 }
 
+ main
 let auth;
 let db;
 let storage = null;

@@ -49,6 +49,9 @@ function collectTextFiles(directory: string, files: string[] = []): string[] {
 
 describe('repository hygiene', () => {
   it('does not contain unresolved merge conflict markers', () => {
+ codex/review-codex-vitae-project-objectives-38mi3z
+    const markers = [60, 61, 62].map(code => String.fromCharCode(code).repeat(7));
+
  codex/review-codex-vitae-project-objectives-pb5syj
     const markers = [60, 61, 62].map(code => String.fromCharCode(code).repeat(7));
 
@@ -56,6 +59,7 @@ describe('repository hygiene', () => {
     const markers = [60, 61, 62].map(code => String.fromCharCode(code).repeat(7));
 
     const markers = ['<'.repeat(7), '='.repeat(7), '>'.repeat(7)];
+ main
  main
  main
     const offenders: string[] = [];
