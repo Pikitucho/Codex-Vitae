@@ -3,9 +3,26 @@
 (async () => {
     'use strict';
 
-// --- CONFIGURATION ---
-// Sensitive configuration values are now injected via config.js which
-// should define window.__CODEX_CONFIG__.
+    const RUNTIME_CONFIG_SCRIPT_SRC = 'config.js?v=20260516';
+
+    function loadRuntimeConfigScript() {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = RUNTIME_CONFIG_SCRIPT_SRC;
+            script.onload = resolve;
+            script.onerror = () => reject(new Error(`Failed to load ${RUNTIME_CONFIG_SCRIPT_SRC}`));
+            document.head.appendChild(script);
+        });
+    }
+
+    if (!window.__CODEX_CONFIG_READY__ && !window.__CODEX_CONFIG__) {
+        try {
+            await loadRuntimeConfigScript();
+        } catch (error) {
+            console.error('Failed to load Virtual Me: Origins runtime configuration script before app start.', error);
+        }
+    }
+
     const codexConfigReady = window.__CODEX_CONFIG_READY__;
     if (codexConfigReady && typeof codexConfigReady.then === 'function') {
         try {
@@ -28,7 +45,7 @@ function displayConfigurationError(message, details) {
         <h1>Virtual Me: Origins</h1>
         <p class="config-error-message">${message}</p>
         ${extraDetails}
-        <p>Update the placeholders in <code>config.js</code> or provide a <code>config.runtime.json</code> file with your Firebase project values.</p>
+        <p>Refresh the page. If this persists, confirm <code>config.js</code> is published with the app or provide a <code>config.runtime.json</code> file with your Firebase project values.</p>
     `;
 }
 
@@ -37,9 +54,15 @@ const codexConfig = window.__CODEX_CONFIG__;
 if (!codexConfig || typeof codexConfig !== 'object') {
     displayConfigurationError(
         'Virtual Me: Origins configuration is missing.',
+ codex/review-codex-vitae-project-objectives-0858z4
+        'The runtime config script did not publish <code>window.__CODEX_CONFIG__</code> before the app started.'
+    );
+    console.error('Virtual Me: Origins configuration is missing. Runtime config was unavailable before app start.');
+
         'Define <code>window.__CODEX_CONFIG__</code> in config.js before loading the app.'
     );
     console.error('Virtual Me: Origins configuration is missing. Define window.__CODEX_CONFIG__ in config.js.');
+ main
     return;
 }
 
