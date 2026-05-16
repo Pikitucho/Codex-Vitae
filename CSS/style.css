@@ -1249,3 +1249,390 @@ model-viewer.avatar-viewer {
         margin-left: 0;
     }
 }
+
+/* --- Virtual Me: Origins Animus dashboard shell --- */
+:root {
+    --animus-bg: #03070c;
+    --animus-panel: rgba(6, 18, 28, 0.78);
+    --animus-panel-strong: rgba(8, 28, 42, 0.92);
+    --animus-cyan: #7df9ff;
+    --animus-cyan-soft: rgba(125, 249, 255, 0.28);
+    --animus-cyan-faint: rgba(125, 249, 255, 0.12);
+    --animus-white: #edfaff;
+    --animus-muted: rgba(206, 232, 242, 0.72);
+    --animus-warning: #ffcc66;
+    --animus-danger: #ff6b7a;
+    --animus-grid: rgba(125, 249, 255, 0.08);
+}
+
+body {
+    min-height: 100vh;
+    padding: 28px;
+    align-items: stretch;
+    justify-content: center;
+    color: var(--animus-white);
+    background:
+        radial-gradient(circle at 50% 20%, rgba(58, 196, 255, 0.18), transparent 34%),
+        radial-gradient(circle at 85% 80%, rgba(255, 255, 255, 0.08), transparent 30%),
+        linear-gradient(135deg, #010308 0%, #071521 48%, #02050a 100%);
+    overflow-x: hidden;
+}
+
+body::before {
+    background:
+        linear-gradient(var(--animus-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--animus-grid) 1px, transparent 1px),
+        radial-gradient(circle at 12% 18%, rgba(125, 249, 255, 0.14), transparent 24%),
+        radial-gradient(circle at 82% 12%, rgba(255, 255, 255, 0.08), transparent 28%);
+    background-size: 42px 42px, 42px 42px, auto, auto;
+    opacity: 0.9;
+    z-index: -2;
+}
+
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 5px),
+        linear-gradient(90deg, transparent, rgba(125, 249, 255, 0.08), transparent);
+    mix-blend-mode: screen;
+    opacity: 0.34;
+    z-index: 2000;
+}
+
+#auth-screen {
+    margin: auto;
+    background: linear-gradient(150deg, rgba(5, 18, 28, 0.92), rgba(6, 32, 46, 0.76));
+    border: 1px solid var(--animus-cyan-soft);
+    border-radius: 4px;
+    box-shadow: 0 0 48px rgba(125, 249, 255, 0.16), inset 0 0 32px rgba(125, 249, 255, 0.06);
+    color: var(--animus-white);
+}
+
+#auth-screen h1,
+#app-screen h2,
+#app-screen h3,
+#app-screen h4,
+.modal-content h2 {
+    color: var(--animus-white);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+#app-screen {
+    width: min(1560px, 100%);
+    max-width: none;
+    min-height: calc(100vh - 56px);
+    display: grid;
+    grid-template-columns: minmax(280px, 0.9fr) minmax(360px, 1.25fr) minmax(320px, 1fr);
+    grid-template-areas:
+        "header header header"
+        "legacy avatar maintenance"
+        "stats avatar perks"
+        "stats scan chores"
+        "nav nav nav";
+    gap: 18px;
+    padding: 22px;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 18%),
+        linear-gradient(155deg, rgba(4, 14, 22, 0.94), rgba(6, 22, 34, 0.72));
+    border: 1px solid var(--animus-cyan-soft);
+    border-radius: 6px;
+    box-shadow:
+        0 0 70px rgba(125, 249, 255, 0.12),
+        inset 0 0 42px rgba(125, 249, 255, 0.05);
+    backdrop-filter: blur(14px);
+    position: relative;
+    overflow: hidden;
+}
+
+#app-screen::before,
+#app-screen::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    z-index: 0;
+}
+
+#app-screen::before {
+    inset: 12px;
+    border: 1px solid rgba(125, 249, 255, 0.12);
+    clip-path: polygon(0 0, 21% 0, 24% 6px, 76% 6px, 79% 0, 100% 0, 100% 100%, 0 100%);
+}
+
+#app-screen::after {
+    inset: 0;
+    background:
+        linear-gradient(120deg, transparent 0 18%, rgba(125, 249, 255, 0.08) 18.15%, transparent 18.3% 64%, rgba(125, 249, 255, 0.06) 64.1%, transparent 64.25%),
+        radial-gradient(circle at 50% 42%, rgba(125, 249, 255, 0.12), transparent 32%);
+    opacity: 0.8;
+}
+
+#app-screen > * {
+    position: relative;
+    z-index: 1;
+}
+
+.animus-shell-header {
+    grid-area: header;
+    padding: 18px 22px;
+    border: 1px solid var(--animus-cyan-soft);
+    background: linear-gradient(90deg, rgba(125, 249, 255, 0.12), rgba(6, 18, 28, 0.7) 42%, rgba(125, 249, 255, 0.08));
+    box-shadow: inset 0 -1px 0 rgba(125, 249, 255, 0.24);
+}
+
+.animus-shell-header h2 {
+    margin: 4px 0;
+    text-align: left;
+    font-size: clamp(1.7rem, 3vw, 3.4rem);
+    line-height: 1;
+}
+
+.animus-shell-header p,
+.animus-kicker {
+    color: var(--animus-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 0.78rem;
+}
+
+#legacy-level-section { grid-area: legacy; }
+#stat-panel { grid-area: stats; }
+.avatar-hero { grid-area: avatar; }
+#face-scan-section { grid-area: scan; align-self: start; }
+#maintenance-card { grid-area: maintenance; }
+#perk-panel { grid-area: perks; }
+#chore-section { grid-area: chores; }
+#open-codex-btn { grid-area: nav; justify-self: center; min-width: min(420px, 100%); }
+
+.widget,
+.modal-content,
+.stat-card,
+.perk-overview-card,
+.perk-progress-card {
+    background: linear-gradient(160deg, rgba(4, 20, 31, 0.86), rgba(3, 12, 20, 0.66));
+    border: 1px solid var(--animus-cyan-soft);
+    border-radius: 4px;
+    box-shadow: 0 0 30px rgba(125, 249, 255, 0.08), inset 0 0 22px rgba(125, 249, 255, 0.035);
+    color: var(--animus-white);
+}
+
+.widget::before {
+    background:
+        linear-gradient(90deg, var(--animus-cyan-soft), transparent 36%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 42%);
+    opacity: 0.55;
+}
+
+.widget > *,
+.stat-card > *,
+.perk-overview-card > *,
+.perk-progress-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+.widget h3,
+.widget h4 {
+    text-align: left;
+    margin-top: 0;
+    color: var(--animus-white);
+    text-shadow: 0 0 14px rgba(125, 249, 255, 0.28);
+}
+
+.widget-subtitle,
+.meta-label,
+.legacy-progress-text,
+.legacy-counter,
+.stat-confidence,
+.perk-progress-text,
+.empty-state,
+.chore-details {
+    color: var(--animus-muted);
+}
+
+.avatar-hero {
+    min-height: 590px;
+    border: 1px solid var(--animus-cyan-soft);
+    border-radius: 4px;
+    background:
+        radial-gradient(circle at 50% 34%, rgba(125, 249, 255, 0.18), transparent 31%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 44%),
+        rgba(2, 10, 18, 0.74);
+    box-shadow: inset 0 0 70px rgba(125, 249, 255, 0.08), 0 0 42px rgba(125, 249, 255, 0.12);
+}
+
+.avatar-hero::before {
+    background:
+        repeating-radial-gradient(circle at 50% 42%, transparent 0 44px, rgba(125, 249, 255, 0.12) 45px 46px),
+        linear-gradient(90deg, transparent 49.8%, rgba(125, 249, 255, 0.28) 50%, transparent 50.2%),
+        linear-gradient(0deg, transparent 49.8%, rgba(125, 249, 255, 0.2) 50%, transparent 50.2%);
+    opacity: 0.8;
+}
+
+.avatar-hero::after {
+    background: radial-gradient(circle at 50% 38%, rgba(237, 250, 255, 0.2), transparent 58%);
+}
+
+.avatar-stage,
+.avatar-stage.is-placeholder {
+    border-radius: 50%;
+    border: 1px solid var(--animus-cyan-soft);
+    background:
+        radial-gradient(circle at 50% 26%, rgba(237, 250, 255, 0.32), transparent 19%),
+        radial-gradient(circle at 50% 56%, rgba(125, 249, 255, 0.18), transparent 44%),
+        rgba(2, 12, 20, 0.72);
+    box-shadow: 0 0 54px rgba(125, 249, 255, 0.18), inset 0 0 34px rgba(125, 249, 255, 0.08);
+}
+
+.avatar-stage.is-placeholder::before {
+    background:
+        linear-gradient(90deg, transparent 49%, rgba(125, 249, 255, 0.45) 50%, transparent 51%),
+        linear-gradient(0deg, transparent 49%, rgba(125, 249, 255, 0.35) 50%, transparent 51%),
+        radial-gradient(circle, transparent 52%, rgba(125, 249, 255, 0.18) 53%, transparent 58%);
+}
+
+input,
+select,
+button {
+    background: rgba(3, 15, 24, 0.86);
+    color: var(--animus-white);
+    border: 1px solid rgba(125, 249, 255, 0.22);
+    border-radius: 2px;
+}
+
+button,
+#open-codex-btn,
+#skill-search-form button {
+    background: linear-gradient(135deg, rgba(125, 249, 255, 0.18), rgba(125, 249, 255, 0.42));
+    color: var(--animus-white);
+    border: 1px solid rgba(125, 249, 255, 0.5);
+    box-shadow: 0 0 22px rgba(125, 249, 255, 0.18), inset 0 0 14px rgba(125, 249, 255, 0.08);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+button:hover,
+#open-codex-btn:hover {
+    box-shadow: 0 0 34px rgba(125, 249, 255, 0.32), inset 0 0 18px rgba(125, 249, 255, 0.12);
+}
+
+.stat-bar,
+.progress-bar-container,
+.legacy-progress-track {
+    background: rgba(125, 249, 255, 0.08);
+    border: 1px solid rgba(125, 249, 255, 0.16);
+    border-radius: 2px;
+}
+
+.stat-bar-fill,
+.progress-bar,
+.legacy-progress-fill {
+    background: linear-gradient(90deg, rgba(125, 249, 255, 0.22), rgba(125, 249, 255, 0.92), rgba(237, 250, 255, 0.7));
+    box-shadow: 0 0 18px rgba(125, 249, 255, 0.34);
+}
+
+.stat-bar.legacy .stat-bar-fill {
+    background: linear-gradient(90deg, rgba(255, 204, 102, 0.25), rgba(255, 204, 102, 0.88));
+}
+
+.chore-preset-btn,
+.chore-item,
+.chore-stat-badge {
+    background: rgba(125, 249, 255, 0.08);
+    border-color: rgba(125, 249, 255, 0.18);
+    color: var(--animus-white);
+}
+
+.hud-toast-region {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 2200;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: min(380px, calc(100vw - 32px));
+    pointer-events: none;
+}
+
+.hud-toast {
+    padding: 14px 16px;
+    border: 1px solid var(--animus-cyan-soft);
+    border-left: 4px solid var(--animus-cyan);
+    background: linear-gradient(135deg, rgba(4, 20, 31, 0.96), rgba(5, 33, 48, 0.88));
+    color: var(--animus-white);
+    box-shadow: 0 0 28px rgba(125, 249, 255, 0.18);
+    transform: translateX(0);
+    opacity: 1;
+    transition: opacity 0.24s ease, transform 0.24s ease;
+}
+
+.hud-toast[data-variant="warning"] {
+    border-left-color: var(--animus-warning);
+}
+
+.hud-toast.is-dismissing {
+    opacity: 0;
+    transform: translateX(16px);
+}
+
+.hud-toast-label,
+.hud-toast-message {
+    display: block;
+}
+
+.hud-toast-label {
+    color: var(--animus-cyan);
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.hud-toast-message {
+    color: var(--animus-white);
+    line-height: 1.35;
+}
+
+@media (max-width: 980px) {
+    body {
+        padding: 18px;
+    }
+
+    #app-screen {
+        min-height: auto;
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "header"
+            "avatar"
+            "scan"
+            "legacy"
+            "stats"
+            "maintenance"
+            "perks"
+            "chores"
+            "nav";
+    }
+
+    .avatar-hero {
+        min-height: 430px;
+    }
+}
+
+@media (max-width: 520px) {
+    body {
+        padding: 12px;
+    }
+
+    #app-screen {
+        padding: 14px;
+    }
+
+    .hud-toast-region {
+        right: 16px;
+        bottom: 16px;
+    }
+}
